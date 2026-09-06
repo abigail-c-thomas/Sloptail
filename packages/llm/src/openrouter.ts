@@ -42,7 +42,9 @@ export class OpenRouterClient implements LlmClient {
 
   constructor(opts: OpenRouterOptions) {
     this.opts = opts;
-    this.fetchImpl = opts.fetch ?? fetch;
+    // Wrap rather than store the global: Workers throw "Illegal invocation"
+    // when fetch is called with a different `this`.
+    this.fetchImpl = opts.fetch ?? ((input, init) => fetch(input, init));
   }
 
   async complete(req: CompletionRequest): Promise<Completion> {

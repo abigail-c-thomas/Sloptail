@@ -155,6 +155,7 @@ app.route("/bar", barApi);
 // --- errors ----------------------------------------------------------------
 
 function llmFailure(c: { json: (o: unknown, status: 502 | 504) => Response }, e: unknown): Response {
+  console.error("llm failure", (e as Error)?.name, (e as Error)?.message, e instanceof ProposeError ? e.attempts.map((a) => a.problems) : "");
   if (e instanceof ProposeError) {
     return c.json({ error: "The bartender-bot got confused. Try rephrasing, or pick a classic.", attempts: e.attempts.length }, 502);
   }
