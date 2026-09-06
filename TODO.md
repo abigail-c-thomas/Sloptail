@@ -23,10 +23,10 @@ Legend: **[you]** needs Abigail · **[claude]** Claude can do alone · **[both]*
 - [x] **[you]** Create a Cloudflare account (free tier is enough).
 - [x] **[you]** Authorise wrangler.
 - [x] **[claude]** First deploy: https://sloptail.sloptail-server.workers.dev (bar: `/bar?token=…`, token shared in chat). Secrets set.
-- [ ] **[claude]** Per-device rate limit on `/api/propose` and `/api/edit` so a leaked URL can't burn OpenRouter credit.
+- [x] **[claude]** Per-device rate limit (8/min) and global cap (120/min) on model endpoints; robots noindex.
 - [ ] **[you]** Decide the URL: the default `sloptail.<account>.workers.dev` or a custom domain you own.
 - [ ] **[you]** Open it on your phone on the venue guest wifi. Report whether it loads and whether a proposal comes back.
-- [ ] **[claude]** Load script: 70 concurrent guests placing orders, check nothing falls over and OpenRouter doesn't rate-limit.
+- [x] **[claude]** Load test against the live site with model calls: 70 guests in 33s, 0 failures; propose p50 4.3s / p95 6.9s / max 15s; everything else under 100ms.
 
 ## 4. Evals (together)
 
