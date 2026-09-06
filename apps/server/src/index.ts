@@ -11,10 +11,10 @@ import {
   SubmitBody,
 } from "@sloptail/shared";
 import { OpenRouterClient, ProposeError, edit, propose } from "@sloptail/llm";
-import type { Env } from "./env.js";
-import type { Result } from "./bar-do.js";
+import type { Env } from "./env.ts";
+import type { Result } from "./bar-do.ts";
 
-export { BarDO } from "./bar-do.js";
+export { BarDO } from "./bar-do.ts";
 
 type App = { Bindings: Env };
 

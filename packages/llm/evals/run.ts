@@ -9,9 +9,9 @@
  */
 import { mkdirSync, writeFileSync } from "node:fs";
 import { CATALOG_BY_ID, formatAmount } from "@sloptail/shared";
-import { OpenRouterClient } from "../src/openrouter.js";
-import { propose, ProposeError, type Attempt } from "../src/propose.js";
-import { CASES, type EvalCase } from "./cases.js";
+import { OpenRouterClient } from "../src/openrouter.ts";
+import { propose, ProposeError, type Attempt } from "../src/propose.ts";
+import { CASES, type EvalCase } from "./cases.ts";
 
 const args = parseArgs(process.argv.slice(2));
 const apiKey = process.env.OPENROUTER_API_KEY;

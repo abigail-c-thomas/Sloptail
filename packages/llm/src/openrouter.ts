@@ -1,4 +1,4 @@
-import type { Completion, CompletionRequest, LlmClient } from "./client.js";
+import type { Completion, CompletionRequest, LlmClient } from "./client.ts";
 
 export interface OpenRouterOptions {
   apiKey: string;
@@ -17,12 +17,11 @@ export interface OpenRouterOptions {
 }
 
 export class OpenRouterError extends Error {
-  constructor(
-    public readonly status: number,
-    message: string,
-  ) {
+  readonly status: number;
+  constructor(status: number, message: string) {
     super(message);
     this.name = "OpenRouterError";
+    this.status = status;
   }
 }
 
@@ -31,9 +30,11 @@ export class OpenRouterError extends Error {
  * identically in Workers, Node and tests.
  */
 export class OpenRouterClient implements LlmClient {
+  private readonly opts: OpenRouterOptions;
   private readonly fetchImpl: typeof fetch;
 
-  constructor(private readonly opts: OpenRouterOptions) {
+  constructor(opts: OpenRouterOptions) {
+    this.opts = opts;
     this.fetchImpl = opts.fetch ?? fetch;
   }
 

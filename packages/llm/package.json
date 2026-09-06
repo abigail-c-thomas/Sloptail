@@ -9,14 +9,13 @@
     ".": "./src/index.ts"
   },
   "scripts": {
-    "eval": "tsx evals/run.ts"
+    "eval": "node evals/run.ts"
   },
   "dependencies": {
     "@sloptail/shared": "*",
     "zod": "^4"
   },
   "devDependencies": {
-    "tsx": "^4",
     "@types/node": "^22"
   }
 }

@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import type { Order } from "@sloptail/shared";
 import { Badge, Button, Card, RecipeList, Spinner, Stack } from "@sloptail/ui";
-import { api } from "../api.js";
+import { api } from "../api.ts";
 
 const TONE: Record<Order["status"], "accent" | "ok" | "warn" | "danger" | undefined> = {
   queued: undefined,

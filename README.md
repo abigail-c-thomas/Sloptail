@@ -18,6 +18,15 @@ apps/web          Vite + React SPA: `/` for guests, `/bar` for the bar
 Everything is TypeScript. The server owns all model calls; the browser never
 sees the API key.
 
+## Dependencies
+
+Kept deliberately small. Runtime: `react`, `react-dom`, `hono`, `zod`.
+Tooling: `typescript`, `vite`, `wrangler`, plus type packages. Tests use
+Node's built-in runner (`node --test`) and Node's native TypeScript type
+stripping, so there is no test framework or TS loader. No router, no CSS
+framework, no React build plugin. Before adding anything, check what it pulls
+in with `npm ls --all` and prefer a platform built-in.
+
 ## Running locally
 
 ```bash
@@ -33,7 +42,7 @@ http://localhost:5173/bar?token=dev for the bar screen.
 Other scripts:
 
 ```bash
-npm test          # vitest: state machine + llm loop (no network)
+npm test          # node --test: state machine + llm loop (no network)
 npm run typecheck # tsc across all packages
 npm run eval      # sends eval cases through a real model; needs OPENROUTER_API_KEY
 ```

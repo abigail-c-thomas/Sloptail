@@ -1,5 +1,5 @@
-import { CATALOG_BY_ID } from "./catalog.js";
-import type { Ingredient, Recipe, RecipeItem, Strength } from "./types.js";
+import { CATALOG_BY_ID } from "./catalog.ts";
+import type { Ingredient, Recipe, RecipeItem, Strength } from "./types.ts";
 
 /** Human-readable amount, e.g. "50 ml", "2 dashes", "fill". */
 export function formatAmount(item: RecipeItem, ingredient?: Ingredient): string {

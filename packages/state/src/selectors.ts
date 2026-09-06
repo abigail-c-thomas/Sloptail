@@ -1,5 +1,5 @@
 import { CATALOG_BY_ID, type Order } from "@sloptail/shared";
-import type { BarState } from "./state.js";
+import type { BarState } from "./state.ts";
 
 /** Orders waiting to be made or in progress, oldest first. */
 export function queue(state: BarState): Order[] {

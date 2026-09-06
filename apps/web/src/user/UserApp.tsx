@@ -15,7 +15,7 @@ import {
   TextArea,
   TextField,
 } from "@sloptail/ui";
-import { api, ApiError } from "../api.js";
+import { api, ApiError } from "../api.ts";
 import {
   loadActiveOrder,
   loadLastRequest,
@@ -23,9 +23,9 @@ import {
   saveActiveOrder,
   saveLastRequest,
   saveUser,
-} from "../storage.js";
-import { PastOrders } from "./PastOrders.js";
-import { Tracking } from "./Tracking.js";
+} from "../storage.ts";
+import { PastOrders } from "./PastOrders.tsx";
+import { Tracking } from "./Tracking.tsx";
 
 // ---------------------------------------------------------------------------
 // Wizard state

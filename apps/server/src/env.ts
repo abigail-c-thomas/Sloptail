@@ -1,4 +1,4 @@
-import type { BarDO } from "./bar-do.js";
+import type { BarDO } from "./bar-do.ts";
 
 export interface Env {
   BAR: DurableObjectNamespace<BarDO>;

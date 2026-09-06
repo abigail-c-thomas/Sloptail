@@ -1,7 +1,7 @@
 import { describeIssue, validateRecipe, type Proposal } from "@sloptail/shared";
-import type { LlmClient, Message } from "./client.js";
-import { ParseError, parseProposal, PROPOSAL_JSON_SCHEMA } from "./parse.js";
-import { editMessages, proposeMessages, repairMessages, type PromptContext } from "./prompt.js";
+import type { LlmClient, Message } from "./client.ts";
+import { ParseError, parseProposal, PROPOSAL_JSON_SCHEMA } from "./parse.ts";
+import { editMessages, proposeMessages, repairMessages, type PromptContext } from "./prompt.ts";
 
 export interface Attempt {
   raw: string;
@@ -23,12 +23,11 @@ export interface ProposeOptions {
 }
 
 export class ProposeError extends Error {
-  constructor(
-    message: string,
-    public readonly attempts: Attempt[],
-  ) {
+  readonly attempts: Attempt[];
+  constructor(message: string, attempts: Attempt[]) {
     super(message);
     this.name = "ProposeError";
+    this.attempts = attempts;
   }
 }
 

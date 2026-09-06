@@ -1,18 +1,15 @@
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
-import { BrowserRouter, Route, Routes } from "react-router-dom";
 import "@sloptail/ui/styles.css";
 import "./app.css";
-import { UserApp } from "./user/UserApp.js";
-import { BarApp } from "./bar/BarApp.js";
+import { UserApp } from "./user/UserApp.tsx";
+import { BarApp } from "./bar/BarApp.tsx";
+
+// Two routes; a router library would be more code than this.
+const Screen = window.location.pathname.replace(/\/+$/, "") === "/bar" ? BarApp : UserApp;
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
-    <BrowserRouter>
-      <Routes>
-        <Route path="/" element={<UserApp />} />
-        <Route path="/bar" element={<BarApp />} />
-      </Routes>
-    </BrowserRouter>
+    <Screen />
   </StrictMode>,
 );

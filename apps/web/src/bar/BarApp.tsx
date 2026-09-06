@@ -1,8 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { useSearchParams } from "react-router-dom";
 import { CATALOG, type Order } from "@sloptail/shared";
 import { Badge, Banner, Button, Card, Drawer, RecipeList, Stack, TextField } from "@sloptail/ui";
-import { BarApiError, makeBarApi, type BarView } from "./barApi.js";
+import { BarApiError, makeBarApi, type BarView } from "./barApi.ts";
 
 const POLL_MS = 2000;
 const STALE_AFTER_MS = 5 * 60 * 1000;
@@ -13,8 +12,7 @@ const STALE_AFTER_MS = 5 * 60 * 1000;
  * the bar waiting to be collected. Ingredient availability lives in a drawer.
  */
 export function BarApp() {
-  const [params, setParams] = useSearchParams();
-  const [token, setToken] = useState(() => params.get("token") ?? localStorage.getItem("sloptail:barToken") ?? "");
+  const [token, setToken] = useState(() => new URLSearchParams(window.location.search).get("token") ?? localStorage.getItem("sloptail:barToken") ?? "");
   const [bartender, setBartender] = useState(() => localStorage.getItem("sloptail:bartender") ?? "");
   const [view, setView] = useState<BarView | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -23,12 +21,14 @@ export function BarApp() {
 
   // Persist token from the URL, then remove it from the address bar.
   useEffect(() => {
-    if (params.get("token")) {
-      localStorage.setItem("sloptail:barToken", params.get("token")!);
-      params.delete("token");
-      setParams(params, { replace: true });
+    const url = new URL(window.location.href);
+    const fromUrl = url.searchParams.get("token");
+    if (fromUrl) {
+      localStorage.setItem("sloptail:barToken", fromUrl);
+      url.searchParams.delete("token");
+      window.history.replaceState(null, "", url.pathname + url.search);
     }
-  }, [params, setParams]);
+  }, []);
   useEffect(() => localStorage.setItem("sloptail:bartender", bartender), [bartender]);
 
   const api = useMemo(() => makeBarApi(token), [token]);

@@ -5,12 +5,11 @@ import { z } from "zod";
 export const PROPOSAL_JSON_SCHEMA = z.toJSONSchema(Proposal) as Record<string, unknown>;
 
 export class ParseError extends Error {
-  constructor(
-    message: string,
-    public readonly raw: string,
-  ) {
+  readonly raw: string;
+  constructor(message: string, raw: string) {
     super(message);
     this.name = "ParseError";
+    this.raw = raw;
   }
 }
 

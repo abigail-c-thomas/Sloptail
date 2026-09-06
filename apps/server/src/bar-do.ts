@@ -21,7 +21,7 @@ import {
   type Stats,
   type SubmitInput,
 } from "@sloptail/state";
-import type { Env } from "./env.js";
+import type { Env } from "./env.ts";
 
 /** Result shape for RPC methods: StateError doesn't survive the RPC boundary intact. */
 export type Result<T> = { ok: true; value: T } | { ok: false; code: StateError["code"]; message: string };

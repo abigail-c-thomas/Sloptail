@@ -17,13 +17,14 @@ export function createState(): BarState {
   return { orders: {}, unavailable: [], nextSeq: 1 };
 }
 
+export type StateErrorCode = "not-found" | "bad-transition" | "unavailable-ingredient";
+
 export class StateError extends Error {
-  constructor(
-    public readonly code: "not-found" | "bad-transition" | "unavailable-ingredient",
-    message: string,
-  ) {
+  readonly code: StateErrorCode;
+  constructor(code: StateErrorCode, message: string) {
     super(message);
     this.name = "StateError";
+    this.code = code;
   }
 }
 

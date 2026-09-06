@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import type { Order } from "@sloptail/shared";
 import { Badge, Banner, Button, Card, ProposalCard, Spinner, Stack } from "@sloptail/ui";
-import { api } from "../api.js";
+import { api } from "../api.ts";
 
 const POLL_MS = 3000;
 

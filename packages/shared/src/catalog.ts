@@ -1,4 +1,4 @@
-import type { Ingredient } from "./types.js";
+import type { Ingredient } from "./types.ts";
 
 /**
  * The starter bar. Edit freely: this is the single source of truth for what

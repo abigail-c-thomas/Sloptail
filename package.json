@@ -13,14 +13,13 @@
     "dev:web": "npm run dev --workspace=apps/web",
     "build": "npm run build --workspace=apps/web",
     "deploy": "npm run build && npm run deploy --workspace=apps/server",
-    "test": "vitest run",
-    "test:watch": "vitest",
+    "test": "node --test \"packages/*/src/**/*.test.ts\"",
     "typecheck": "tsc -b",
-    "eval": "npm run eval --workspace=packages/llm"
+    "eval": "npm run eval --workspace=packages/llm",
+    "test:watch": "node --test --watch \"packages/*/src/**/*.test.ts\""
   },
   "devDependencies": {
-    "typescript": "^5",
-    "vitest": "^3"
+    "typescript": "^5"
   },
   "engines": {
     "node": ">=22"

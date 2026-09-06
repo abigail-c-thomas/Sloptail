@@ -6,8 +6,8 @@ import {
   type Strength,
   type UserRequest,
 } from "@sloptail/shared";
-import type { Message } from "./client.js";
-import { PROPOSAL_JSON_SCHEMA } from "./parse.js";
+import type { Message } from "./client.ts";
+import { PROPOSAL_JSON_SCHEMA } from "./parse.ts";
 
 export interface PromptContext {
   userName: string;

@@ -1,4 +1,4 @@
-import type { Proposal, Strength } from "./types.js";
+import type { Proposal, Strength } from "./types.ts";
 
 export interface Classic {
   id: string;
