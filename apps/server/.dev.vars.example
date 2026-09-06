@@ -1,0 +1,3 @@
+# Copy to .dev.vars (gitignored) for local dev.
+OPENROUTER_API_KEY=sk-or-...
+BAR_TOKEN=dev

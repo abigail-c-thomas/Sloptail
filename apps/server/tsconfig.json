@@ -1,0 +1,13 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "rootDir": "src",
+    "outDir": "dist",
+    "noEmit": true,
+    "composite": false,
+    "declaration": false,
+    "types": ["@cloudflare/workers-types/2023-07-01"]
+  },
+  "include": ["src"],
+  "references": [{ "path": "../../packages/shared" }, { "path": "../../packages/state" }, { "path": "../../packages/llm" }]
+}

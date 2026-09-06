@@ -1,0 +1,21 @@
+{
+  "name": "@sloptail/server",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "mkdir -p ../web/dist && wrangler dev",
+    "deploy": "wrangler deploy",
+    "types": "wrangler types"
+  },
+  "dependencies": {
+    "@sloptail/llm": "*",
+    "@sloptail/shared": "*",
+    "@sloptail/state": "*",
+    "hono": "^4"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^4",
+    "wrangler": "^4"
+  }
+}

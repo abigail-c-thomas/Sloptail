@@ -1,0 +1,159 @@
+import { describe, expect, it } from "vitest";
+import type { Proposal, UserRequest } from "@sloptail/shared";
+import {
+  StateError,
+  batches,
+  cancelOrder,
+  claimOrder,
+  createState,
+  markCollected,
+  markReady,
+  ordersForUser,
+  ordersUsing,
+  queue,
+  setAvailability,
+  submitOrder,
+  unclaimOrder,
+  type BarState,
+} from "./index.js";
+
+const request: UserRequest = { strength: "full", adventurousness: 2, prompt: "something citrusy" };
+
+const gt: Proposal = {
+  name: "G&T",
+  description: "gin and tonic",
+  method: "build",
+  glass: "highball",
+  recipe: [
+    { ingredient: "gin", amount: 50 },
+    { ingredient: "tonic", amount: "fill" },
+    { ingredient: "lime-wedge", amount: 1 },
+  ],
+};
+
+const mule: Proposal = {
+  name: "Mule",
+  description: "vodka ginger beer",
+  method: "build",
+  glass: "highball",
+  recipe: [
+    { ingredient: "vodka", amount: 50 },
+    { ingredient: "ginger-beer", amount: "fill" },
+  ],
+};
+
+function submit(state: BarState, proposal: Proposal, userId = "u1", now = 1000) {
+  return submitOrder(state, { userId, userName: userId.toUpperCase(), request, proposal, now });
+}
+
+describe("orders", () => {
+  it("submits and mints sequential ids", () => {
+    const a = submit(createState(), gt);
+    const b = submit(a.state, mule, "u2", 2000);
+    expect(a.order.id).toBe("1");
+    expect(b.order.id).toBe("2");
+    expect(b.state.nextSeq).toBe(3);
+    expect(queue(b.state).map((o) => o.id)).toEqual(["1", "2"]);
+  });
+
+  it("does not mutate the input state", () => {
+    const s0 = createState();
+    submit(s0, gt);
+    expect(s0.orders).toEqual({});
+    expect(s0.nextSeq).toBe(1);
+  });
+
+  it("walks the happy path", () => {
+    let { state } = submit(createState(), gt);
+    state = claimOrder(state, "1", "Sam", 1100);
+    expect(state.orders["1"]?.status).toBe("making");
+    expect(state.orders["1"]?.claimedBy).toBe("Sam");
+    state = markReady(state, "1", 1200);
+    expect(state.orders["1"]?.status).toBe("ready");
+    state = markCollected(state, "1", 1300);
+    expect(state.orders["1"]?.status).toBe("collected");
+    expect(queue(state)).toEqual([]);
+  });
+
+  it("allows ready straight from queued", () => {
+    const { state } = submit(createState(), gt);
+    expect(markReady(state, "1", 1).orders["1"]?.status).toBe("ready");
+  });
+
+  it("rejects bad transitions", () => {
+    let { state } = submit(createState(), gt);
+    state = markReady(state, "1", 1);
+    state = markCollected(state, "1", 2);
+    expect(() => markReady(state, "1", 3)).toThrow(StateError);
+    expect(() => cancelOrder(state, "1", "x", 3)).toThrow(/collected/);
+  });
+
+  it("rejects unknown ids", () => {
+    expect(() => markReady(createState(), "nope", 1)).toThrow(StateError);
+  });
+
+  it("unclaims back to queued and clears the bartender", () => {
+    let { state } = submit(createState(), gt);
+    state = claimOrder(state, "1", "Sam", 1);
+    state = unclaimOrder(state, "1");
+    expect(state.orders["1"]?.status).toBe("queued");
+    expect(state.orders["1"]?.claimedBy).toBeUndefined();
+  });
+
+  it("lists a user's orders newest first", () => {
+    const a = submit(createState(), gt, "u1", 1);
+    const b = submit(a.state, mule, "u1", 2);
+    const c = submit(b.state, gt, "u2", 3);
+    expect(ordersForUser(c.state, "u1").map((o) => o.id)).toEqual(["2", "1"]);
+  });
+});
+
+describe("availability", () => {
+  it("blocks submissions that use an unavailable ingredient", () => {
+    const state = setAvailability(createState(), "gin", false);
+    expect(() => submit(state, gt)).toThrow(/gin/);
+    expect(submit(state, mule).order.id).toBe("1");
+  });
+
+  it("toggles idempotently and restocks", () => {
+    let state = setAvailability(createState(), "gin", false);
+    state = setAvailability(state, "gin", false);
+    expect(state.unavailable).toEqual(["gin"]);
+    state = setAvailability(state, "gin", true);
+    expect(state.unavailable).toEqual([]);
+  });
+
+  it("finds live orders using an ingredient", () => {
+    let { state } = submit(createState(), gt);
+    state = submit(state, mule).state;
+    state = markReady(state, "1", 5);
+    expect(ordersUsing(state, "gin")).toEqual([]);
+    expect(ordersUsing(state, "vodka").map((o) => o.id)).toEqual(["2"]);
+  });
+});
+
+describe("batches", () => {
+  it("groups by base + mixer + method, oldest batch first", () => {
+    let s = submit(createState(), mule, "a", 1).state;
+    s = submit(s, gt, "b", 2).state;
+    s = submit(s, mule, "c", 3).state;
+    s = submit(s, gt, "d", 4).state;
+    const b = batches(s);
+    expect(b.map((x) => x.orders.map((o) => o.id))).toEqual([["1", "3"], ["2", "4"]]);
+    expect(b[0]?.label).toContain("Vodka");
+  });
+
+  it("caps batch size and spills into a new batch", () => {
+    let s = createState();
+    for (let i = 0; i < 5; i++) s = submit(s, gt, `u${i}`, i).state;
+    const b = batches(s, 3);
+    expect(b.map((x) => x.orders.length)).toEqual([3, 2]);
+  });
+
+  it("excludes orders already being made", () => {
+    let s = submit(createState(), gt, "a", 1).state;
+    s = submit(s, gt, "b", 2).state;
+    s = claimOrder(s, "1", "Sam", 3);
+    expect(batches(s).flatMap((x) => x.orders.map((o) => o.id))).toEqual(["2"]);
+  });
+});

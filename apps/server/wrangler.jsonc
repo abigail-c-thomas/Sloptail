@@ -1,0 +1,28 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "sloptail",
+  "main": "src/index.ts",
+  "compatibility_date": "2025-06-01",
+  "observability": { "enabled": true },
+
+  // The built React app. `npm run build` at the repo root produces it.
+  "assets": {
+    "directory": "../web/dist",
+    "binding": "ASSETS",
+    "not_found_handling": "single-page-application",
+    "run_worker_first": ["/api/*"]
+  },
+
+  // One Durable Object instance ("main") holds the whole bar's state.
+  "durable_objects": {
+    "bindings": [{ "name": "BAR", "class_name": "BarDO" }]
+  },
+  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["BarDO"] }],
+
+  // Non-secret config. Secrets (OPENROUTER_API_KEY, BAR_TOKEN) go in
+  // `.dev.vars` locally and `wrangler secret put` in production.
+  "vars": {
+    "OPENROUTER_MODEL": "anthropic/claude-opus-5",
+    "OPENROUTER_FALLBACK_MODELS": "anthropic/claude-sonnet-5"
+  }
+}

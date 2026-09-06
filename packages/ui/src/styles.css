@@ -1,0 +1,230 @@
+/* Sloptail UI tokens + component styles. Low-profile, one accent, big touch targets. */
+:root {
+  color-scheme: light dark;
+  --bg: #f7f5f0;
+  --surface: #ffffff;
+  --surface-2: #efece5;
+  --text: #1c1b18;
+  --text-muted: #6b675e;
+  --line: #d9d4c8;
+  --accent: #c2410c;
+  --accent-ink: #ffffff;
+  --accent-soft: #fbe6da;
+  --ok: #1a7f4b;
+  --ok-soft: #dcf3e6;
+  --warn: #8a5a00;
+  --warn-soft: #fff1cc;
+  --danger: #b3261e;
+  --danger-soft: #fbe1df;
+  --radius: 14px;
+  --radius-sm: 9px;
+  --shadow: 0 1px 2px rgba(0, 0, 0, 0.06), 0 6px 18px -10px rgba(0, 0, 0, 0.18);
+  --font: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #161513;
+    --surface: #211f1c;
+    --surface-2: #2b2926;
+    --text: #f1ede4;
+    --text-muted: #a49e92;
+    --line: #3a3733;
+    --accent: #f97341;
+    --accent-ink: #1b0d06;
+    --accent-soft: #3d2116;
+    --ok: #5ccb8c;
+    --ok-soft: #173424;
+    --warn: #f2c14e;
+    --warn-soft: #3a2f10;
+    --danger: #ff7b73;
+    --danger-soft: #3f1e1c;
+    --shadow: 0 1px 2px rgba(0, 0, 0, 0.4), 0 6px 18px -10px rgba(0, 0, 0, 0.6);
+  }
+}
+
+* { box-sizing: border-box; }
+html, body { margin: 0; padding: 0; }
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font);
+  font-size: 16px;
+  line-height: 1.45;
+  -webkit-font-smoothing: antialiased;
+  -webkit-tap-highlight-color: transparent;
+}
+h1, h2, h3 { margin: 0; line-height: 1.15; letter-spacing: -0.01em; }
+h1 { font-size: 1.75rem; font-weight: 700; }
+h2 { font-size: 1.25rem; font-weight: 650; }
+h3 { font-size: 1rem; font-weight: 650; }
+p { margin: 0; }
+button, input, textarea { font: inherit; color: inherit; }
+a { color: var(--accent); }
+
+.muted { color: var(--text-muted); }
+.small { font-size: 0.875rem; }
+.mono { font-family: var(--mono); }
+
+/* --- Stack ------------------------------------------------------------ */
+.stack { display: flex; flex-direction: column; gap: var(--gap, 12px); }
+.row { display: flex; flex-direction: row; align-items: center; gap: var(--gap, 8px); flex-wrap: wrap; }
+.row.between { justify-content: space-between; }
+.grow { flex: 1 1 auto; min-width: 0; }
+
+/* --- Button ----------------------------------------------------------- */
+.btn {
+  appearance: none;
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  padding: 12px 18px;
+  min-height: 46px;
+  font-weight: 600;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  transition: transform 80ms ease, background 120ms ease, opacity 120ms ease;
+  user-select: none;
+}
+.btn:active { transform: translateY(1px) scale(0.99); }
+.btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+.btn-primary { background: var(--accent); color: var(--accent-ink); }
+.btn-secondary { background: var(--surface); border-color: var(--line); }
+.btn-ghost { background: transparent; color: var(--text-muted); padding-inline: 10px; }
+.btn-ghost:hover { color: var(--text); }
+.btn-danger { background: var(--danger-soft); color: var(--danger); }
+.btn-ok { background: var(--ok); color: #fff; }
+.btn-block { width: 100%; }
+.btn-sm { min-height: 36px; padding: 6px 12px; font-size: 0.9rem; }
+.btn-lg { min-height: 56px; font-size: 1.1rem; }
+
+/* --- Card ------------------------------------------------------------- */
+.card {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 16px;
+  box-shadow: var(--shadow);
+}
+.card.flat { box-shadow: none; }
+.card.tone-accent { border-color: var(--accent); background: var(--accent-soft); }
+.card.tone-ok { border-color: var(--ok); background: var(--ok-soft); }
+.card.tone-warn { border-color: var(--warn); background: var(--warn-soft); }
+
+/* --- Choice (segmented radio) ------------------------------------------ */
+.choice { display: grid; gap: 8px; }
+.choice-opt {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  text-align: left;
+  padding: 12px 14px;
+  border: 1.5px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  cursor: pointer;
+  min-height: 46px;
+}
+.choice-opt[aria-checked="true"] { border-color: var(--accent); background: var(--accent-soft); }
+.choice-opt .label { font-weight: 600; }
+.choice-opt .hint { color: var(--text-muted); font-size: 0.85rem; }
+.choice.inline { grid-auto-flow: column; grid-auto-columns: 1fr; }
+.choice.inline .choice-opt { align-items: center; text-align: center; }
+
+/* --- Field ------------------------------------------------------------ */
+.field { display: flex; flex-direction: column; gap: 6px; }
+.field > label { font-weight: 600; font-size: 0.95rem; }
+.field .help { color: var(--text-muted); font-size: 0.85rem; }
+.input, .textarea {
+  width: 100%;
+  border: 1.5px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  padding: 12px 14px;
+  min-height: 46px;
+  outline: none;
+}
+.input:focus, .textarea:focus { border-color: var(--accent); }
+.textarea { resize: vertical; min-height: 92px; }
+
+/* --- Chips ------------------------------------------------------------ */
+.chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.chip {
+  border: 1px solid var(--line);
+  background: var(--surface);
+  border-radius: 999px;
+  padding: 6px 12px;
+  font-size: 0.875rem;
+  cursor: pointer;
+  min-height: 34px;
+}
+.chip:hover { border-color: var(--accent); }
+
+/* --- Badge ------------------------------------------------------------ */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 999px;
+  padding: 2px 9px;
+  font-size: 0.75rem;
+  font-weight: 650;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  background: var(--surface-2);
+  color: var(--text-muted);
+}
+.badge-accent { background: var(--accent-soft); color: var(--accent); }
+.badge-ok { background: var(--ok-soft); color: var(--ok); }
+.badge-warn { background: var(--warn-soft); color: var(--warn); }
+.badge-danger { background: var(--danger-soft); color: var(--danger); }
+
+/* --- Banner ----------------------------------------------------------- */
+.banner {
+  border-radius: var(--radius-sm);
+  padding: 10px 14px;
+  background: var(--surface-2);
+  border: 1px solid var(--line);
+}
+.banner-ok { background: var(--ok-soft); border-color: var(--ok); }
+.banner-warn { background: var(--warn-soft); border-color: var(--warn); }
+.banner-danger { background: var(--danger-soft); border-color: var(--danger); }
+
+/* --- Spinner ---------------------------------------------------------- */
+.spinner {
+  width: 22px; height: 22px;
+  border: 3px solid var(--line);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+.spinner-wrap { display: flex; flex-direction: column; align-items: center; gap: 14px; padding: 32px 0; text-align: center; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* --- Steps ------------------------------------------------------------ */
+.steps { display: flex; gap: 6px; }
+.steps span { flex: 1; height: 4px; border-radius: 2px; background: var(--line); }
+.steps span.done { background: var(--accent); }
+
+/* --- Recipe ----------------------------------------------------------- */
+.recipe { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 4px; }
+.recipe li { display: flex; justify-content: space-between; gap: 12px; padding: 6px 0; border-bottom: 1px dashed var(--line); }
+.recipe li:last-child { border-bottom: 0; }
+.recipe .amt { font-family: var(--mono); font-size: 0.9rem; color: var(--text-muted); white-space: nowrap; }
+.recipe .garnish { color: var(--text-muted); }
+.recipe.compact li { padding: 2px 0; font-size: 0.95rem; }
+
+/* --- Drawer ----------------------------------------------------------- */
+.drawer-backdrop {
+  position: fixed; inset: 0; background: rgba(0,0,0,0.35); z-index: 20;
+  animation: fade 120ms ease;
+}
+.drawer {
+  position: fixed; top: 0; bottom: 0; right: 0; width: min(92vw, 380px);
+  background: var(--bg); border-left: 1px solid var(--line);
+  padding: 16px; overflow-y: auto; z-index: 21;
+  animation: slide 160ms ease;
+}
+@keyframes fade { from { opacity: 0; } }
+@keyframes slide { from { transform: translateX(30px); opacity: 0; } }

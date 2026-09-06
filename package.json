@@ -1,0 +1,28 @@
+{
+  "name": "sloptail",
+  "private": true,
+  "version": "0.0.1",
+  "description": "AI cocktail ordering for a happy-hour demo",
+  "workspaces": [
+    "packages/*",
+    "apps/*"
+  ],
+  "scripts": {
+    "dev": "npm run dev --workspace=apps/server & npm run dev --workspace=apps/web & wait",
+    "dev:server": "npm run dev --workspace=apps/server",
+    "dev:web": "npm run dev --workspace=apps/web",
+    "build": "npm run build --workspace=apps/web",
+    "deploy": "npm run build && npm run deploy --workspace=apps/server",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "typecheck": "tsc -b",
+    "eval": "npm run eval --workspace=packages/llm"
+  },
+  "devDependencies": {
+    "typescript": "^5",
+    "vitest": "^3"
+  },
+  "engines": {
+    "node": ">=22"
+  }
+}

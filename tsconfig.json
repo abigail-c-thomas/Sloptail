@@ -1,0 +1,11 @@
+{
+  "files": [],
+  "references": [
+    { "path": "packages/shared" },
+    { "path": "packages/state" },
+    { "path": "packages/llm" },
+    { "path": "packages/ui" },
+    { "path": "apps/server" },
+    { "path": "apps/web" }
+  ]
+}

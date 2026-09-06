@@ -1,0 +1,54 @@
+/* Page-level layout. Component styles live in @sloptail/ui. */
+.page {
+  max-width: 480px;
+  margin: 0 auto;
+  padding: 16px 16px calc(24px + env(safe-area-inset-bottom));
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.page-header { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.brand { font-weight: 800; letter-spacing: -0.02em; font-size: 1.1rem; }
+.brand small { font-weight: 500; color: var(--text-muted); margin-left: 6px; font-size: 0.8rem; }
+.page-footer { margin-top: auto; text-align: center; }
+
+.ready-card { text-align: center; padding: 28px 16px; }
+.ready-card h1 { font-size: 2rem; }
+.big-name { font-size: 2.4rem; font-weight: 800; letter-spacing: -0.02em; line-height: 1.05; }
+
+/* --- Bar screen: wide, dense, three columns --------------------------- */
+.bar {
+  padding: 12px;
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.bar-header { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.bar-stats { display: flex; gap: 14px; color: var(--text-muted); font-size: 0.9rem; }
+.bar-stats b { color: var(--text); }
+.bar-columns {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+  align-items: start;
+}
+@media (max-width: 900px) { .bar-columns { grid-template-columns: 1fr; } }
+.bar-col { display: flex; flex-direction: column; gap: 10px; }
+.bar-col > h2 { display: flex; justify-content: space-between; align-items: baseline; padding: 0 4px; }
+.bar-col > h2 .count { font-size: 0.9rem; color: var(--text-muted); font-weight: 500; }
+.batch { border: 1px dashed var(--line); border-radius: var(--radius); padding: 8px; display: flex; flex-direction: column; gap: 8px; background: var(--surface-2); }
+.batch-label { font-size: 0.8rem; color: var(--text-muted); padding: 0 4px; display: flex; justify-content: space-between; }
+.order-card { padding: 12px; }
+.order-card .who { font-size: 1.15rem; font-weight: 800; }
+.order-card .what { color: var(--text-muted); }
+.order-card .age { font-family: var(--mono); font-size: 0.8rem; color: var(--text-muted); }
+.order-card.stale { border-color: var(--warn); }
+.order-card.ready { border-color: var(--ok); }
+.ready-name { font-size: 1.6rem; font-weight: 800; }
+
+.ingredients { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 6px; }
+.ingredient-toggle { justify-content: space-between; text-align: left; font-weight: 500; }
+.ingredient-toggle.out { text-decoration: line-through; opacity: 0.7; }
+.empty { color: var(--text-muted); text-align: center; padding: 24px 8px; border: 1px dashed var(--line); border-radius: var(--radius); }
