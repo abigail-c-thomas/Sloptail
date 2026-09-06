@@ -42,7 +42,8 @@ Legend: **[you]** needs Abigail · **[claude]** Claude can do alone · **[both]*
 
 - [ ] **[both]** Walk the guest flow on a phone together, note what's confusing or slow.
 - [ ] **[you]** Tone check on the microcopy: the loading lines, the strength hints, the footer. Tell me what to cut.
-- [ ] **[you]** What device the bar will actually have (laptop? tablet? phone propped up?) and how many bartenders.
+- [x] **[you]** Two bartenders.
+- [ ] **[you]** What device(s) at the bar: one shared laptop/tablet, or a phone each? Shapes the bar screen layout.
 - [ ] **[both]** Redesign the bar screen for that device. Currently a readable three-column placeholder.
 - [ ] **[claude]** Streaming or progress feedback during the model call if latency is over ~4s.
 - [ ] **[claude]** QR code page / slide for the auditorium.
