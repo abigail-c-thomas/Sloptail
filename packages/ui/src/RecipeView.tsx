@@ -18,8 +18,6 @@ export function RecipeList({ recipe, compact }: { recipe: Recipe; compact?: bool
   );
 }
 
-const METHOD_TEXT = { build: "Built in the glass", shake: "Shaken", stir: "Stirred" } as const;
-
 export function ProposalCard({ proposal, subtitle }: { proposal: Proposal; subtitle?: string }) {
   return (
     <div className="card stack">
@@ -29,9 +27,7 @@ export function ProposalCard({ proposal, subtitle }: { proposal: Proposal; subti
       </div>
       <p>{proposal.description}</p>
       <RecipeList recipe={proposal.recipe} />
-      <p className="muted small">
-        {METHOD_TEXT[proposal.method]} · {proposal.glass} glass
-      </p>
+      <p className="muted small">Built over ice · {proposal.glass} glass</p>
     </div>
   );
 }

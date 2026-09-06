@@ -42,8 +42,8 @@ export interface Batch {
 }
 
 /**
- * Group queued orders that share a base spirit, mixer and method so one
- * bartender can build several at once. Batches are ordered by their oldest
+ * Group queued orders that share a base spirit and mixer so one bartender
+ * can build several at once. Batches are ordered by their oldest
  * order so nobody starves; within a batch, oldest first.
  *
  * Only *queued* orders are batched; orders already being made are returned by
@@ -72,7 +72,7 @@ export function batchKey(order: Order): string {
     .filter((i) => i && (i.type === "base" || i.type === "mixer"))
     .map((i) => i!.id)
     .sort();
-  return `${order.proposal.method}|${ids.join("+")}`;
+  return ids.join("+") || "misc";
 }
 
 function batchLabel(order: Order): string {
@@ -80,7 +80,7 @@ function batchLabel(order: Order): string {
     .map((r) => CATALOG_BY_ID.get(r.ingredient))
     .filter((i) => i && (i.type === "base" || i.type === "mixer"))
     .map((i) => i!.name);
-  return `${names.join(" + ") || "misc"} · ${order.proposal.method}`;
+  return names.join(" + ") || "misc";
 }
 
 export interface Stats {

@@ -21,21 +21,19 @@ import {
 const request: UserRequest = { strength: "full", adventurousness: 2, prompt: "something citrusy" };
 
 const gt: Proposal = {
-  name: "G&T",
-  description: "gin and tonic",
-  method: "build",
+  name: "M&T",
+  description: "mezcal and tonic",
   glass: "highball",
   recipe: [
-    { ingredient: "gin", amount: 50 },
+    { ingredient: "mezcal", amount: 50 },
     { ingredient: "tonic", amount: "fill" },
-    { ingredient: "lime-wedge", amount: 1 },
+    { ingredient: "citrus-peel", amount: 1 },
   ],
 };
 
 const mule: Proposal = {
   name: "Mule",
   description: "vodka ginger beer",
-  method: "build",
   glass: "highball",
   recipe: [
     { ingredient: "vodka", amount: 50 },
@@ -111,16 +109,16 @@ describe("orders", () => {
 
 describe("availability", () => {
   it("blocks submissions that use an unavailable ingredient", () => {
-    const state = setAvailability(createState(), "gin", false);
-    assert.throws(() => submit(state, gt), /gin/);
+    const state = setAvailability(createState(), "mezcal", false);
+    assert.throws(() => submit(state, gt), /mezcal/);
     assert.equal(submit(state, mule).order.id, "1");
   });
 
   it("toggles idempotently and restocks", () => {
-    let state = setAvailability(createState(), "gin", false);
-    state = setAvailability(state, "gin", false);
-    assert.deepEqual(state.unavailable, ["gin"]);
-    state = setAvailability(state, "gin", true);
+    let state = setAvailability(createState(), "mezcal", false);
+    state = setAvailability(state, "mezcal", false);
+    assert.deepEqual(state.unavailable, ["mezcal"]);
+    state = setAvailability(state, "mezcal", true);
     assert.deepEqual(state.unavailable, []);
   });
 
@@ -128,13 +126,13 @@ describe("availability", () => {
     let { state } = submit(createState(), gt);
     state = submit(state, mule).state;
     state = markReady(state, "1", 5);
-    assert.deepEqual(ordersUsing(state, "gin"), []);
+    assert.deepEqual(ordersUsing(state, "mezcal"), []);
     assert.deepEqual(ordersUsing(state, "vodka").map((o) => o.id), ["2"]);
   });
 });
 
 describe("batches", () => {
-  it("groups by base + mixer + method, oldest batch first", () => {
+  it("groups by base + mixer, oldest batch first", () => {
     let s = submit(createState(), mule, "a", 1).state;
     s = submit(s, gt, "b", 2).state;
     s = submit(s, mule, "c", 3).state;

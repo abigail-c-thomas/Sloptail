@@ -5,21 +5,23 @@ Legend: **[you]** needs Abigail · **[claude]** Claude can do alone · **[both]*
 ## 1. Get a real model in the loop
 
 - [ ] **[you]** Create an OpenRouter key and put it in `apps/server/.dev.vars` as `OPENROUTER_API_KEY` (copy `.dev.vars.example`).
-- [ ] **[you]** Pick 3-4 candidate models to compare (your guess: a fast Gemini Flash tier; plus a Claude and one other). Exact OpenRouter ids are at openrouter.ai/models.
-- [ ] **[claude]** Run `npm run eval -- --model <id> --reps 3` per candidate; report validity, first-try rate, latency, and cost per proposal.
+- [ ] **[both]** Agree the eval design before running a sweep (Abigail: not there yet). Candidates on OpenRouter: `google/gemini-3.8-flash`, `google/gemini-3.5-flash-lite`, `anthropic/claude-haiku-4.5`, `anthropic/claude-sonnet-5`, `openai/gpt-5.4-mini`.
+- [x] **[claude]** Baseline run on `anthropic/claude-opus-5` (old catalog): 20/20 valid, 18/20 first try, avg 9.1s per proposal. Slow for a phone; low diversity at level 3 (tequila + saline + chilli almost every time).
+- [ ] **[claude]** Run the sweep in the background once agreed; report validity, first-try rate, latency, cost.
 - [ ] **[both]** Read the actual drinks. Decide default + fallback model, set them in `apps/server/wrangler.jsonc`.
 - [ ] **[claude]** First prompt iteration from whatever the eval turns up.
 
 ## 2. Ingredients
 
-- [ ] **[you]** List what the bar will actually stock (spirits, mixers, syrups, bitters, garnishes) and roughly how much. A plain text list is fine.
-- [ ] **[claude]** Replace the placeholder catalog in `packages/shared/src/catalog.ts`, re-check the classics still work, update tests.
-- [ ] **[you]** Any house rules for the model: max spirit per drink, things to never combine, anything that needs a shaker vs. can be built in the glass.
+- [x] **[you]** List what the bar will actually stock: `Sloptail/Ingredients.md`.
+- [x] **[claude]** Catalog rebuilt from that list; classics rewritten as built-in-glass highballs; tests updated.
+- [ ] **[you]** Open questions from the list: vermouth in or out? Cream/yogurt vs lactic acid solution (I've assumed the solution)? Rough quantities per bottle, so we can do out-of-stock estimates?
+- [x] **[you]** House rules: standard cocktail strength max (20-22ml pure alcohol), everything built in the glass, no shaking. Applied.
 
 ## 3. Deploy
 
 - [x] **[you]** Create a Cloudflare account (free tier is enough).
-- [ ] **[you]** Authorise wrangler: open the login URL Claude gives you and approve.
+- [ ] **[you]** Authorise wrangler (`npx wrangler login` from `apps/server`, or the link Claude gives you while its listener is up).
 - [ ] **[claude]** First deploy: `wrangler secret put` for `OPENROUTER_API_KEY` and `BAR_TOKEN`, `npm run deploy`, confirm the Durable Object migration applies.
 - [ ] **[you]** Decide the URL: the default `sloptail.<account>.workers.dev` or a custom domain you own.
 - [ ] **[you]** Open it on your phone on the venue guest wifi. Report whether it loads and whether a proposal comes back.
@@ -46,8 +48,8 @@ Legend: **[you]** needs Abigail · **[claude]** Claude can do alone · **[both]*
 
 ## 6. Logistics questions the software can't answer
 
-- [ ] **[you]** Parallel bartenders each taking a batch, or one making everything? The bar screen supports either; batching is tuned for "one person builds 2-3 similar drinks at once".
-- [ ] **[you]** Do we want names shouted, or a number system? Currently names.
+- [x] **[you]** Parallel bartenders, each taking a batch. Batching groups by base + mixer.
+- [x] **[you]** Names shouted, not numbers.
 - [ ] **[both]** Rehearsal with a handful of colleagues a week out. This will generate most of sections 4 and 5.
 
 ## Done

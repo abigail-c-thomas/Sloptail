@@ -35,12 +35,16 @@ export function estimateAlcoholMl(recipe: Recipe): number {
   return total;
 }
 
-/** Alcohol budget per strength, in ml of pure alcohol. A standard cocktail is ~20ml. */
+/**
+ * Alcohol budget per strength, in ml of pure alcohol. House rule: a full
+ * drink is a standard cocktail (50ml of a 40% spirit = 20ml), never more than
+ * a little over that.
+ */
 export const ALCOHOL_BUDGET: Record<Strength, { min: number; max: number }> = {
   zero: { min: 0, max: 0 },
   trace: { min: 0, max: 1.5 },
-  half: { min: 5, max: 13 },
-  full: { min: 13, max: 26 },
+  half: { min: 5, max: 12 },
+  full: { min: 12, max: 22 },
 };
 
 export type RecipeIssue =
@@ -50,7 +54,7 @@ export type RecipeIssue =
   | { kind: "too-strong"; alcoholMl: number; max: number }
   | { kind: "too-weak"; alcoholMl: number; min: number }
   | { kind: "spirit-in-mocktail"; ingredient: string }
-  | { kind: "silly-amount"; ingredient: string; amount: number };
+  | { kind: "silly-amount"; ingredient: string; amount: number; max: number };
 
 /**
  * Pure validation of a recipe against the catalog and the user's strength.
@@ -75,8 +79,9 @@ export function validateRecipe(
       issues.push({ kind: "spirit-in-mocktail", ingredient: ing.id });
     }
     if (item.amount !== "fill") {
-      const max = ing.unit === "ml" ? 200 : ing.unit === "drop" ? 6 : ing.unit === "dash" ? 6 : 4;
-      if (item.amount > max) issues.push({ kind: "silly-amount", ingredient: ing.id, amount: item.amount });
+      const fallback = ing.unit === "ml" ? 200 : ing.unit === "drop" ? 6 : ing.unit === "dash" ? 6 : 4;
+      const max = ing.max ?? fallback;
+      if (item.amount > max) issues.push({ kind: "silly-amount", ingredient: ing.id, amount: item.amount, max });
     }
   }
   if (!hasLiquid) issues.push({ kind: "no-liquid" });
@@ -102,6 +107,6 @@ export function describeIssue(issue: RecipeIssue): string {
     case "spirit-in-mocktail":
       return `"${issue.ingredient}" is alcoholic and this is a mocktail. Remove it.`;
     case "silly-amount":
-      return `${issue.amount} of "${issue.ingredient}" is far too much.`;
+      return `${issue.amount} of "${issue.ingredient}" is too much; the maximum is ${issue.max}.`;
   }
 }

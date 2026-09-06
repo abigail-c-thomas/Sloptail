@@ -21,16 +21,16 @@ export interface EvalCase {
 
 export const CASES: EvalCase[] = [
   {
-    id: "classic-negroni",
+    id: "classic-dark-and-stormy",
     userName: "Sam",
-    request: { strength: "full", adventurousness: 1, prompt: "negroni" },
-    expect: { includes: ["gin", "campari", "sweet-vermouth"] },
+    request: { strength: "full", adventurousness: 1, prompt: "dark and stormy" },
+    expect: { includes: ["rum", "ginger-beer"] },
   },
   {
     id: "safe-mocktail",
     userName: "Priya",
     request: { strength: "zero", adventurousness: 1, prompt: "something refreshing, not too sweet" },
-    expect: { excludes: ["gin", "vodka", "angostura"] },
+    expect: { excludes: ["rum", "vodka", "whiskey", "mezcal", "angostura"] },
   },
   {
     id: "trace-bitters-ok",
@@ -43,10 +43,10 @@ export const CASES: EvalCase[] = [
     request: { strength: "half", adventurousness: 2, prompt: "citrusy and light" },
   },
   {
-    id: "wild-coffee",
+    id: "wild-smoke",
     userName: "Max",
-    request: { strength: "full", adventurousness: 3, prompt: "I like coffee and I like tequila" },
-    expect: { includes: ["cold-brew", "tequila"] },
+    request: { strength: "full", adventurousness: 3, prompt: "I like smoky things and I like tea" },
+    expect: { includes: ["mezcal"] },
   },
   {
     id: "wild-savoury",
@@ -59,16 +59,16 @@ export const CASES: EvalCase[] = [
     request: { strength: "full", adventurousness: 2, prompt: "" },
   },
   {
-    id: "hates-gin",
+    id: "hates-whiskey",
     userName: "Rob",
-    request: { strength: "full", adventurousness: 2, prompt: "anything but gin. hate gin." },
-    expect: { excludes: ["gin"] },
+    request: { strength: "full", adventurousness: 2, prompt: "anything but whiskey. hate whiskey." },
+    expect: { excludes: ["whiskey"] },
   },
   {
     id: "sweet-tooth-mocktail",
     userName: "Dee",
     request: { strength: "zero", adventurousness: 3, prompt: "I want dessert in a glass" },
-    expect: { excludes: ["gin", "vodka", "bourbon", "angostura", "orange-bitters"] },
+    expect: { excludes: ["rum", "vodka", "whiskey", "mezcal", "angostura", "szechuan-tincture", "celery-tincture"] },
   },
   {
     id: "long-rambling",

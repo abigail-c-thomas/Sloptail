@@ -25,6 +25,8 @@ export const Ingredient = z.object({
   unit: Unit,
   /** Bar-side notes: where it lives, how it's poured. */
   notes: z.string().optional(),
+  /** Hard cap per drink in `unit`, for potent things. Validation rejects more. */
+  max: z.number().positive().optional(),
 });
 export type Ingredient = z.infer<typeof Ingredient>;
 
@@ -44,10 +46,8 @@ export type RecipeItem = z.infer<typeof RecipeItem>;
 export const Recipe = z.array(RecipeItem).min(1);
 export type Recipe = z.infer<typeof Recipe>;
 
-export const Method = z.enum(["build", "shake", "stir"]);
-export type Method = z.infer<typeof Method>;
-
-export const Glass = z.enum(["highball", "rocks", "coupe", "wine"]);
+/** Everything is built in the glass over ice (house rule: no time to shake). */
+export const Glass = z.enum(["highball", "rocks"]);
 export type Glass = z.infer<typeof Glass>;
 
 // ---------------------------------------------------------------------------
@@ -82,7 +82,6 @@ export const Proposal = z.object({
   name: z.string().min(1).max(60),
   description: z.string().min(1).max(400),
   recipe: Recipe,
-  method: Method,
   glass: Glass,
 });
 export type Proposal = z.infer<typeof Proposal>;

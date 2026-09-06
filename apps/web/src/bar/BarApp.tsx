@@ -240,7 +240,7 @@ function OrderCard({ order, now, children }: { order: Order; now: number; childr
       </div>
       <div className="row between">
         <span className="what">
-          {order.proposal.name} · {order.proposal.method} · {order.proposal.glass}
+          {order.proposal.name} · {order.proposal.glass}
         </span>
         {order.claimedBy ? <Badge tone="accent">{order.claimedBy}</Badge> : null}
       </div>
