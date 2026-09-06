@@ -21,7 +21,7 @@ if (!apiKey) {
   console.error("OPENROUTER_API_KEY is not set");
   process.exit(1);
 }
-const model = args.model ?? process.env.OPENROUTER_MODEL ?? "google/gemini-3.8-flash";
+const model = args.model ?? process.env.OPENROUTER_MODEL ?? "openai/gpt-5.6-luna";
 const reps = Number(args.reps ?? 1);
 const cases = args.only ? CASES.filter((c) => c.id === args.only) : CASES;
 

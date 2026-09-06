@@ -7,9 +7,9 @@ Legend: **[you]** needs Abigail · **[claude]** Claude can do alone · **[both]*
 - [ ] **[you]** Create an OpenRouter key and put it in `apps/server/.dev.vars` as `OPENROUTER_API_KEY` (copy `.dev.vars.example`).
 - [ ] **[both]** Agree the eval design before running a sweep (Abigail: not there yet). Candidates on OpenRouter: `google/gemini-3.8-flash`, `google/gemini-3.5-flash-lite`, `anthropic/claude-haiku-4.5`, `anthropic/claude-sonnet-5`, `openai/gpt-5.4-mini`.
 - [x] **[claude]** Baseline run on `anthropic/claude-opus-5` (old catalog): 20/20 valid, 18/20 first try, avg 9.1s per proposal. Slow for a phone; low diversity at level 3 (tequila + saline + chilli almost every time).
-- [ ] **[claude]** Run the sweep in the background once agreed; report validity, first-try rate, latency, cost.
-- [ ] **[both]** Read the actual drinks. Decide default + fallback model, set them in `apps/server/wrangler.jsonc`.
-- [ ] **[claude]** First prompt iteration from whatever the eval turns up.
+- [x] **[claude]** Sweep done on the real catalog; results in `packages/llm/evals/results/`.
+- [x] **[both]** Decided: GPT 5.6 Luna default (more varied, ~4s), Gemini 3.8 Flash fallback (~2s but samey), Haiku second fallback. Low reasoning effort.
+- [ ] **[claude]** Prompt tweaks if needed: vary the base spirit unless named; feed recent drinks into the prompt for diversity. Low priority with Luna.
 
 ## 2. Ingredients
 
