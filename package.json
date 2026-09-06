@@ -16,7 +16,8 @@
     "test": "node --test \"packages/*/src/**/*.test.ts\"",
     "typecheck": "tsc -b",
     "eval": "npm run eval --workspace=packages/llm",
-    "test:watch": "node --test --watch \"packages/*/src/**/*.test.ts\""
+    "test:watch": "node --test --watch \"packages/*/src/**/*.test.ts\"",
+    "load": "node scripts/load.ts"
   },
   "devDependencies": {
     "typescript": "^5"

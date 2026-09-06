@@ -38,6 +38,9 @@ export interface BarView {
 
 const STORAGE_KEY = "state";
 
+/** Model calls per user per minute, and for the whole bar per minute. In-memory; resets if the DO restarts, which is fine. */
+const RATE = { perUser: 8, global: 120, windowMs: 60_000 };
+
 /**
  * The single stateful thing in the system. Holds the pure BarState in memory,
  * persists after every mutation, and exposes the mutations as RPC methods.
@@ -45,6 +48,7 @@ const STORAGE_KEY = "state";
  */
 export class BarDO extends DurableObject<Env> {
   private state: BarState = createState();
+  private llmCalls = new Map<string, number[]>();
 
   constructor(ctx: DurableObjectState, env: Env) {
     super(ctx, env);
@@ -152,6 +156,23 @@ export class BarDO extends DurableObject<Env> {
       const state = setAvailability(s, ingredient, available);
       return { state, value: [...state.unavailable] };
     });
+  }
+
+  /**
+   * Cheap protection for the unauthenticated model endpoints: a leaked URL
+   * shouldn't be able to burn OpenRouter credit. Returns false when over limit.
+   */
+  allowLlmCall(userId: string): boolean {
+    const now = Date.now();
+    const prune = (arr: number[]) => arr.filter((t) => now - t < RATE.windowMs);
+    const mine = prune(this.llmCalls.get(userId) ?? []);
+    const all = prune(this.llmCalls.get("*") ?? []);
+    if (mine.length >= RATE.perUser || all.length >= RATE.global) return false;
+    mine.push(now);
+    all.push(now);
+    this.llmCalls.set(userId, mine);
+    this.llmCalls.set("*", all);
+    return true;
   }
 
   /** Wipe everything. Bar-only, for resetting between rehearsals. */

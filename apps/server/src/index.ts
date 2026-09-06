@@ -62,9 +62,12 @@ app.get("/catalog", async (c) => {
   return c.json({ catalog: CATALOG, unavailable });
 });
 
+const TOO_MANY = "Easy there. The bartender-bot needs a minute; try again shortly.";
+
 app.post("/propose", body(ProposeBody), async (c) => {
-  const { userName, request } = c.req.valid("json");
+  const { userId, userName, request } = c.req.valid("json");
   const b = bar(c.env);
+  if (!(await b.allowLlmCall(userId))) return c.json({ error: TOO_MANY }, 429);
   const [unavailable, recentNames] = await Promise.all([b.getUnavailable(), b.getRecentNames()]);
   try {
     const result = await propose(
@@ -78,8 +81,9 @@ app.post("/propose", body(ProposeBody), async (c) => {
 });
 
 app.post("/edit", body(EditBody), async (c) => {
-  const { request, proposal, tweak } = c.req.valid("json");
+  const { userId, request, proposal, tweak } = c.req.valid("json");
   const b = bar(c.env);
+  if (!(await b.allowLlmCall(userId))) return c.json({ error: TOO_MANY }, 429);
   const unavailable = await b.getUnavailable();
   try {
     const result = await edit(
