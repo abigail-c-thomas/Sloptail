@@ -21,8 +21,9 @@ Legend: **[you]** needs Abigail · **[claude]** Claude can do alone · **[both]*
 ## 3. Deploy
 
 - [x] **[you]** Create a Cloudflare account (free tier is enough).
-- [ ] **[you]** Authorise wrangler (`npx wrangler login` from `apps/server`, or the link Claude gives you while its listener is up).
-- [ ] **[claude]** First deploy: `wrangler secret put` for `OPENROUTER_API_KEY` and `BAR_TOKEN`, `npm run deploy`, confirm the Durable Object migration applies.
+- [x] **[you]** Authorise wrangler.
+- [x] **[claude]** First deploy: https://sloptail.sloptail-server.workers.dev (bar: `/bar?token=…`, token shared in chat). Secrets set.
+- [ ] **[claude]** Per-device rate limit on `/api/propose` and `/api/edit` so a leaked URL can't burn OpenRouter credit.
 - [ ] **[you]** Decide the URL: the default `sloptail.<account>.workers.dev` or a custom domain you own.
 - [ ] **[you]** Open it on your phone on the venue guest wifi. Report whether it loads and whether a proposal comes back.
 - [ ] **[claude]** Load script: 70 concurrent guests placing orders, check nothing falls over and OpenRouter doesn't rate-limit.
