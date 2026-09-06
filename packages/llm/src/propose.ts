@@ -7,6 +7,7 @@ export interface Attempt {
   raw: string;
   model: string;
   problems: string[];
+  usage?: { promptTokens: number; completionTokens: number } | undefined;
 }
 
 export interface ProposeResult {
@@ -80,7 +81,7 @@ async function runWithRepairs(
       problems = [e.message];
     }
 
-    attempts.push({ raw: completion.text, model: completion.model, problems });
+    attempts.push({ raw: completion.text, model: completion.model, problems, usage: completion.usage });
     if (proposal && problems.length === 0) return { proposal, attempts };
     current = repairMessages(current, completion.text, problems);
   }

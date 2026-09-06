@@ -4,6 +4,8 @@
  *
  *   OPENROUTER_API_KEY=... npm run eval -- [--model x] [--reps 2] [--only id] [--reasoning none|low|medium|high]
  *
+ * Cost per proposal is computed from OpenRouter's public price list for the model.
+ *
  * Results are written to evals/results/<timestamp>.json (gitignored) so runs
  * can be diffed by hand or fed to a judge later.
  */
@@ -19,12 +21,13 @@ if (!apiKey) {
   console.error("OPENROUTER_API_KEY is not set");
   process.exit(1);
 }
-const model = args.model ?? process.env.OPENROUTER_MODEL ?? "anthropic/claude-opus-5";
+const model = args.model ?? process.env.OPENROUTER_MODEL ?? "google/gemini-3.8-flash";
 const reps = Number(args.reps ?? 1);
 const cases = args.only ? CASES.filter((c) => c.id === args.only) : CASES;
 
 const reasoning = (args.reasoning ?? process.env.OPENROUTER_REASONING) as "none" | "low" | "medium" | "high" | undefined;
 const client = new OpenRouterClient({ apiKey, model, appName: "sloptail-evals", reasoning });
+const price = await fetchPrice(model);
 
 interface CaseResult {
   id: string;
@@ -56,11 +59,20 @@ const okCount = results.filter((r) => r.ok).length;
 const firstTry = results.filter((r) => r.ok && r.attempts.length === 1).length;
 const warn = results.filter((r) => r.failedExpectations.length).length;
 const avgMs = Math.round(results.reduce((a, r) => a + r.ms, 0) / results.length);
-console.log(`\nmodel=${model}${reasoning ? ` reasoning=${reasoning}` : ""}  valid ${okCount}/${results.length}  first-try ${firstTry}/${results.length}  expectation-warnings ${warn}  avg ${avgMs}ms`);
+const tokens = results.flatMap((r) => r.attempts).reduce(
+  (a, x) => ({ p: a.p + (x.usage?.promptTokens ?? 0), c: a.c + (x.usage?.completionTokens ?? 0) }),
+  { p: 0, c: 0 },
+);
+const costPer = price ? (tokens.p * price.prompt + tokens.c * price.completion) / results.length : null;
+console.log(
+  `\nmodel=${model}${reasoning ? ` reasoning=${reasoning}` : ""}  valid ${okCount}/${results.length}  first-try ${firstTry}/${results.length}  expectation-warnings ${warn}  avg ${avgMs}ms` +
+    `  tokens/proposal ${Math.round(tokens.p / results.length)} in / ${Math.round(tokens.c / results.length)} out` +
+    (costPer !== null ? `  cost/proposal $${costPer.toFixed(4)}` : ""),
+);
 
 mkdirSync(new URL("./results/", import.meta.url), { recursive: true });
 const out = new URL(`./results/${new Date().toISOString().replace(/[:.]/g, "-")}.json`, import.meta.url);
-writeFileSync(out, JSON.stringify({ model, reasoning: reasoning ?? null, reps, results }, null, 2));
+writeFileSync(out, JSON.stringify({ model, reasoning: reasoning ?? null, reps, price, costPerProposal: costPer, results }, null, 2));
 console.log(`wrote ${out.pathname}`);
 
 async function runCase(c: EvalCase, rep: number): Promise<CaseResult> {
@@ -92,6 +104,18 @@ async function runCase(c: EvalCase, rep: number): Promise<CaseResult> {
   } catch (e) {
     const attempts = e instanceof ProposeError ? e.attempts : [];
     return { id: c.id, rep, ok: false, ms: Date.now() - t0, attempts, failedExpectations: [], error: (e as Error).message };
+  }
+}
+
+/** $ per token for prompt and completion, from OpenRouter's public model list. */
+async function fetchPrice(id: string): Promise<{ prompt: number; completion: number } | null> {
+  try {
+    const res = await fetch("https://openrouter.ai/api/v1/models");
+    const data = (await res.json()) as { data: { id: string; pricing: { prompt: string; completion: string } }[] };
+    const m = data.data.find((x) => x.id === id);
+    return m ? { prompt: Number(m.pricing.prompt), completion: Number(m.pricing.completion) } : null;
+  } catch {
+    return null;
   }
 }
 

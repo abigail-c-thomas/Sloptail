@@ -31,7 +31,7 @@ function bar(env: Env) {
 function llm(env: Env) {
   return new OpenRouterClient({
     apiKey: env.OPENROUTER_API_KEY,
-    model: env.OPENROUTER_MODEL ?? "anthropic/claude-opus-5",
+    model: env.OPENROUTER_MODEL ?? "google/gemini-3.8-flash",
     fallbackModels: env.OPENROUTER_FALLBACK_MODELS?.split(",").map((s) => s.trim()).filter(Boolean),
     appName: "sloptail",
     reasoning: env.OPENROUTER_REASONING as "none" | "low" | "medium" | "high" | undefined,
