@@ -18,7 +18,8 @@ Legend: **[you]** needs Abigail · **[claude]** Claude can do alone · **[both]*
 
 ## 3. Deploy
 
-- [ ] **[you]** Create a Cloudflare account (free tier is enough) and run `npx wrangler login` on this machine.
+- [x] **[you]** Create a Cloudflare account (free tier is enough).
+- [ ] **[you]** Authorise wrangler: open the login URL Claude gives you and approve.
 - [ ] **[claude]** First deploy: `wrangler secret put` for `OPENROUTER_API_KEY` and `BAR_TOKEN`, `npm run deploy`, confirm the Durable Object migration applies.
 - [ ] **[you]** Decide the URL: the default `sloptail.<account>.workers.dev` or a custom domain you own.
 - [ ] **[you]** Open it on your phone on the venue guest wifi. Report whether it loads and whether a proposal comes back.
@@ -26,8 +27,11 @@ Legend: **[you]** needs Abigail · **[claude]** Claude can do alone · **[both]*
 
 ## 4. Evals (together)
 
-- [ ] **[both]** Agree what "good drink" means well enough to score it: a rubric (balanced, matches the request, makeable in 90s, not a cliché at level 3).
-- [ ] **[claude]** Add a judge pass to the eval runner using that rubric, scored by a second model, with a small human-labelled set to sanity-check the judge.
+- [x] **[claude]** Research analogous evals: see `docs/eval-research.md`.
+- [ ] **[both]** Agree what "good drink" means well enough to score it: a rubric (balanced, matches the request, makeable in 90s, not a cliché at level 3). Start from the proposed design in `docs/eval-research.md`.
+- [ ] **[claude]** Tier 1 code graders + diversity metric in the eval runner (no model needed to judge).
+- [ ] **[claude]** Add a pairwise judge pass using the rubric, scored by a different model family, both orderings averaged.
+- [ ] **[you]** Hand-label ~100 pairs (a taster or two) so we can measure judge agreement.
 - [ ] **[both]** Grow `packages/llm/evals/cases.ts` from real requests as they come in during rehearsals.
 - [ ] **[claude]** Track eval results across prompt versions so we can see regressions.
 
