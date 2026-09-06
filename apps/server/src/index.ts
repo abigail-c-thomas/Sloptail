@@ -34,6 +34,7 @@ function llm(env: Env) {
     model: env.OPENROUTER_MODEL ?? "anthropic/claude-opus-5",
     fallbackModels: env.OPENROUTER_FALLBACK_MODELS?.split(",").map((s) => s.trim()).filter(Boolean),
     appName: "sloptail",
+    reasoning: env.OPENROUTER_REASONING as "none" | "low" | "medium" | "high" | undefined,
   });
 }
 

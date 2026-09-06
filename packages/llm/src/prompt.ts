@@ -1,6 +1,6 @@
 import {
   ALCOHOL_BUDGET,
-  CATALOG,
+  offeredIngredients,
   type Ingredient,
   type Proposal,
   type Strength,
@@ -18,8 +18,8 @@ export interface PromptContext {
 }
 
 const STRENGTH_TEXT: Record<Strength, string> = {
-  zero: "MOCKTAIL, strictly zero alcohol. No spirits, no liqueurs, no bitters, nothing alcoholic at all.",
-  trace: "MOCKTAIL. No spirits or liqueurs. A dash or two of bitters is acceptable, nothing else alcoholic.",
+  zero: "MOCKTAIL, zero alcohol. The list above already contains nothing alcoholic; use only what is listed.",
+  trace: "MOCKTAIL. The list above has no spirits; the only alcoholic items are bitters and tinctures, which are fine in dashes and drops.",
   half: "Half-strength cocktail: about half the usual spirit measure (roughly 25ml of a 40% spirit, or equivalent).",
   full: "Full-strength cocktail: a normal serve (roughly 50ml of a 40% spirit, or equivalent).",
 };
@@ -38,7 +38,7 @@ function ingredientLine(i: Ingredient): string {
 }
 
 export function systemPrompt(ctx: PromptContext): string {
-  const available = CATALOG.filter((i) => !ctx.unavailable.has(i.id));
+  const available = offeredIngredients(ctx.request.strength, ctx.unavailable);
   const budget = ALCOHOL_BUDGET[ctx.request.strength];
   return `You are the bartender at a tech company's "AI happy hour". Guests order from their phones and you invent a drink for each of them. Drinks must be genuinely good, interesting, and quick to make behind a small pop-up bar with unusual flavourings (tinctures, teas, acids, smoke) and no shaker.
 

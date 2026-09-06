@@ -2,7 +2,7 @@
  * Eval runner: sends every case through `propose` against a real model and
  * reports validity, repair rate, latency, and the heuristic expectations.
  *
- *   OPENROUTER_API_KEY=... npm run eval -- [--model x] [--reps 2] [--only id]
+ *   OPENROUTER_API_KEY=... npm run eval -- [--model x] [--reps 2] [--only id] [--reasoning none|low|medium|high]
  *
  * Results are written to evals/results/<timestamp>.json (gitignored) so runs
  * can be diffed by hand or fed to a judge later.
@@ -23,7 +23,8 @@ const model = args.model ?? process.env.OPENROUTER_MODEL ?? "anthropic/claude-op
 const reps = Number(args.reps ?? 1);
 const cases = args.only ? CASES.filter((c) => c.id === args.only) : CASES;
 
-const client = new OpenRouterClient({ apiKey, model, appName: "sloptail-evals" });
+const reasoning = (args.reasoning ?? process.env.OPENROUTER_REASONING) as "none" | "low" | "medium" | "high" | undefined;
+const client = new OpenRouterClient({ apiKey, model, appName: "sloptail-evals", reasoning });
 
 interface CaseResult {
   id: string;
@@ -55,11 +56,11 @@ const okCount = results.filter((r) => r.ok).length;
 const firstTry = results.filter((r) => r.ok && r.attempts.length === 1).length;
 const warn = results.filter((r) => r.failedExpectations.length).length;
 const avgMs = Math.round(results.reduce((a, r) => a + r.ms, 0) / results.length);
-console.log(`\nmodel=${model}  valid ${okCount}/${results.length}  first-try ${firstTry}/${results.length}  expectation-warnings ${warn}  avg ${avgMs}ms`);
+console.log(`\nmodel=${model}${reasoning ? ` reasoning=${reasoning}` : ""}  valid ${okCount}/${results.length}  first-try ${firstTry}/${results.length}  expectation-warnings ${warn}  avg ${avgMs}ms`);
 
 mkdirSync(new URL("./results/", import.meta.url), { recursive: true });
 const out = new URL(`./results/${new Date().toISOString().replace(/[:.]/g, "-")}.json`, import.meta.url);
-writeFileSync(out, JSON.stringify({ model, reps, results }, null, 2));
+writeFileSync(out, JSON.stringify({ model, reasoning: reasoning ?? null, reps, results }, null, 2));
 console.log(`wrote ${out.pathname}`);
 
 async function runCase(c: EvalCase, rep: number): Promise<CaseResult> {

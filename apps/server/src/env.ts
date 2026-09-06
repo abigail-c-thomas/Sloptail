@@ -6,6 +6,8 @@ export interface Env {
   OPENROUTER_API_KEY: string;
   OPENROUTER_MODEL?: string;
   OPENROUTER_FALLBACK_MODELS?: string;
+  /** none | low | medium | high; see OpenRouterOptions.reasoning */
+  OPENROUTER_REASONING?: string;
   /** Shared secret the bar screen sends as a bearer token. */
   BAR_TOKEN: string;
 }

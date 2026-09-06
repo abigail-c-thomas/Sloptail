@@ -1,5 +1,18 @@
-import { CATALOG_BY_ID } from "./catalog.ts";
+import { CATALOG, CATALOG_BY_ID } from "./catalog.ts";
 import type { Ingredient, Recipe, RecipeItem, Strength } from "./types.ts";
+
+/** Can this ingredient be offered for this strength? Mocktails never see spirits. */
+export function allowedForStrength(ing: Ingredient, strength: Strength): boolean {
+  if (!ing.alcoholic) return true;
+  if (strength === "zero") return false;
+  if (strength === "trace") return ing.type === "flavoring";
+  return true;
+}
+
+/** The pantry as shown to the model: in stock and allowed for the strength. */
+export function offeredIngredients(strength: Strength, unavailable: ReadonlySet<string> = new Set()): Ingredient[] {
+  return CATALOG.filter((i) => !unavailable.has(i.id) && allowedForStrength(i, strength));
+}
 
 /** Human-readable amount, e.g. "50 ml", "2 dashes", "fill". */
 export function formatAmount(item: RecipeItem, ingredient?: Ingredient): string {
@@ -47,18 +60,22 @@ export const ALCOHOL_BUDGET: Record<Strength, { min: number; max: number }> = {
   full: { min: 12, max: 22 },
 };
 
+/** Budgets are targets, not tripwires: 50ml of a 45% spirit shouldn't bounce. */
+export const ALCOHOL_TOLERANCE = 0.2;
+
 export type RecipeIssue =
   | { kind: "unknown-ingredient"; ingredient: string }
   | { kind: "unavailable-ingredient"; ingredient: string }
   | { kind: "no-liquid" }
   | { kind: "too-strong"; alcoholMl: number; max: number }
   | { kind: "too-weak"; alcoholMl: number; min: number }
-  | { kind: "spirit-in-mocktail"; ingredient: string }
+  | { kind: "not-offered"; ingredient: string }
   | { kind: "silly-amount"; ingredient: string; amount: number; max: number };
 
 /**
- * Pure validation of a recipe against the catalog and the user's strength.
- * Used both to reject model output and to explain to the model what to fix.
+ * Pure validation of a recipe against the pantry the model was shown and the
+ * user's strength. Used both to reject model output and to explain to the
+ * model what to fix. Kept deliberately small: mostly "is it on the list".
  */
 export function validateRecipe(
   recipe: Recipe,
@@ -74,10 +91,8 @@ export function validateRecipe(
       continue;
     }
     if (unavailable.has(ing.id)) issues.push({ kind: "unavailable-ingredient", ingredient: ing.id });
+    else if (!allowedForStrength(ing, strength)) issues.push({ kind: "not-offered", ingredient: ing.id });
     if (ing.type !== "garnish") hasLiquid = true;
-    if ((strength === "zero" || strength === "trace") && ing.alcoholic && ing.type !== "flavoring") {
-      issues.push({ kind: "spirit-in-mocktail", ingredient: ing.id });
-    }
     if (item.amount !== "fill") {
       const fallback = ing.unit === "ml" ? 200 : ing.unit === "drop" ? 6 : ing.unit === "dash" ? 6 : 4;
       const max = ing.max ?? fallback;
@@ -87,8 +102,8 @@ export function validateRecipe(
   if (!hasLiquid) issues.push({ kind: "no-liquid" });
   const alcoholMl = estimateAlcoholMl(recipe);
   const budget = ALCOHOL_BUDGET[strength];
-  if (alcoholMl > budget.max) issues.push({ kind: "too-strong", alcoholMl, max: budget.max });
-  if (alcoholMl < budget.min) issues.push({ kind: "too-weak", alcoholMl, min: budget.min });
+  if (alcoholMl > budget.max * (1 + ALCOHOL_TOLERANCE)) issues.push({ kind: "too-strong", alcoholMl, max: budget.max });
+  if (alcoholMl < budget.min * (1 - ALCOHOL_TOLERANCE)) issues.push({ kind: "too-weak", alcoholMl, min: budget.min });
   return issues;
 }
 
@@ -104,8 +119,8 @@ export function describeIssue(issue: RecipeIssue): string {
       return `Too strong: ~${issue.alcoholMl.toFixed(0)}ml pure alcohol, max is ${issue.max}ml. Reduce spirit amounts.`;
     case "too-weak":
       return `Too weak for the requested strength: ~${issue.alcoholMl.toFixed(0)}ml pure alcohol, min is ${issue.min}ml.`;
-    case "spirit-in-mocktail":
-      return `"${issue.ingredient}" is alcoholic and this is a mocktail. Remove it.`;
+    case "not-offered":
+      return `"${issue.ingredient}" is alcoholic and wasn't on the list for this drink. Use only listed ids.`;
     case "silly-amount":
       return `${issue.amount} of "${issue.ingredient}" is too much; the maximum is ${issue.max}.`;
   }

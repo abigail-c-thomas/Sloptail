@@ -10,6 +10,13 @@ export interface OpenRouterOptions {
   timeoutMs?: number | undefined;
   /** Attach response_format json_schema. Some models reject it; default true. */
   useJsonSchema?: boolean | undefined;
+  /**
+   * OpenRouter's unified reasoning control. Thinking models default to
+   * thinking, which is slow and pointless for a 300-token recipe. "none" asks
+   * for no reasoning, "low"/"medium"/"high" set effort. Unset leaves the
+   * provider default.
+   */
+  reasoning?: "none" | "minimal" | "low" | "medium" | "high" | undefined;
   /** Optional attribution headers OpenRouter shows in its dashboard. */
   appName?: string | undefined;
   appUrl?: string | undefined;
@@ -43,9 +50,11 @@ export class OpenRouterClient implements LlmClient {
       model: this.opts.model,
       messages: req.messages,
       temperature: req.temperature ?? 0.8,
-      max_tokens: req.maxTokens ?? 800,
+      max_tokens: req.maxTokens ?? 4000, // thinking tokens count against this on reasoning models
     };
     if (this.opts.fallbackModels?.length) body.models = [this.opts.model, ...this.opts.fallbackModels];
+    if (this.opts.reasoning === "none") body.reasoning = { enabled: false };
+    else if (this.opts.reasoning) body.reasoning = { effort: this.opts.reasoning };
     if (req.jsonSchema && (this.opts.useJsonSchema ?? true)) {
       body.response_format = {
         type: "json_schema",
