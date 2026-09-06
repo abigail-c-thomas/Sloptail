@@ -61,7 +61,7 @@ export const ALCOHOL_BUDGET: Record<Strength, { min: number; max: number }> = {
 };
 
 /** Budgets are targets, not tripwires: 50ml of a 45% spirit shouldn't bounce. */
-export const ALCOHOL_TOLERANCE = 0.2;
+export const ALCOHOL_TOLERANCE = 0.1;
 
 export type RecipeIssue =
   | { kind: "unknown-ingredient"; ingredient: string }
