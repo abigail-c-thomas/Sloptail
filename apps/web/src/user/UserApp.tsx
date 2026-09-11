@@ -142,8 +142,13 @@ const TECH_IDEAS = [
   "A monoid in the category of endofunctors",
   "p(doom) > 50%",
   "Works on my machine",
-  "Rebase conflict with myself",
+  "3000-line rebase conflict",
   "It's not a bug, it's a feature",
+  "O(n²) but n is small",
+  "Reviewing my own PR",
+  "YAML indentation",
+  "Flaky test that passes on retry",
+  "Reply-all to the whole company",
 ];
 
 const OTHER_IDEAS = [
@@ -156,6 +161,12 @@ const OTHER_IDEAS = [
   "Canadian wildfire",
   "Waiting for a train that isn't coming",
   "Brushing your teeth in the shower",
+  "Motorway service station at midnight",
+  "Wet dog",
+  "IKEA on a Saturday",
+  "Sunday evening",
+  "Someone else's wedding",
+  "Tinned peaches",
 ];
 
 function shuffle<T>(arr: readonly T[]): T[] {
