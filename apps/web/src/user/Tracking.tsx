@@ -61,13 +61,12 @@ export function Tracking({ orderId, onDone }: { orderId: string; onDone: (keepPr
     return (
       <Stack gap={16}>
         <Card tone="ok" className="ready-card stack">
-          <p className="muted">Ready at the bar for</p>
+          <p className="muted">Ready at the bar</p>
           <div className="big-name">{order.userName}</div>
           <h1>{name}</h1>
-          <p className="muted">Go and get it before it gets warm.</p>
         </Card>
         <Button size="lg" onClick={() => onDone(true)}>
-          Got it. Another?
+          Another
         </Button>
         <Button variant="ghost" onClick={() => onDone(false)}>
           Start over
@@ -83,7 +82,7 @@ export function Tracking({ orderId, onDone }: { orderId: string; onDone: (keepPr
           <h2>Enjoy your {name}</h2>
         </Card>
         <Button size="lg" onClick={() => onDone(true)}>
-          Order another
+          Another
         </Button>
       </Stack>
     );
@@ -96,7 +95,7 @@ export function Tracking({ orderId, onDone }: { orderId: string; onDone: (keepPr
           Sorry, the bar had to cancel your {name}{order.cancelReason ? `: ${order.cancelReason}` : ""}.
         </Banner>
         <Button size="lg" onClick={() => onDone(true)}>
-          Order something else
+          Try again
         </Button>
       </Stack>
     );
@@ -106,22 +105,22 @@ export function Tracking({ orderId, onDone }: { orderId: string; onDone: (keepPr
     <Stack gap={16}>
       <Card className="stack">
         <div className="row between">
-          <h2>We're on it</h2>
-          <Badge tone={order.status === "making" ? "accent" : undefined}>{order.status === "making" ? "being made" : "in the queue"}</Badge>
+          <h2>{name}</h2>
+          <Badge tone={order.status === "making" ? "accent" : undefined}>{order.status === "making" ? "being made" : "queued"}</Badge>
         </div>
         <p>
-          We'll shout <b>{order.userName}</b> when your <b>{name}</b> is on the bar. Keep this page open and it'll light up too.
+          We'll shout <b>{order.userName}</b> when it's on the bar.
         </p>
         {error ? <p className="small muted">Connection wobble, retrying…</p> : null}
       </Card>
       <details>
-        <summary className="muted small">What's in it again?</summary>
+        <summary className="muted small">Recipe</summary>
         <div style={{ marginTop: 12 }}>
           <ProposalCard proposal={order.proposal} />
         </div>
       </details>
       <Button variant="ghost" onClick={() => onDone(true)}>
-        Order another while I wait
+        Order another
       </Button>
     </Stack>
   );

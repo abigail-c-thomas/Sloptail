@@ -149,18 +149,19 @@ a { color: var(--accent); }
 .input:focus, .textarea:focus { border-color: var(--accent); }
 .textarea { resize: vertical; min-height: 92px; }
 
-/* --- Chips ------------------------------------------------------------ */
-.chips { display: flex; flex-wrap: wrap; gap: 6px; }
-.chip {
+/* --- Suggestions ------------------------------------------------------ */
+.suggestions { display: flex; flex-direction: column; gap: 6px; }
+.suggestion {
   border: 1px solid var(--line);
   background: var(--surface);
-  border-radius: 999px;
-  padding: 6px 12px;
-  font-size: 0.875rem;
+  border-radius: var(--radius-sm);
+  padding: 10px 14px;
+  text-align: left;
+  color: var(--text-muted);
   cursor: pointer;
-  min-height: 34px;
+  min-height: 42px;
 }
-.chip:hover { border-color: var(--accent); }
+.suggestion:hover { border-color: var(--accent); color: var(--text); }
 
 /* --- Badge ------------------------------------------------------------ */
 .badge {

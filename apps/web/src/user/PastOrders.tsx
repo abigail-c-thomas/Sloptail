@@ -25,7 +25,7 @@ export function PastOrders({ userId, onReorder, onNew }: { userId: string; onReo
       {orders === null ? (
         <Spinner />
       ) : orders.length === 0 ? (
-        <p className="muted">Nothing yet. Your drinks will show up here.</p>
+        <p className="muted">Nothing yet.</p>
       ) : (
         orders.map((o) => (
           <Card key={o.id} flat className="stack" style={{ gap: 8 }}>
@@ -36,7 +36,7 @@ export function PastOrders({ userId, onReorder, onNew }: { userId: string; onReo
             {o.request.prompt ? <p className="small muted">“{o.request.prompt}”</p> : null}
             <RecipeList recipe={o.proposal.recipe} compact />
             <Button size="sm" variant="secondary" onClick={() => onReorder(o)}>
-              Order this again
+              Again
             </Button>
           </Card>
         ))
