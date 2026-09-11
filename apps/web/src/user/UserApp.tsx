@@ -145,7 +145,7 @@ const TECH_IDEAS = [
   "3000-line rebase conflict",
   "It's not a bug, it's a feature",
   "O(n²) but n is small",
-  "Seconding my own PR (even though owner)",
+  "Second (even though owner)",
   "Flaky test that passes on retry",
   "Reply-all to firmwide@",
   "Internet 1.0",
