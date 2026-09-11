@@ -135,28 +135,44 @@ function initialState(): State {
 const STEP_ORDER: Step[] = ["name", "kind", "strength", "adventure", "prompt", "proposal"];
 
 /**
- * Tappable prompt ideas. Three are picked at random per visit.
- * Placeholder list; Abigail is writing the real one.
+ * Tappable prompt ideas: one tech in-joke plus two from the other list,
+ * picked at random per visit.
  */
-const PROMPT_IDEAS = [
-  "something citrusy and long",
-  "bitter and serious",
-  "tastes like a holiday",
-  "not too sweet",
-  "surprise me",
-  "smoky, spicy, or both",
-  "I've had a day",
-  "something I can drink three of",
-  "savoury and strange",
+const TECH_IDEAS = [
+  "A monoid in the category of endofunctors",
+  "p(doom) > 50%",
+  "Works on my machine",
+  "Eventually consistent",
+  "Merge conflict with myself",
+  "Segfault at 3am",
+  "Off by one",
+  "It's not a bug, it's a feature",
 ];
 
-function pickRandom<T>(arr: T[], n: number): T[] {
+const OTHER_IDEAS = [
+  "Cat sleeping in the sun",
+  "Hiking through a pine forest",
+  "Thinking about the Roman Empire",
+  "Airport lounge at 6am",
+  "Rain on a tin roof",
+  "A very good pear",
+  "Bonfire on a beach",
+  "Last day of term",
+  "Waiting for a train that isn't coming",
+  "Lukewarm bath, cold beer",
+];
+
+function shuffle<T>(arr: readonly T[]): T[] {
   const copy = [...arr];
   for (let i = copy.length - 1; i > 0; i--) {
     const j = Math.floor(Math.random() * (i + 1));
     [copy[i], copy[j]] = [copy[j]!, copy[i]!];
   }
-  return copy.slice(0, n);
+  return copy;
+}
+
+function pickIdeas(): string[] {
+  return shuffle([...shuffle(TECH_IDEAS).slice(0, 1), ...shuffle(OTHER_IDEAS).slice(0, 2)]);
 }
 
 const LOADING_LINES = [
@@ -172,7 +188,7 @@ const LOADING_LINES = [
 export function UserApp() {
   const [s, dispatch] = useReducer(reducer, undefined, initialState);
   const [drawer, setDrawer] = useState(false);
-  const ideas = useMemo(() => pickRandom(PROMPT_IDEAS, 3), []);
+  const ideas = useMemo(pickIdeas, []);
   const user = loadUser();
 
   const request = (): UserRequest | null =>
@@ -403,8 +419,7 @@ function NameStep({ name, onChange, onNext }: { name: string; onChange: (n: stri
   const ok = name.trim().length > 0;
   return (
     <form
-      className="row"
-      style={{ gap: 8, alignItems: "stretch", flexWrap: "nowrap" }}
+      className="stack name-step"
       onSubmit={(e) => {
         e.preventDefault();
         if (ok) onNext();
@@ -413,15 +428,15 @@ function NameStep({ name, onChange, onNext }: { name: string; onChange: (n: stri
       <TextField
         id="name"
         aria-label="Name"
-        className="grow"
         value={name}
         onChange={(e) => onChange(e.target.value)}
         autoComplete="given-name"
         autoFocus
         maxLength={40}
         placeholder="Name"
+        style={{ textAlign: "center", fontSize: "1.25rem", minHeight: 56 }}
       />
-      <Button type="submit" disabled={!ok} aria-label="Next" style={{ minWidth: 56, fontSize: "1.3rem" }}>
+      <Button type="submit" size="lg" block disabled={!ok} aria-label="Next" style={{ fontSize: "1.4rem" }}>
         →
       </Button>
     </form>

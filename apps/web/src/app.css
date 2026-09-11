@@ -11,6 +11,8 @@
 .page-header { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
 .brand { font-weight: 800; letter-spacing: -0.02em; font-size: 1.1rem; }
 .page-footer { margin-top: auto; text-align: center; }
+/* Name step sits in the vertical middle of the screen. */
+.name-step { margin: auto 0; padding-bottom: 20vh; }
 
 .ready-card { text-align: center; padding: 28px 16px; }
 .ready-card h1 { font-size: 2rem; }
