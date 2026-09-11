@@ -112,6 +112,7 @@ a { color: var(--accent); }
 .card.tone-accent { border-color: var(--accent); background: var(--accent-soft); }
 .card.tone-ok { border-color: var(--ok); background: var(--ok-soft); }
 .card.tone-warn { border-color: var(--warn); background: var(--warn-soft); }
+.card.tone-danger { border-color: var(--danger); background: var(--danger-soft); }
 
 /* --- Choice (segmented radio) ------------------------------------------ */
 .choice { display: grid; gap: 8px; }

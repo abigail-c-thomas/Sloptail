@@ -142,10 +142,7 @@ const TECH_IDEAS = [
   "A monoid in the category of endofunctors",
   "p(doom) > 50%",
   "Works on my machine",
-  "Eventually consistent",
-  "Merge conflict with myself",
-  "Segfault at 3am",
-  "Off by one",
+  "Rebase conflict with myself",
   "It's not a bug, it's a feature",
 ];
 
@@ -155,11 +152,10 @@ const OTHER_IDEAS = [
   "Thinking about the Roman Empire",
   "Airport lounge at 6am",
   "Rain on a tin roof",
-  "A very good pear",
-  "Bonfire on a beach",
-  "Last day of term",
+  "An extremely juicy pear",
+  "Canadian wildfire",
   "Waiting for a train that isn't coming",
-  "Lukewarm bath, cold beer",
+  "Brushing your teeth in the shower",
 ];
 
 function shuffle<T>(arr: readonly T[]): T[] {
@@ -318,9 +314,12 @@ export function UserApp() {
 
       {s.step === "disclaimer" && (
         <Stack gap={16}>
-          <Card tone="warn" className="stack">
-            <h2>Fair warning</h2>
-            <p>The AI will do arbitrarily weird things with what's behind the bar. It will be drinkable. It may not be nice.</p>
+          <Card tone="danger" className="stack">
+            <h2>Disclaimer</h2>
+            <p>
+              We're going maximally weird with this. It'll be drinkable, in the sense that it'll be a liquid in a glass. We're not
+              making any further guarantees. That sound ok?
+            </p>
           </Card>
           <Button size="lg" onClick={() => dispatch({ type: "go", step: "prompt" })}>
             I accept
