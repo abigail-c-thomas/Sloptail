@@ -145,10 +145,11 @@ const TECH_IDEAS = [
   "3000-line rebase conflict",
   "It's not a bug, it's a feature",
   "O(n²) but n is small",
-  "Reviewing my own PR",
-  "YAML indentation",
+  "Seconding my own PR (even though owner)",
   "Flaky test that passes on retry",
-  "Reply-all to the whole company",
+  "Reply-all to firmwide@",
+  "Internet 1.0",
+  "The Metaverse",
 ];
 
 const OTHER_IDEAS = [
@@ -164,9 +165,15 @@ const OTHER_IDEAS = [
   "Motorway service station at midnight",
   "Wet dog",
   "IKEA on a Saturday",
-  "Sunday evening",
-  "Someone else's wedding",
+  "A stranger's wedding",
   "Tinned peaches",
+  "Trying to play the piano for the first time since high school",
+  "Laundry day",
+  "Thriving houseplant",
+  "Christmas in summer",
+  "Living in Jersey City",
+  "Sitting in bed with a good book. It's raining outside",
+  "According to all known laws of aviation, there is no way that a bee should be able to fly",
 ];
 
 function shuffle<T>(arr: readonly T[]): T[] {
@@ -291,7 +298,7 @@ export function UserApp() {
               s.kind === "mocktail"
                 ? [
                     { value: "zero", label: "Zero alcohol" },
-                    { value: "trace", label: "Low alcohol", hint: "a dash of bitters is fine" },
+                    { value: "trace", label: "Low alcohol", hint: "(a dash of bitters is fine)" },
                   ]
                 : [
                     { value: "full", label: "Full strength" },
