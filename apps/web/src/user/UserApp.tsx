@@ -291,7 +291,7 @@ export function UserApp() {
               s.kind === "mocktail"
                 ? [
                     { value: "zero", label: "Zero alcohol" },
-                    { value: "trace", label: "Low", hint: "a dash of bitters is fine" },
+                    { value: "trace", label: "Low alcohol", hint: "a dash of bitters is fine" },
                   ]
                 : [
                     { value: "full", label: "Full strength" },
