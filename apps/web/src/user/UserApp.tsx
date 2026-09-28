@@ -1,5 +1,5 @@
 import { useCallback, useMemo, useReducer, useState } from "react";
-import type { Adventurousness, Order, Proposal, Strength, UserRequest } from "@sloptail/shared";
+import type { Adventurousness, Level, Order, Proposal, Strength, UserRequest } from "@sloptail/shared";
 import { classicsFor } from "@sloptail/shared";
 import {
   Banner,
@@ -52,7 +52,11 @@ interface State {
   strength?: Strength;
   adventurousness?: Adventurousness;
   prompt: string;
+  sweetness?: Level;
+  acidity?: Level;
   proposal?: Proposal;
+  /** Drinks the model has offered this visit, newest first, so the next one can be different. */
+  seen: Proposal[];
   /** The prompt the current proposal was generated from, shown as its subtitle. */
   proposalPrompt?: string;
   error?: string;
@@ -66,7 +70,8 @@ type Action =
   | { type: "strength"; strength: Strength }
   | { type: "adventure"; adventurousness: Adventurousness }
   | { type: "prompt"; prompt: string }
-  | { type: "proposal"; proposal: Proposal; prompt: string }
+  | { type: "flavour"; key: "sweetness" | "acidity"; level: Level }
+  | { type: "proposal"; proposal: Proposal; prompt: string; generated?: boolean }
   | { type: "error"; error: string }
   | { type: "submitted"; orderId: string }
   | { type: "reorder"; order: Order }
@@ -95,8 +100,18 @@ function reducer(s: State, a: Action): State {
       };
     case "prompt":
       return { ...s, prompt: a.prompt };
+    case "flavour":
+      // Tapping the selected level again clears it: the dials are optional.
+      return { ...s, [a.key]: s[a.key] === a.level ? undefined : a.level };
     case "proposal":
-      return { ...s, proposal: a.proposal, proposalPrompt: a.prompt, step: "proposal", error: undefined };
+      return {
+        ...s,
+        proposal: a.proposal,
+        proposalPrompt: a.prompt,
+        seen: a.generated ? [a.proposal, ...s.seen].slice(0, 5) : s.seen,
+        step: "proposal",
+        error: undefined,
+      };
     case "error":
       return { ...s, error: a.error, step: s.proposal ? "proposal" : "prompt" };
     case "submitted":
@@ -108,17 +123,21 @@ function reducer(s: State, a: Action): State {
         strength: a.order.request.strength,
         adventurousness: a.order.request.adventurousness,
         prompt: a.order.request.prompt,
+        sweetness: a.order.request.sweetness,
+        acidity: a.order.request.acidity,
         proposal: a.order.proposal,
         proposalPrompt: a.order.request.prompt,
         step: "proposal",
         error: undefined,
       };
     case "reset":
+      // Without a remembered strength (e.g. a classic ordered before a reload) there's nothing to keep.
       return {
-        step: a.keepPrefs ? "prompt" : "kind",
+        step: a.keepPrefs && s.strength && s.adventurousness ? "prompt" : "kind",
         name: s.name,
         ...(a.keepPrefs ? { kind: s.kind, strength: s.strength, adventurousness: s.adventurousness } : {}),
         prompt: "",
+        seen: s.seen,
       };
   }
 }
@@ -128,8 +147,8 @@ function initialState(): State {
   const last = loadLastRequest();
   const active = loadActiveOrder();
   const prefs = last ? { kind: kindOf(last.strength), strength: last.strength, adventurousness: last.adventurousness } : {};
-  if (active) return { step: "tracking", name: user.name, prompt: "", orderId: active, ...prefs };
-  return { step: user.name ? "kind" : "name", name: user.name, prompt: "", ...prefs };
+  if (active) return { step: "tracking", name: user.name, prompt: "", seen: [], orderId: active, ...prefs };
+  return { step: user.name ? "kind" : "name", name: user.name, prompt: "", seen: [], ...prefs };
 }
 
 const STEP_ORDER: Step[] = ["name", "kind", "strength", "adventure", "prompt", "proposal"];
@@ -206,7 +225,9 @@ export function UserApp() {
   const user = loadUser();
 
   const request = (): UserRequest | null =>
-    s.strength && s.adventurousness ? { strength: s.strength, adventurousness: s.adventurousness, prompt: s.prompt } : null;
+    s.strength && s.adventurousness
+      ? { strength: s.strength, adventurousness: s.adventurousness, prompt: s.prompt, sweetness: s.sweetness, acidity: s.acidity }
+      : null;
 
   const generate = useCallback(async () => {
     const req = request();
@@ -214,13 +235,13 @@ export function UserApp() {
     saveLastRequest(req);
     dispatch({ type: "go", step: "loading" });
     try {
-      const { proposal } = await api.propose({ userId: user.userId, userName: s.name, request: req });
-      dispatch({ type: "proposal", proposal, prompt: req.prompt });
+      const { proposal } = await api.propose({ userId: user.userId, userName: s.name, request: req, seen: s.seen });
+      dispatch({ type: "proposal", proposal, prompt: req.prompt, generated: true });
     } catch (e) {
       dispatch({ type: "error", error: (e as Error).message });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [s.strength, s.adventurousness, s.prompt, s.name, user.userId]);
+  }, [s.strength, s.adventurousness, s.prompt, s.sweetness, s.acidity, s.seen, s.name, user.userId]);
 
   const tweak = async (text: string) => {
     const req = request();
@@ -381,6 +402,8 @@ export function UserApp() {
             maxLength={500}
           />
           <Suggestions items={ideas} onPick={(p) => dispatch({ type: "prompt", prompt: p })} />
+          <FlavourDial label="Sweet" value={s.sweetness} onChange={(level) => dispatch({ type: "flavour", key: "sweetness", level })} />
+          <FlavourDial label="Sour" value={s.acidity} onChange={(level) => dispatch({ type: "flavour", key: "acidity", level })} />
           <Button size="lg" onClick={generate}>
             Make something up
           </Button>
@@ -406,6 +429,7 @@ export function UserApp() {
       {s.step === "tracking" && s.orderId && (
         <Tracking
           orderId={s.orderId}
+          userId={user.userId}
           onDone={(keepPrefs) => {
             saveActiveOrder(null);
             dispatch({ type: "reset", keepPrefs });
@@ -428,6 +452,26 @@ export function UserApp() {
           }}
         />
       </Drawer>
+    </div>
+  );
+}
+
+/** Optional low/med/high picker. Tap the selected one again to clear it. */
+function FlavourDial({ label, value, onChange }: { label: string; value: Level | undefined; onChange: (l: Level) => void }) {
+  return (
+    <div className="flavour-dial">
+      <span className="muted">{label}</span>
+      <Choice<Level>
+        inline
+        name={label}
+        value={value}
+        onChange={onChange}
+        options={[
+          { value: "low", label: "Low" },
+          { value: "medium", label: "Med" },
+          { value: "high", label: "High" },
+        ]}
+      />
     </div>
   );
 }

@@ -2,8 +2,11 @@ import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import type { Proposal, UserRequest } from "@sloptail/shared";
 import {
+  BOARD_READY_MS,
   StateError,
   batches,
+  board,
+  collectOwnOrder,
   cancelOrder,
   claimOrder,
   createState,
@@ -25,7 +28,7 @@ const gt: Proposal = {
   description: "mezcal and tonic",
   glass: "highball",
   recipe: [
-    { ingredient: "mezcal", amount: 50 },
+    { ingredient: "mezcal", amount: 1.5 },
     { ingredient: "tonic", amount: "fill" },
     { ingredient: "citrus-peel", amount: 1 },
   ],
@@ -36,7 +39,7 @@ const mule: Proposal = {
   description: "vodka ginger beer",
   glass: "highball",
   recipe: [
-    { ingredient: "vodka", amount: 50 },
+    { ingredient: "vodka", amount: 1.5 },
     { ingredient: "ginger-beer", amount: "fill" },
   ],
 };
@@ -99,11 +102,35 @@ describe("orders", () => {
     assert.equal(state.orders["1"]?.claimedBy, undefined);
   });
 
+  it("lets only the guest who ordered mark it collected", () => {
+    let { state } = submit(createState(), gt, "u1");
+    state = markReady(state, "1", 1);
+    assert.throws(() => collectOwnOrder(state, "1", "u2", 2), /No order/);
+    assert.equal(collectOwnOrder(state, "1", "u1", 2).orders["1"]?.status, "collected");
+  });
+
   it("lists a user's orders newest first", () => {
     const a = submit(createState(), gt, "u1", 1);
     const b = submit(a.state, mule, "u1", 2);
     const c = submit(b.state, gt, "u2", 3);
     assert.deepEqual(ordersForUser(c.state, "u1").map((o) => o.id), ["2", "1"]);
+  });
+});
+
+describe("board", () => {
+  it("shows who's being made and who's ready, newest ready first, and drops stale ready orders", () => {
+    let state = submit(createState(), gt, "u1", 1).state;
+    state = submit(state, mule, "u2", 2).state;
+    state = submit(state, gt, "u3", 3).state;
+    state = submit(state, mule, "u4", 4).state;
+    state = claimOrder(state, "1", "Sam", 10);
+    state = markReady(state, "2", 20);
+    state = markReady(state, "3", 30);
+    const b = board(state, 100);
+    assert.deepEqual(b.making, [{ userName: "U1", drink: "M&T" }]);
+    assert.deepEqual(b.ready.map((r) => r.userName), ["U3", "U2"]);
+    assert.equal(b.queued, 1);
+    assert.deepEqual(board(state, 25 + BOARD_READY_MS).ready.map((r) => r.userName), ["U3"]);
   });
 });
 

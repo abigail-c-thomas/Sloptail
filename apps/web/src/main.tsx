@@ -4,12 +4,14 @@ import "@sloptail/ui/styles.css";
 import "./app.css";
 import { UserApp } from "./user/UserApp.tsx";
 import { BarApp } from "./bar/BarApp.tsx";
+import { ScreenApp } from "./screen/ScreenApp.tsx";
 
-// Two routes; a router library would be more code than this.
-const Screen = window.location.pathname.replace(/\/+$/, "") === "/bar" ? BarApp : UserApp;
+// Three routes; a router library would be more code than this.
+const ROUTES: Record<string, () => React.JSX.Element> = { "/bar": BarApp, "/screen": ScreenApp };
+const Page = ROUTES[window.location.pathname.replace(/\/+$/, "")] ?? UserApp;
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
-    <Screen />
+    <Page />
   </StrictMode>,
 );

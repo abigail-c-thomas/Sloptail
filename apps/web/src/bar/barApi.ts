@@ -7,7 +7,6 @@ export interface BarView {
   ready: Order[];
   unavailable: string[];
   stats: { queued: number; making: number; ready: number; collected: number; cancelled: number; avgWaitSeconds: number | null };
-  recent: Order[];
 }
 
 export class BarApiError extends Error {
@@ -35,7 +34,6 @@ export function makeBarApi(token: string) {
     claim: (id: string, bartender: string) => call<Order>(`/orders/${id}/claim`, { bartender }),
     unclaim: (id: string) => call<Order>(`/orders/${id}/unclaim`, {}),
     ready: (id: string) => call<Order>(`/orders/${id}/ready`, {}),
-    collected: (id: string) => call<Order>(`/orders/${id}/collected`, {}),
     cancel: (id: string, reason: string) => call<Order>(`/orders/${id}/cancel`, { reason }),
     availability: (ingredient: Ingredient["id"], available: boolean) =>
       call<{ unavailable: string[]; affected: Order[] }>("/availability", { ingredient, available }),

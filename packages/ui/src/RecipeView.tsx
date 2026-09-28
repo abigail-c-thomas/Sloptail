@@ -10,7 +10,7 @@ export function RecipeList({ recipe, compact }: { recipe: Recipe; compact?: bool
         return (
           <li key={`${item.ingredient}-${i}`} className={garnish ? "garnish" : ""}>
             <span>{ing?.name ?? item.ingredient}</span>
-            <span className="amt">{formatAmount(item, ing)}</span>
+            {garnish && item.amount === 1 ? null : <span className="amt">{formatAmount(item, ing)}</span>}
           </li>
         );
       })}

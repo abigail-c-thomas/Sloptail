@@ -14,11 +14,15 @@
 /* Name step sits in the vertical middle of the screen. */
 .name-step { margin: auto 0; padding-bottom: 20vh; }
 
+/* Optional sweet/sour pickers: label on the left, compact segmented control. */
+.flavour-dial { display: grid; grid-template-columns: 3.5em 1fr; align-items: center; gap: 8px; }
+.flavour-dial .choice-opt { min-height: 40px; padding: 8px 10px; }
+
 .ready-card { text-align: center; padding: 28px 16px; }
 .ready-card h1 { font-size: 2rem; }
 .big-name { font-size: 2.4rem; font-weight: 800; letter-spacing: -0.02em; line-height: 1.05; }
 
-/* --- Bar screen: wide, dense, three columns --------------------------- */
+/* --- Bar screen: wide, dense, two columns ----------------------------- */
 .bar {
   padding: 12px;
   min-height: 100dvh;
@@ -27,29 +31,50 @@
   gap: 12px;
 }
 .bar-header { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
-.bar-stats { display: flex; gap: 14px; color: var(--text-muted); font-size: 0.9rem; }
-.bar-stats b { color: var(--text); }
 .bar-columns {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 12px;
   align-items: start;
 }
-@media (max-width: 900px) { .bar-columns { grid-template-columns: 1fr; } }
+@media (max-width: 700px) { .bar-columns { grid-template-columns: 1fr; } }
 .bar-col { display: flex; flex-direction: column; gap: 10px; }
 .bar-col > h2 { display: flex; justify-content: space-between; align-items: baseline; padding: 0 4px; }
 .bar-col > h2 .count { font-size: 0.9rem; color: var(--text-muted); font-weight: 500; }
 .batch { border: 1px dashed var(--line); border-radius: var(--radius); padding: 8px; display: flex; flex-direction: column; gap: 8px; background: var(--surface-2); }
-.batch-label { font-size: 0.8rem; color: var(--text-muted); padding: 0 4px; display: flex; justify-content: space-between; }
+.batch-label { font-size: 0.8rem; color: var(--text-muted); padding: 0 4px; }
 .order-card { padding: 12px; }
 .order-card .who { font-size: 1.15rem; font-weight: 800; }
-.order-card .what { color: var(--text-muted); }
+.order-card .glass { color: var(--text-muted); font-size: 0.85rem; text-transform: capitalize; }
 .order-card .age { font-family: var(--mono); font-size: 0.8rem; color: var(--text-muted); }
 .order-card.stale { border-color: var(--warn); }
-.order-card.ready { border-color: var(--ok); }
-.ready-name { font-size: 1.6rem; font-weight: 800; }
+.undo { padding: 6px 12px; border-radius: var(--radius-sm); background: var(--ok-soft); border: 1px solid var(--ok); }
 
 .ingredients { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 6px; }
 .ingredient-toggle { justify-content: space-between; text-align: left; font-weight: 500; }
 .ingredient-toggle.out { text-decoration: line-through; opacity: 0.7; }
-.empty { color: var(--text-muted); text-align: center; padding: 24px 8px; border: 1px dashed var(--line); border-radius: var(--radius); }
+
+/* --- Room screen: landscape TV, read from across the room --------------- */
+.screen {
+  min-height: 100dvh;
+  padding: 4vh 4vw;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) minmax(0, 1fr);
+  gap: 4vw;
+  align-items: start;
+  overflow: hidden;
+}
+.screen-qr { display: flex; flex-direction: column; align-items: center; gap: 2vh; }
+.screen-qr .qr { width: min(38vh, 30vw); height: auto; border-radius: var(--radius); }
+.screen-url { font-size: 2.2vh; color: var(--text-muted); font-family: var(--mono); }
+.screen-col h2 { font-size: 4vh; color: var(--text-muted); margin-bottom: 2vh; }
+.screen-col ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 2vh; }
+.screen-col li { display: flex; flex-direction: column; }
+.screen-col .who { font-size: 5vh; font-weight: 800; letter-spacing: -0.02em; line-height: 1.05; }
+.screen-col .drink { font-size: 2.4vh; color: var(--text-muted); }
+.screen-col.ready h2, .screen-col.ready .who { color: var(--ok); }
+.screen-queued { margin-top: 3vh; font-size: 2.6vh; color: var(--text-muted); }
+@media (orientation: portrait) {
+  .screen { grid-template-columns: 1fr 1fr; }
+  .screen-qr { grid-column: 1 / -1; }
+}

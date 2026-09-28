@@ -83,6 +83,29 @@ function batchLabel(order: Order): string {
   return names.join(" + ") || "misc";
 }
 
+/** How long a ready order stays on the room screen if nobody taps "Got it". */
+export const BOARD_READY_MS = 15 * 60 * 1000;
+
+/** What the room screen shows. Names and drink names only; no recipes or ids. */
+export interface Board {
+  making: { userName: string; drink: string }[];
+  ready: { userName: string; drink: string }[];
+  queued: number;
+}
+
+export function board(state: BarState, now: number): Board {
+  const entry = (o: Order) => ({ userName: o.userName, drink: o.proposal.name });
+  const live = queue(state);
+  return {
+    making: live.filter((o) => o.status === "making").map(entry),
+    ready: readyOrders(state)
+      .filter((o) => now - (o.readyAt ?? 0) < BOARD_READY_MS)
+      .reverse()
+      .map(entry),
+    queued: live.filter((o) => o.status === "queued").length,
+  };
+}
+
 export interface Stats {
   queued: number;
   making: number;

@@ -12,7 +12,7 @@ packages/state    pure order state machine (no I/O) + selectors (queue, batches,
 packages/llm      prompts, propose/edit loop with validation-driven repairs, OpenRouter client, evals
 packages/ui       React component library + stylesheet
 apps/server       Cloudflare Worker (Hono) + one Durable Object holding the bar state
-apps/web          Vite + React SPA: `/` for guests, `/bar` for the bar
+apps/web          Vite + React SPA: `/` for guests, `/bar` for the bar, `/screen` for the room
 ```
 
 Everything is TypeScript. The server owns all model calls; the browser never
@@ -20,7 +20,8 @@ sees the API key.
 
 ## Dependencies
 
-Kept deliberately small. Runtime: `react`, `react-dom`, `hono`, `zod`.
+Kept deliberately small. Runtime: `react`, `react-dom`, `hono`, `zod`, and
+`qrcode-generator` (no dependencies of its own) for the room screen.
 Tooling: `typescript`, `vite`, `wrangler`, plus type packages. Tests use
 Node's built-in runner (`node --test`) and Node's native TypeScript type
 stripping, so there is no test framework or TS loader. No router, no CSS
@@ -36,8 +37,9 @@ npm run dev
 ```
 
 That starts `wrangler dev` on :8787 and Vite on :5173 (Vite proxies `/api` to
-wrangler). Open http://localhost:5173 for the guest flow and
-http://localhost:5173/bar?token=dev for the bar screen.
+wrangler). Open http://localhost:5173 for the guest flow,
+http://localhost:5173/bar?token=dev for the bar screen and
+http://localhost:5173/screen for the room screen.
 
 Other scripts:
 
@@ -60,21 +62,33 @@ npm run deploy                           # builds the SPA, deploys worker + asse
 
 Model choice lives in `apps/server/wrangler.jsonc` (`OPENROUTER_MODEL`,
 `OPENROUTER_FALLBACK_MODELS`). Bar screen: `https://<your-worker>/bar?token=<BAR_TOKEN>`.
+Room screen: `https://<your-worker>/screen` (add `?url=…` to point the QR code
+somewhere other than the worker's own address).
 
 ## How the pieces fit
 
-- A guest's phone posts a `UserRequest` to `/api/propose`. The Worker builds a
-  prompt from the catalog minus whatever the bar has run out of, calls the model,
-  validates the JSON against the zod schema and the recipe rules (only known
-  ingredients, alcohol within the requested strength, sane amounts) and, if it
-  fails, sends the problems back to the model for up to two repair rounds.
+- A guest's phone posts a `UserRequest` (strength, adventurousness, free text,
+  optional sweet/sour dials) to `/api/propose`, along with drinks it has already
+  been shown this visit. The Worker builds a prompt from the catalog minus
+  whatever the bar has run out of, adds the guest's earlier drinks so the new one
+  is different, calls the model, validates the JSON against the zod schema and
+  the recipe rules (only known ingredients, alcohol within the requested
+  strength, sane amounts, jigger-friendly measures, not the opposite of the
+  requested sweetness/sourness) and, if it fails, sends the problems back to the
+  model for up to two repair rounds.
+- Poured amounts are in parts: 1 part = 30ml, in quarter steps. Each liquid
+  ingredient carries rough sugar and acid figures, which drive the sweet/sour
+  estimate (`estimateBalance` in `packages/shared/src/recipe.ts`).
 - `/api/orders` hands the proposal to the Durable Object, which applies the
   pure `submitOrder` function and persists the new state. The phone then polls
-  `/api/orders/:id` until it's `ready`.
+  `/api/orders/:id` until it's `ready`, and the guest taps "Got it" to mark it
+  collected. The bar never has to.
 - The bar screen polls `/api/bar` and sees queued orders grouped into batches
   that share a base spirit, mixer and method, so one bartender can build
-  several at once. Claim, ready, collected and cancel are all state-machine
-  transitions.
+  several at once. Claim, ready and cancel are all state-machine transitions.
+- The room screen polls the public `/api/board` (names and drink names only):
+  who's being made and who's ready. Ready names drop off when the guest taps
+  "Got it", or after 15 minutes.
 - Marking an ingredient out of stock removes it from future prompts, blocks
   new orders that use it, and reports which live orders are affected.
 

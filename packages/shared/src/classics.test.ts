@@ -18,7 +18,7 @@ describe("classics", () => {
   it("halves the spirit for half strength", () => {
     const full = classicsFor("full").find((c) => c.id === "dark-and-stormy")!;
     const half = classicsFor("half").find((c) => c.id === "dark-and-stormy")!;
-    assert.equal(full.proposal.recipe[0]?.amount, 50);
-    assert.equal(half.proposal.recipe[0]?.amount, 25);
+    assert.equal(full.proposal.recipe[0]?.amount, 1.5);
+    assert.equal(half.proposal.recipe[0]?.amount, 0.75);
   });
 });

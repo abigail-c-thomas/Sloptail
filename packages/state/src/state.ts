@@ -107,6 +107,12 @@ export function markCollected(state: BarState, id: string, now: number): BarStat
   return transition(state, id, "collected", { collectedAt: now });
 }
 
+/** The guest taps "Got it" on their phone. Only the guest who ordered can do this. */
+export function collectOwnOrder(state: BarState, id: string, userId: string, now: number): BarState {
+  if (getOrder(state, id).userId !== userId) throw new StateError("not-found", `No order ${id}`);
+  return markCollected(state, id, now);
+}
+
 export function cancelOrder(state: BarState, id: string, reason: string, now: number): BarState {
   return transition(state, id, "cancelled", { cancelledAt: now, cancelReason: reason });
 }

@@ -7,8 +7,11 @@ import { z } from "zod";
 export const IngredientType = z.enum(["base", "mixer", "flavoring", "garnish"]);
 export type IngredientType = z.infer<typeof IngredientType>;
 
-/** Unit an amount is expressed in. `fill` is handled separately in RecipeItem. */
-export const Unit = z.enum(["ml", "dash", "drop", "pump", "barspoon", "piece"]);
+/**
+ * Unit an amount is expressed in. `fill` is handled separately in RecipeItem.
+ * Poured liquids are in parts (1 part = 30ml, one jigger), in quarter steps.
+ */
+export const Unit = z.enum(["part", "dash", "drop", "pump", "barspoon", "piece"]);
 export type Unit = z.infer<typeof Unit>;
 
 export const Ingredient = z.object({
@@ -27,6 +30,10 @@ export const Ingredient = z.object({
   notes: z.string().optional(),
   /** Hard cap per drink in `unit`, for potent things. Validation rejects more. */
   max: z.number().positive().optional(),
+  /** Rough sugar content, grams per 100ml. Feeds the sweetness estimate. */
+  sugar: z.number().nonnegative().optional(),
+  /** Rough acid content (citric-equivalent), grams per 100ml. Feeds the sourness estimate. */
+  acid: z.number().nonnegative().optional(),
 });
 export type Ingredient = z.infer<typeof Ingredient>;
 
@@ -67,10 +74,16 @@ export type Strength = z.infer<typeof Strength>;
 export const Adventurousness = z.union([z.literal(1), z.literal(2), z.literal(3)]);
 export type Adventurousness = z.infer<typeof Adventurousness>;
 
+/** Optional flavour dials on the prompt screen. */
+export const Level = z.enum(["low", "medium", "high"]);
+export type Level = z.infer<typeof Level>;
+
 export const UserRequest = z.object({
   strength: Strength,
   adventurousness: Adventurousness,
   prompt: z.string().max(500),
+  sweetness: Level.optional(),
+  acidity: Level.optional(),
 });
 export type UserRequest = z.infer<typeof UserRequest>;
 
@@ -119,6 +132,8 @@ export const ProposeBody = z.object({
   userId: z.string(),
   userName: z.string().min(1).max(40),
   request: UserRequest,
+  /** Drinks shown to this guest this session but not ordered, newest first, so the next one differs. */
+  seen: z.array(Proposal).max(5).optional(),
 });
 export type ProposeBody = z.infer<typeof ProposeBody>;
 
@@ -137,6 +152,12 @@ export const SubmitBody = z.object({
   proposal: Proposal,
 });
 export type SubmitBody = z.infer<typeof SubmitBody>;
+
+/** Guest confirms they've picked the drink up. userId must match the order's. */
+export const CollectBody = z.object({
+  userId: z.string(),
+});
+export type CollectBody = z.infer<typeof CollectBody>;
 
 // ---------------------------------------------------------------------------
 // API payloads (bar-facing)

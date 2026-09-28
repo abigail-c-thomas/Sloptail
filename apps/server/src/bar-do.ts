@@ -1,12 +1,13 @@
 import { DurableObject } from "cloudflare:workers";
-import type { Order } from "@sloptail/shared";
+import type { Order, Proposal } from "@sloptail/shared";
 import {
   StateError,
   batches,
+  board,
   cancelOrder,
   claimOrder,
+  collectOwnOrder,
   createState,
-  markCollected,
   markReady,
   ordersForUser,
   ordersUsing,
@@ -18,6 +19,7 @@ import {
   unclaimOrder,
   type BarState,
   type Batch,
+  type Board,
   type Stats,
   type SubmitInput,
 } from "@sloptail/state";
@@ -32,8 +34,6 @@ export interface BarView {
   ready: Order[];
   unavailable: string[];
   stats: Stats;
-  /** Recently collected, newest first, for the "done" column. */
-  recent: Order[];
 }
 
 const STORAGE_KEY = "state";
@@ -103,18 +103,25 @@ export class BarDO extends DurableObject<Env> {
       .map((o) => o.proposal.name);
   }
 
+  /** A guest's last few ordered drinks, newest first, for the prompt's "make it different" hint. */
+  getUserHistory(userId: string, limit = 5): Proposal[] {
+    return ordersForUser(this.state, userId)
+      .filter((o) => o.status !== "cancelled")
+      .slice(0, limit)
+      .map((o) => o.proposal);
+  }
+
+  getBoard(): Board {
+    return board(this.state, Date.now());
+  }
+
   getBarView(): BarView {
-    const recent = Object.values(this.state.orders)
-      .filter((o) => o.status === "collected" || o.status === "cancelled")
-      .sort((a, b) => (b.collectedAt ?? b.cancelledAt ?? 0) - (a.collectedAt ?? a.cancelledAt ?? 0))
-      .slice(0, 10);
     return {
       queue: queue(this.state),
       batches: batches(this.state),
       ready: readyOrders(this.state),
       unavailable: [...this.state.unavailable],
       stats: stats(this.state),
-      recent,
     };
   }
 
@@ -143,8 +150,8 @@ export class BarDO extends DurableObject<Env> {
     return this.mutateOrder((s) => markReady(s, id, Date.now()), id);
   }
 
-  collected(id: string): Promise<Result<Order>> {
-    return this.mutateOrder((s) => markCollected(s, id, Date.now()), id);
+  collectedByGuest(id: string, userId: string): Promise<Result<Order>> {
+    return this.mutateOrder((s) => collectOwnOrder(s, id, userId, Date.now()), id);
   }
 
   cancel(id: string, reason: string): Promise<Result<Order>> {
