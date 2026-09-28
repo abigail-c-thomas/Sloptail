@@ -5,6 +5,8 @@ import { BarApiError, makeBarApi, type BarView } from "./barApi.ts";
 
 const POLL_MS = 2000;
 const STALE_AFTER_MS = 5 * 60 * 1000;
+/** The print bridge reports every couple of seconds; this long without one means it's gone. */
+const PRINTER_SILENT_MS = 20 * 1000;
 
 /**
  * Bar screen. Assumed device: a laptop or tablet in a browser, landscape.
@@ -92,6 +94,7 @@ export function BarApp() {
           ) : null}
         </div>
         <div className="row">
+          <PrinterBadge printer={view?.printer ?? null} now={now} />
           <input
             className="input"
             style={{ width: 140, minHeight: 36, padding: "6px 10px" }}
@@ -107,6 +110,9 @@ export function BarApp() {
       </header>
 
       {error ? <Banner tone="danger">{error}</Banner> : null}
+      {view?.printer && !view.printer.ok && now - view.printer.at < PRINTER_SILENT_MS ? (
+        <Banner tone="danger">{view.printer.message}</Banner>
+      ) : null}
 
       <div className="bar-columns">
         <section className="bar-col">
@@ -128,6 +134,7 @@ export function BarApp() {
                   <Button size="sm" variant="ok" onClick={() => act(() => api.ready(o.id))}>
                     Done
                   </Button>
+                  <ReprintButton order={o} onReprint={() => act(() => api.reprint(o.id))} />
                   <Button size="sm" variant="ghost" onClick={() => confirm(`Cancel ${o.userName}'s ${o.proposal.name}?`) && act(() => api.cancel(o.id, "the bar couldn't make it"))}>
                     ✕
                   </Button>
@@ -150,6 +157,7 @@ export function BarApp() {
               <Button size="sm" variant="ghost" onClick={() => act(() => api.unclaim(o.id))}>
                 Back to queue
               </Button>
+              <ReprintButton order={o} onReprint={() => act(() => api.reprint(o.id))} />
             </OrderCard>
           ))}
         </section>
@@ -248,6 +256,25 @@ function OrderCard({ order, now, children }: { order: Order; now: number; childr
       <div className="row">{children}</div>
     </Card>
   );
+}
+
+/** Only offered once a ticket exists; before that the printer will get to it anyway. */
+function ReprintButton({ order, onReprint }: { order: Order; onReprint: () => void }) {
+  if (order.printedAt === undefined) return null;
+  return (
+    <Button size="sm" variant="ghost" onClick={onReprint} title="Print this ticket again">
+      Reprint
+    </Button>
+  );
+}
+
+function PrinterBadge({ printer, now }: { printer: BarView["printer"]; now: number }) {
+  // Never heard from a bridge: printing isn't set up, so say nothing.
+  if (!printer) return null;
+  if (now - printer.at > PRINTER_SILENT_MS) return <Badge tone="danger">Printer bridge offline</Badge>;
+  if (!printer.ok) return <Badge tone="danger">Printer error</Badge>;
+  if (printer.warning) return <Badge tone="warn">{printer.message}</Badge>;
+  return <Badge tone="ok">Printer ready{printer.pending ? ` · ${printer.pending} printing` : ""}</Badge>;
 }
 
 function age(from: number, now: number): string {

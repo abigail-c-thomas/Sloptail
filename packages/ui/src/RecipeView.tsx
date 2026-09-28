@@ -1,10 +1,10 @@
-import { CATALOG_BY_ID, formatAmount, type Proposal, type Recipe } from "@sloptail/shared";
+import { CATALOG_BY_ID, buildOrder, formatAmount, type Proposal, type Recipe } from "@sloptail/shared";
 
 /** Ingredient list in build order. `compact` for the bar screen. */
 export function RecipeList({ recipe, compact }: { recipe: Recipe; compact?: boolean }) {
   return (
     <ol className={`recipe ${compact ? "compact" : ""}`}>
-      {recipe.map((item, i) => {
+      {buildOrder(recipe).map((item, i) => {
         const ing = CATALOG_BY_ID.get(item.ingredient);
         const garnish = ing?.type === "garnish";
         return (

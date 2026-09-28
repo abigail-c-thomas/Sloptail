@@ -230,3 +230,53 @@ a { color: var(--accent); }
 }
 @keyframes fade { from { opacity: 0; } }
 @keyframes slide { from { transform: translateX(30px); opacity: 0; } }
+
+/* --- Paper (receipt printer preview) ---------------------------------- */
+/* Everything is in printer dots: --dot is one dot at the current width. */
+.paper {
+  container-type: inline-size;
+  width: 100%;
+  max-width: 400px;
+  filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.12)) drop-shadow(0 8px 16px rgba(0, 0, 0, 0.14));
+}
+.paper-sheet {
+  --dot: calc(100cqw / var(--paper-dots));
+  --ink: #16150f;
+  --paper: #fbfaf5;
+  background: var(--paper);
+  color: var(--ink);
+  padding: calc(var(--dot) * 36) calc(var(--dot) * var(--margin)) calc(var(--dot) * 48);
+  /* Torn-off bottom edge. */
+  --tear: calc(var(--dot) * 10);
+  mask: conic-gradient(from -45deg at bottom, #0000, #000 1deg 89deg, #0000 90deg) 50% / calc(var(--tear) * 2) 100%;
+}
+.paper-line {
+  display: flex;
+  align-items: flex-end;
+  height: calc(var(--dot) * var(--h));
+  white-space: pre;
+}
+.paper-line.align-center { justify-content: center; }
+.paper-line.align-right { justify-content: flex-end; }
+.paper-span {
+  position: relative;
+  display: inline-block;
+  flex: none;
+  width: calc(var(--dot) * var(--cw) * var(--sx) * var(--n));
+  height: calc(var(--dot) * var(--ch) * var(--sy));
+}
+.paper-glyphs {
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  font-family: var(--mono);
+  /* Monospace advance is ~0.6em, so this makes one glyph one cell wide. */
+  font-size: calc(var(--dot) * var(--cw) / 0.6);
+  line-height: calc(var(--dot) * var(--ch));
+  transform: scale(var(--sx), var(--sy));
+  transform-origin: left bottom;
+}
+.paper-span.em { font-weight: 700; }
+.paper-span.rev { background: var(--ink); color: var(--paper); }
+.paper-span.ul { box-shadow: inset 0 calc(var(--dot) * -2) 0 var(--ink); }
+.paper-cut { border-top: 1px dashed #aaa; margin: calc(var(--dot) * 30) calc(var(--dot) * var(--margin) * -1); }

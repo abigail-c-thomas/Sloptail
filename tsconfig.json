@@ -5,6 +5,9 @@
     { "path": "packages/state" },
     { "path": "packages/llm" },
     { "path": "packages/ui" },
+    { "path": "packages/printer" },
+    { "path": "packages/ticket" },
+    { "path": "apps/print-bridge" },
     { "path": "apps/server" },
     { "path": "apps/web" }
   ]

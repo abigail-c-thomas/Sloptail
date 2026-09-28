@@ -7,6 +7,7 @@ import {
   ClaimBody,
   EditBody,
   OutOfBody,
+  PrinterReport,
   ProposeBody,
   SubmitBody,
 } from "@sloptail/shared";
@@ -134,6 +135,16 @@ barApi.post("/orders/:id/collected", async (c) => unwrap(c, await bar(c.env).col
 barApi.post("/orders/:id/cancel", body(z.object({ reason: z.string().max(200).default("cancelled by bar") })), async (c) =>
   unwrap(c, await bar(c.env).cancel(c.req.param("id"), c.req.valid("json").reason)),
 );
+
+// --- printing: the print bridge (apps/print-bridge) polls these --------------
+
+barApi.get("/print-queue", async (c) => c.json(await bar(c.env).getPrintQueue()));
+barApi.post("/orders/:id/printed", async (c) => unwrap(c, await bar(c.env).printed(c.req.param("id"))));
+barApi.post("/orders/:id/reprint", async (c) => unwrap(c, await bar(c.env).reprint(c.req.param("id"))));
+barApi.post("/printer", body(PrinterReport), async (c) => {
+  await bar(c.env).reportPrinter(c.req.valid("json"));
+  return c.json({ ok: true });
+});
 
 barApi.post("/availability", body(OutOfBody), async (c) => {
   const { ingredient, available } = c.req.valid("json");

@@ -8,6 +8,7 @@ export interface BarView {
   unavailable: string[];
   stats: { queued: number; making: number; ready: number; collected: number; cancelled: number; avgWaitSeconds: number | null };
   recent: Order[];
+  printer: { ok: boolean; warning: boolean; message: string; pending: number; at: number } | null;
 }
 
 export class BarApiError extends Error {
@@ -39,6 +40,7 @@ export function makeBarApi(token: string) {
     cancel: (id: string, reason: string) => call<Order>(`/orders/${id}/cancel`, { reason }),
     availability: (ingredient: Ingredient["id"], available: boolean) =>
       call<{ unavailable: string[]; affected: Order[] }>("/availability", { ingredient, available }),
+    reprint: (id: string) => call<Order>(`/orders/${id}/reprint`, {}),
     reset: () => call<{ ok: true }>("/reset", {}),
   };
 }

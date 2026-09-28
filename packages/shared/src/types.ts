@@ -108,6 +108,8 @@ export const Order = z.object({
   collectedAt: z.number().optional(),
   cancelledAt: z.number().optional(),
   cancelReason: z.string().optional(),
+  /** When the bar's printer produced a ticket for it. Cleared to ask for a reprint. */
+  printedAt: z.number().optional(),
 });
 export type Order = z.infer<typeof Order>;
 
@@ -152,3 +154,14 @@ export const ClaimBody = z.object({
   bartender: z.string().min(1).max(40),
 });
 export type ClaimBody = z.infer<typeof ClaimBody>;
+
+/** Heartbeat from the print bridge, shown on the bar screen. */
+export const PrinterReport = z.object({
+  ok: z.boolean(),
+  /** Paper low but still printing, etc. */
+  warning: z.boolean().default(false),
+  message: z.string().max(200),
+  /** Tickets waiting in the bridge's queue. */
+  pending: z.number().int().min(0).default(0),
+});
+export type PrinterReport = z.infer<typeof PrinterReport>;

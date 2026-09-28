@@ -10,6 +10,7 @@
   },
   "dependencies": {
     "@sloptail/shared": "*",
+    "@sloptail/ticket": "*",
     "@sloptail/ui": "*",
     "react": "^19",
     "react-dom": "^19"

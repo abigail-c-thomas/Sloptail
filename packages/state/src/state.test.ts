@@ -8,10 +8,13 @@ import {
   claimOrder,
   createState,
   markCollected,
+  markPrinted,
   markReady,
   ordersForUser,
   ordersUsing,
   queue,
+  requestReprint,
+  toPrint,
   setAvailability,
   submitOrder,
   unclaimOrder,
@@ -154,5 +157,27 @@ describe("batches", () => {
     s = submit(s, gt, "b", 2).state;
     s = claimOrder(s, "1", "Sam", 3);
     assert.deepEqual(batches(s).flatMap((x) => x.orders.map((o) => o.id)), ["2"]);
+  });
+});
+
+describe("printing", () => {
+  it("tracks which live orders still need a ticket", () => {
+    let s = createState();
+    const a = submitOrder(s, { userId: "u1", userName: "Ada", request, proposal: gt, now: 1 });
+    const b = submitOrder(a.state, { userId: "u2", userName: "Bo", request, proposal: gt, now: 2 });
+    s = b.state;
+    assert.deepEqual(toPrint(s).map((o) => o.id), ["1", "2"]);
+
+    s = markPrinted(s, "1", 10);
+    assert.equal(s.orders["1"]!.printedAt, 10);
+    assert.equal(s.orders["1"]!.status, "queued");
+    assert.deepEqual(toPrint(s).map((o) => o.id), ["2"]);
+
+    s = requestReprint(s, "1");
+    assert.deepEqual(toPrint(s).map((o) => o.id), ["1", "2"]);
+
+    s = markReady(s, "2", 20);
+    assert.deepEqual(toPrint(s).map((o) => o.id), ["1"]);
+    assert.throws(() => markPrinted(s, "nope", 1), StateError);
   });
 });

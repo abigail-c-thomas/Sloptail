@@ -1,0 +1,18 @@
+{
+  "name": "@sloptail/print-bridge",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "description": "Runs on a laptop at the bar: pulls new orders from the server and prints tickets on the Epson.",
+  "scripts": {
+    "start": "node src/main.ts"
+  },
+  "dependencies": {
+    "@sloptail/printer": "*",
+    "@sloptail/shared": "*",
+    "@sloptail/ticket": "*"
+  },
+  "devDependencies": {
+    "@types/node": "^22"
+  }
+}

@@ -8,6 +8,14 @@ export function queue(state: BarState): Order[] {
     .sort((a, b) => a.createdAt - b.createdAt);
 }
 
+/**
+ * Orders that still need a ticket, oldest first. Only orders nobody has
+ * finished yet: a ticket for a drink already on the bar is waste.
+ */
+export function toPrint(state: BarState): Order[] {
+  return queue(state).filter((o) => o.printedAt === undefined);
+}
+
 /** Orders on the bar waiting to be picked up, oldest first. */
 export function readyOrders(state: BarState): Order[] {
   return Object.values(state.orders)

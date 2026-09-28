@@ -34,6 +34,22 @@ export function formatAmount(item: RecipeItem, ingredient?: Ingredient): string 
   }
 }
 
+/**
+ * The recipe in the order to build it. The model is asked for build order and
+ * mostly gets it right; this guarantees the parts that matter behind the bar:
+ * top-ups and anything sparkling go in after the still ingredients (so they
+ * keep their fizz), and garnishes come last. Otherwise the model's order stands.
+ */
+export function buildOrder(recipe: Recipe): Recipe {
+  const rank = (item: RecipeItem): number => {
+    const ing = CATALOG_BY_ID.get(item.ingredient);
+    if (ing?.type === "garnish") return 2;
+    if (item.amount === "fill" || ing?.flavor.includes("sparkling")) return 1;
+    return 0;
+  };
+  return recipe.map((item, i) => ({ item, i, r: rank(item) })).sort((a, b) => a.r - b.r || a.i - b.i).map((x) => x.item);
+}
+
 /** Rough estimate of pure alcohol in ml, for sanity-checking strength. */
 export function estimateAlcoholMl(recipe: Recipe): number {
   let total = 0;

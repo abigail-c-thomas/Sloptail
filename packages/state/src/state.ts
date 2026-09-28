@@ -107,6 +107,18 @@ export function markCollected(state: BarState, id: string, now: number): BarStat
   return transition(state, id, "collected", { collectedAt: now });
 }
 
+/** The printer has produced a ticket for this order. Not a status change. */
+export function markPrinted(state: BarState, id: string, now: number): BarState {
+  const order = getOrder(state, id);
+  return { ...state, orders: { ...state.orders, [id]: { ...order, printedAt: now } } };
+}
+
+/** Ask for another ticket (torn, smudged, dropped in the ice). */
+export function requestReprint(state: BarState, id: string): BarState {
+  const { printedAt: _p, ...rest } = getOrder(state, id);
+  return { ...state, orders: { ...state.orders, [id]: rest } };
+}
+
 export function cancelOrder(state: BarState, id: string, reason: string, now: number): BarState {
   return transition(state, id, "cancelled", { cancelledAt: now, cancelReason: reason });
 }

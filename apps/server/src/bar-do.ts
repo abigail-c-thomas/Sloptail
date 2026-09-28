@@ -1,5 +1,5 @@
 import { DurableObject } from "cloudflare:workers";
-import type { Order } from "@sloptail/shared";
+import type { Order, PrinterReport } from "@sloptail/shared";
 import {
   StateError,
   batches,
@@ -7,14 +7,17 @@ import {
   claimOrder,
   createState,
   markCollected,
+  markPrinted,
   markReady,
   ordersForUser,
   ordersUsing,
   queue,
   readyOrders,
+  requestReprint,
   setAvailability,
   stats,
   submitOrder,
+  toPrint,
   unclaimOrder,
   type BarState,
   type Batch,
@@ -34,6 +37,13 @@ export interface BarView {
   stats: Stats;
   /** Recently collected, newest first, for the "done" column. */
   recent: Order[];
+  /** Last report from the print bridge, or null if none has ever checked in. */
+  printer: PrinterStatus | null;
+}
+
+export interface PrinterStatus extends PrinterReport {
+  /** When the bridge last reported; the bar screen treats an old one as "bridge down". */
+  at: number;
 }
 
 const STORAGE_KEY = "state";
@@ -49,6 +59,8 @@ const RATE = { perUser: 8, global: 120, windowMs: 60_000 };
 export class BarDO extends DurableObject<Env> {
   private state: BarState = createState();
   private llmCalls = new Map<string, number[]>();
+  /** In memory only: a heartbeat, not state worth persisting. */
+  private printer: PrinterStatus | null = null;
 
   constructor(ctx: DurableObjectState, env: Env) {
     super(ctx, env);
@@ -115,7 +127,12 @@ export class BarDO extends DurableObject<Env> {
       unavailable: [...this.state.unavailable],
       stats: stats(this.state),
       recent,
+      printer: this.printer,
     };
+  }
+
+  getPrintQueue(): Order[] {
+    return toPrint(this.state);
   }
 
   getOrdersUsing(ingredient: string): Order[] {
@@ -149,6 +166,18 @@ export class BarDO extends DurableObject<Env> {
 
   cancel(id: string, reason: string): Promise<Result<Order>> {
     return this.mutateOrder((s) => cancelOrder(s, id, reason, Date.now()), id);
+  }
+
+  printed(id: string): Promise<Result<Order>> {
+    return this.mutateOrder((s) => markPrinted(s, id, Date.now()), id);
+  }
+
+  reprint(id: string): Promise<Result<Order>> {
+    return this.mutateOrder((s) => requestReprint(s, id), id);
+  }
+
+  reportPrinter(report: PrinterReport): void {
+    this.printer = { ...report, at: Date.now() };
   }
 
   setIngredientAvailable(ingredient: string, available: boolean): Promise<Result<string[]>> {

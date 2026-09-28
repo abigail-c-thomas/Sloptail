@@ -11,6 +11,9 @@ packages/shared   types, zod schemas, ingredient catalog, classics, recipe valid
 packages/state    pure order state machine (no I/O) + selectors (queue, batches, stats)
 packages/llm      prompts, propose/edit loop with validation-driven repairs, OpenRouter client, evals
 packages/ui       React component library + stylesheet
+packages/printer  Epson ePOS-Print XML: document builder + rate-limited print queue (no Sloptail specifics)
+packages/ticket  the drink ticket layout, shared by the printer and the web UI
+apps/print-bridge Node process at the bar: pulls unprinted orders, prints tickets, reports printer health
 apps/server       Cloudflare Worker (Hono) + one Durable Object holding the bar state
 apps/web          Vite + React SPA: `/` for guests, `/bar` for the bar
 ```
@@ -60,6 +63,33 @@ npm run deploy                           # builds the SPA, deploys worker + asse
 
 Model choice lives in `apps/server/wrangler.jsonc` (`OPENROUTER_MODEL`,
 `OPENROUTER_FALLBACK_MODELS`). Bar screen: `https://<your-worker>/bar?token=<BAR_TOKEN>`.
+
+## Printing tickets
+
+An Epson TM-T88VI (or any ePOS-Print capable Epson) prints a ticket per
+order: guest name large, glass and strength, numbered build steps, then the
+description and what they asked for, since the ticket travels with the drink.
+
+The Worker can't reach a printer on the venue network, and the bar page
+(https) can't call the printer's plain-http endpoint, so a small bridge runs
+on a laptop that's on the same network as the printer:
+
+```bash
+npm run print -- --printer 192.168.0.50 --test                   # one sample ticket
+npm run print -- --printer 192.168.0.50 --token <BAR_TOKEN>      # the real thing
+npm run print -- --preview --token dev --url http://localhost:8787  # tickets in the terminal, no printer
+```
+
+It prints at most one ticket every 3s (`--gap`), marks each order printed on
+the server (so restarts don't reprint), and reports printer health, which
+the bar screen shows as a badge ("Printer ready", "Paper running low", "Printer
+bridge offline") plus a red banner for errors. "Reprint" on an order card
+queues its ticket again. Run one bridge per printer.
+
+The ticket layout lives in `packages/ticket` and is drawn in the browser by
+`<Paper>` (packages/ui) at the printer's own proportions. `/tickets` shows
+sample tickets, plus live orders if the browser has the bar token, so you can
+design without using up paper.
 
 ## How the pieces fit
 
