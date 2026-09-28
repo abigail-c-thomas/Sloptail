@@ -53,8 +53,8 @@ export function edit(
 /** Validate a proposal the way the loop does; exported so evals can score model output. */
 export function problemsWith(proposal: Proposal, ctx: PromptContext): string[] {
   return [
-    ...validateRecipe(proposal.recipe, ctx.request.strength, ctx.unavailable).map(describeIssue),
-    ...flavourIssues(proposal.recipe, proposal.glass, ctx.request),
+    ...validateRecipe(proposal.recipe, ctx.request.strength, ctx.catalog, ctx.unavailable).map(describeIssue),
+    ...flavourIssues(proposal.recipe, proposal.glass, ctx.request, ctx.catalog),
   ];
 }
 

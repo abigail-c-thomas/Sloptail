@@ -7,6 +7,17 @@ export interface BarView {
   ready: Order[];
   unavailable: string[];
   stats: { queued: number; making: number; ready: number; collected: number; cancelled: number; avgWaitSeconds: number | null };
+  catalog: Ingredient[];
+  stock: StockLevel[];
+  profile: "practice" | "real";
+  printerIp: string;
+}
+
+/** Mirrors StockLevel in packages/state/src/selectors.ts. */
+export interface StockLevel {
+  ingredient: string;
+  stock: number;
+  used: number;
 }
 
 export class BarApiError extends Error {
@@ -37,7 +48,6 @@ export function makeBarApi(token: string) {
     cancel: (id: string, reason: string) => call<Order>(`/orders/${id}/cancel`, { reason }),
     availability: (ingredient: Ingredient["id"], available: boolean) =>
       call<{ unavailable: string[]; affected: Order[] }>("/availability", { ingredient, available }),
-    reset: () => call<{ ok: true }>("/reset", {}),
   };
 }
 

@@ -10,7 +10,7 @@
  * can be diffed by hand or fed to a judge later.
  */
 import { mkdirSync, writeFileSync } from "node:fs";
-import { CATALOG_BY_ID, formatAmount } from "@sloptail/shared";
+import { DEFAULT_CATALOG, formatAmount } from "@sloptail/shared";
 import { OpenRouterClient } from "../src/openrouter.ts";
 import { propose, ProposeError, type Attempt } from "../src/propose.ts";
 import { CASES, type EvalCase } from "./cases.ts";
@@ -79,7 +79,7 @@ async function runCase(c: EvalCase, rep: number): Promise<CaseResult> {
   const t0 = Date.now();
   try {
     const { proposal, attempts } = await propose(
-      { userName: c.userName, request: c.request, unavailable: new Set() },
+      { catalog: DEFAULT_CATALOG, userName: c.userName, request: c.request, unavailable: new Set() },
       client,
     );
     const ids = new Set(proposal.recipe.map((r) => r.ingredient));
@@ -97,7 +97,10 @@ async function runCase(c: EvalCase, rep: number): Promise<CaseResult> {
       attempts,
       name: proposal.name,
       recipe: proposal.recipe
-        .map((r) => `${CATALOG_BY_ID.get(r.ingredient)?.name ?? r.ingredient} ${formatAmount(r, CATALOG_BY_ID.get(r.ingredient))}`)
+        .map((r) => {
+          const ing = DEFAULT_CATALOG.byId.get(r.ingredient);
+          return `${ing?.name ?? r.ingredient} ${formatAmount(r, ing)}`;
+        })
         .join(", "),
       failedExpectations: failed,
     };

@@ -10,4 +10,6 @@ export interface Env {
   OPENROUTER_REASONING?: string;
   /** Shared secret the bar screen sends as a bearer token. */
   BAR_TOKEN: string;
+  /** Secret for /admin. Falls back to BAR_TOKEN if unset. */
+  ADMIN_TOKEN?: string;
 }

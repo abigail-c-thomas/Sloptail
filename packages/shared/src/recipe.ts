@@ -1,4 +1,4 @@
-import { CATALOG, CATALOG_BY_ID } from "./catalog.ts";
+import type { Catalog } from "./catalog.ts";
 import type { Glass, Ingredient, Level, Recipe, RecipeItem, Strength } from "./types.ts";
 
 /** One part is one jigger. */
@@ -33,8 +33,12 @@ export function allowedForStrength(ing: Ingredient, strength: Strength): boolean
 }
 
 /** The pantry as shown to the model: in stock and allowed for the strength. */
-export function offeredIngredients(strength: Strength, unavailable: ReadonlySet<string> = new Set()): Ingredient[] {
-  return CATALOG.filter((i) => !unavailable.has(i.id) && allowedForStrength(i, strength));
+export function offeredIngredients(
+  catalog: Catalog,
+  strength: Strength,
+  unavailable: ReadonlySet<string> = new Set(),
+): Ingredient[] {
+  return catalog.list.filter((i) => !unavailable.has(i.id) && allowedForStrength(i, strength));
 }
 
 /** Human-readable amount, e.g. "1½ parts", "2 dashes", "top up". */
@@ -58,10 +62,10 @@ export function formatAmount(item: RecipeItem, ingredient?: Ingredient): string 
 }
 
 /** Rough estimate of pure alcohol in ml, for sanity-checking strength. */
-export function estimateAlcoholMl(recipe: Recipe): number {
+export function estimateAlcoholMl(recipe: Recipe, catalog: Catalog): number {
   let total = 0;
   for (const item of recipe) {
-    const ing = CATALOG_BY_ID.get(item.ingredient);
+    const ing = catalog.byId.get(item.ingredient);
     if (!ing || !ing.alcoholic || item.amount === "fill") continue;
     const abv = ing.abv ?? 0;
     total += (item.amount * ML_PER_UNIT[ing.unit] * abv) / 100;
@@ -102,12 +106,13 @@ export type RecipeIssue =
 export function validateRecipe(
   recipe: Recipe,
   strength: Strength,
+  catalog: Catalog,
   unavailable: ReadonlySet<string> = new Set(),
 ): RecipeIssue[] {
   const issues: RecipeIssue[] = [];
   let hasLiquid = false;
   for (const item of recipe) {
-    const ing = CATALOG_BY_ID.get(item.ingredient);
+    const ing = catalog.byId.get(item.ingredient);
     if (!ing) {
       issues.push({ kind: "unknown-ingredient", ingredient: item.ingredient });
       continue;
@@ -126,7 +131,7 @@ export function validateRecipe(
     }
   }
   if (!hasLiquid) issues.push({ kind: "no-liquid" });
-  const alcoholMl = estimateAlcoholMl(recipe);
+  const alcoholMl = estimateAlcoholMl(recipe, catalog);
   const budget = ALCOHOL_BUDGET[strength];
   if (alcoholMl > budget.max * (1 + ALCOHOL_TOLERANCE)) issues.push({ kind: "too-strong", alcoholMl, max: budget.max });
   if (alcoholMl < budget.min * (1 - ALCOHOL_TOLERANCE)) issues.push({ kind: "too-weak", alcoholMl, min: budget.min });
@@ -171,34 +176,47 @@ export interface Balance {
 }
 
 /**
- * Rough sugar and acid concentration of the finished drink. "fill" tops the
- * glass up to FILL_TO_ML, shared between fill ingredients. Ignores ice melt;
+ * How much of each ingredient goes into one drink, in ml (pieces for
+ * garnishes). "fill" tops the glass up to FILL_TO_ML, shared between fill
+ * ingredients. Unknown ids are skipped.
+ */
+export function pourVolumes(recipe: Recipe, glass: Glass, catalog: Catalog): Map<string, number> {
+  const out = new Map<string, number>();
+  const add = (id: string, n: number) => out.set(id, (out.get(id) ?? 0) + n);
+  let poured = 0;
+  const fills: string[] = [];
+  for (const item of recipe) {
+    const ing = catalog.byId.get(item.ingredient);
+    if (!ing) continue;
+    if (item.amount === "fill") fills.push(ing.id);
+    else if (ing.unit === "piece") add(ing.id, item.amount);
+    else {
+      const ml = item.amount * ML_PER_UNIT[ing.unit];
+      poured += ml;
+      add(ing.id, ml);
+    }
+  }
+  const fillMl = fills.length ? Math.max(0, FILL_TO_ML[glass] - poured) / fills.length : 0;
+  for (const id of fills) add(id, fillMl);
+  return out;
+}
+
+/**
+ * Rough sugar and acid concentration of the finished drink. Ignores ice melt;
  * the level bands below are calibrated against the classics with the same
  * assumption.
  */
-export function estimateBalance(recipe: Recipe, glass: Glass): Balance {
-  let poured = 0;
+export function estimateBalance(recipe: Recipe, glass: Glass, catalog: Catalog): Balance {
+  let volumeMl = 0;
   let sugar = 0;
   let acid = 0;
-  const fills: Ingredient[] = [];
-  for (const item of recipe) {
-    const ing = CATALOG_BY_ID.get(item.ingredient);
-    if (!ing) continue;
-    if (item.amount === "fill") {
-      fills.push(ing);
-      continue;
-    }
-    const ml = item.amount * ML_PER_UNIT[ing.unit];
-    poured += ml;
-    sugar += (ml * (ing.sugar ?? 0)) / 100;
-    acid += (ml * (ing.acid ?? 0)) / 100;
+  for (const [id, amount] of pourVolumes(recipe, glass, catalog)) {
+    const ing = catalog.byId.get(id)!;
+    if (ing.unit === "piece") continue;
+    volumeMl += amount;
+    sugar += (amount * (ing.sugar ?? 0)) / 100;
+    acid += (amount * (ing.acid ?? 0)) / 100;
   }
-  const fillMl = fills.length ? Math.max(0, FILL_TO_ML[glass] - poured) / fills.length : 0;
-  for (const ing of fills) {
-    sugar += (fillMl * (ing.sugar ?? 0)) / 100;
-    acid += (fillMl * (ing.acid ?? 0)) / 100;
-  }
-  const volumeMl = poured + fillMl * fills.length;
   if (volumeMl === 0) return { volumeMl, sugarPct: 0, acidPct: 0 };
   return { volumeMl, sugarPct: (sugar / volumeMl) * 100, acidPct: (acid / volumeMl) * 100 };
 }
@@ -220,8 +238,9 @@ export function flavourIssues(
   recipe: Recipe,
   glass: Glass,
   want: { sweetness?: Level | undefined; acidity?: Level | undefined },
+  catalog: Catalog,
 ): string[] {
-  const b = estimateBalance(recipe, glass);
+  const b = estimateBalance(recipe, glass, catalog);
   const issues: string[] = [];
   const check = (name: string, asked: Level | undefined, got: Level, pct: number, bands: { low: number; high: number }) => {
     if (!asked || Math.abs(RANK[asked] - RANK[got]) < 2) return;

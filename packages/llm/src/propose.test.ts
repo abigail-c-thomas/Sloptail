@@ -1,12 +1,13 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import type { Proposal } from "@sloptail/shared";
+import { DEFAULT_CATALOG, type Proposal } from "@sloptail/shared";
 import { FakeClient } from "./client.ts";
 import { extractJson } from "./parse.ts";
 import { edit, propose, ProposeError } from "./propose.ts";
 import type { PromptContext } from "./prompt.ts";
 
 const ctx: PromptContext = {
+  catalog: DEFAULT_CATALOG,
   userName: "Abigail",
   request: { strength: "full", adventurousness: 2, prompt: "something with mezcal, bit bitter" },
   unavailable: new Set(),

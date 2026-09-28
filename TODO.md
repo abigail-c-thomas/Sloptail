@@ -18,6 +18,8 @@ Legend: **[you]** needs Abigail · **[claude]** Claude can do alone · **[both]*
 - [x] **[you]** List what the bar will actually stock: `Sloptail/Ingredients.md`.
 - [x] **[claude]** Catalog rebuilt from that list; classics rewritten as built-in-glass highballs; tests updated.
 - [ ] **[you]** Open questions from the list: vermouth in or out? Cream/yogurt vs lactic acid solution (I've assumed the solution)? Rough quantities per bottle, so we can do out-of-stock estimates?
+- [x] **[claude]** Admin screen (`/admin`): practice and real ingredient lists, stock, printer address, start buttons.
+- [ ] **[you]** Enter the practice and real ingredient lists and rough stock on `/admin`, check the model-filled rows, then hit Start practice.
 - [x] **[you]** House rules: standard cocktail strength max (20-22ml pure alcohol), everything built in the glass, no shaking. Applied.
 
 ## 3. Deploy

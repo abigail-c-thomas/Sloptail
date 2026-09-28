@@ -15,7 +15,7 @@ export const Unit = z.enum(["part", "dash", "drop", "pump", "barspoon", "piece"]
 export type Unit = z.infer<typeof Unit>;
 
 export const Ingredient = z.object({
-  id: z.string(),
+  id: z.string().regex(/^[a-z0-9-]+$/, "lowercase letters, digits and dashes"),
   name: z.string(),
   type: IngredientType,
   /** Short flavor tags, e.g. "bitter", "citrus", "herbal". Used in prompts and for batching. */
@@ -34,6 +34,8 @@ export const Ingredient = z.object({
   sugar: z.number().nonnegative().optional(),
   /** Rough acid content (citric-equivalent), grams per 100ml. Feeds the sourness estimate. */
   acid: z.number().nonnegative().optional(),
+  /** How much the bar starts with: ml, or pieces for garnishes. Drives the running-out estimate. */
+  stock: z.number().nonnegative().optional(),
 });
 export type Ingredient = z.infer<typeof Ingredient>;
 
@@ -158,6 +160,40 @@ export const CollectBody = z.object({
   userId: z.string(),
 });
 export type CollectBody = z.infer<typeof CollectBody>;
+
+// ---------------------------------------------------------------------------
+// Event setup (admin)
+// ---------------------------------------------------------------------------
+
+/** Two setups: a practice run with a smaller bar, then the real thing. */
+export const ProfileName = z.enum(["practice", "real"]);
+export type ProfileName = z.infer<typeof ProfileName>;
+
+export const Profile = z.object({
+  ingredients: z
+    .array(Ingredient)
+    .min(1)
+    .max(80)
+    .refine((list) => new Set(list.map((i) => i.id)).size === list.length, "ingredient ids must be unique"),
+  /** Receipt printer on the bar's network, e.g. "192.168.1.50" or "192.168.1.50:9100". */
+  printerIp: z.string().max(100),
+});
+export type Profile = z.infer<typeof Profile>;
+
+export const EventConfig = z.object({
+  /** Which profile the bar is running. Switching clears all orders. */
+  active: ProfileName,
+  profiles: z.record(ProfileName, Profile),
+});
+export type EventConfig = z.infer<typeof EventConfig>;
+
+export const DescribeBody = z.object({
+  names: z.array(z.string().trim().min(1).max(60)).min(1).max(30),
+});
+export type DescribeBody = z.infer<typeof DescribeBody>;
+
+export const StartBody = z.object({ profile: ProfileName });
+export type StartBody = z.infer<typeof StartBody>;
 
 // ---------------------------------------------------------------------------
 // API payloads (bar-facing)

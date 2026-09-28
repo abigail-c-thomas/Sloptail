@@ -12,7 +12,7 @@ packages/state    pure order state machine (no I/O) + selectors (queue, batches,
 packages/llm      prompts, propose/edit loop with validation-driven repairs, OpenRouter client, evals
 packages/ui       React component library + stylesheet
 apps/server       Cloudflare Worker (Hono) + one Durable Object holding the bar state
-apps/web          Vite + React SPA: `/` for guests, `/bar` for the bar, `/screen` for the room
+apps/web          Vite + React SPA: `/` for guests, `/bar` for the bar, `/screen` for the room, `/admin` for event setup
 ```
 
 Everything is TypeScript. The server owns all model calls; the browser never
@@ -38,8 +38,9 @@ npm run dev
 
 That starts `wrangler dev` on :8787 and Vite on :5173 (Vite proxies `/api` to
 wrangler). Open http://localhost:5173 for the guest flow,
-http://localhost:5173/bar?token=dev for the bar screen and
-http://localhost:5173/screen for the room screen.
+http://localhost:5173/bar?token=dev for the bar screen,
+http://localhost:5173/screen for the room screen and
+http://localhost:5173/admin?token=dev for event setup.
 
 Other scripts:
 
@@ -56,6 +57,7 @@ npx wrangler login                       # once
 cd apps/server
 npx wrangler secret put OPENROUTER_API_KEY
 npx wrangler secret put BAR_TOKEN
+npx wrangler secret put ADMIN_TOKEN      # optional; /admin accepts BAR_TOKEN if unset
 cd ../..
 npm run deploy                           # builds the SPA, deploys worker + assets
 ```
@@ -64,6 +66,20 @@ Model choice lives in `apps/server/wrangler.jsonc` (`OPENROUTER_MODEL`,
 `OPENROUTER_FALLBACK_MODELS`). Bar screen: `https://<your-worker>/bar?token=<BAR_TOKEN>`.
 Room screen: `https://<your-worker>/screen` (add `?url=…` to point the QR code
 somewhere other than the worker's own address).
+
+## Event setup
+
+`/admin` holds two profiles, Practice and Real. Each has its own ingredient
+list, rough starting stock per ingredient (ml, or pieces for garnishes; "2x700"
+works) and the receipt printer's address. Type ingredient names to add them:
+anything in the default list (`packages/shared/src/catalog.ts`) is copied
+across, and the model fills in the rest (type, unit, ABV, flavours, sugar/acid)
+for you to check before saving. "Start practice" / "Start real" makes that
+profile live and clears every order. Until someone does, the Real profile runs
+with the default list.
+
+The active profile's printer address is in the bar view (`GET /api/bar`,
+`printerIp`).
 
 ## How the pieces fit
 
@@ -90,7 +106,9 @@ somewhere other than the worker's own address).
   who's being made and who's ready. Ready names drop off when the guest taps
   "Got it", or after 15 minutes.
 - Marking an ingredient out of stock removes it from future prompts, blocks
-  new orders that use it, and reports which live orders are affected.
+  new orders that use it, and reports which live orders are affected. An
+  ingredient with a starting stock is also dropped from prompts once the
+  orders so far are estimated to have used it all.
 
 ## Evals
 

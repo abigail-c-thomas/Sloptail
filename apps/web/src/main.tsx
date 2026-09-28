@@ -5,9 +5,10 @@ import "./app.css";
 import { UserApp } from "./user/UserApp.tsx";
 import { BarApp } from "./bar/BarApp.tsx";
 import { ScreenApp } from "./screen/ScreenApp.tsx";
+import { AdminApp } from "./admin/AdminApp.tsx";
 
-// Three routes; a router library would be more code than this.
-const ROUTES: Record<string, () => React.JSX.Element> = { "/bar": BarApp, "/screen": ScreenApp };
+// A handful of routes; a router library would be more code than this.
+const ROUTES: Record<string, () => React.JSX.Element> = { "/bar": BarApp, "/screen": ScreenApp, "/admin": AdminApp };
 const Page = ROUTES[window.location.pathname.replace(/\/+$/, "")] ?? UserApp;
 
 createRoot(document.getElementById("root")!).render(

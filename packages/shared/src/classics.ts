@@ -1,5 +1,5 @@
 import type { Proposal, Strength } from "./types.ts";
-import { CATALOG_BY_ID } from "./catalog.ts";
+import { DEFAULT_CATALOG, type Catalog } from "./catalog.ts";
 
 export interface Classic {
   id: string;
@@ -10,7 +10,8 @@ export interface Classic {
 
 /**
  * Menu for "not at all adventurous" guests and a fallback when the model is
- * down. Everything here is built in the glass from CATALOG.
+ * down. Everything here is built in the glass from the default CATALOG;
+ * classicsFor drops any that need something the current bar doesn't stock.
  */
 export const CLASSICS: Classic[] = [
   {
@@ -164,19 +165,21 @@ export const CLASSICS: Classic[] = [
   },
 ];
 
-/** Classics suitable for a strength. Half-strength halves any base spirit. */
-export function classicsFor(strength: Strength): Classic[] {
-  return CLASSICS.filter((c) => c.strengths.includes(strength)).map((c) =>
-    strength === "half"
-      ? {
-          ...c,
-          proposal: {
-            ...c.proposal,
-            recipe: c.proposal.recipe.map((r) =>
-              CATALOG_BY_ID.get(r.ingredient)?.type === "base" && r.amount !== "fill" ? { ...r, amount: r.amount / 2 } : r,
-            ),
-          },
-        }
-      : c,
-  );
+/**
+ * Classics suitable for a strength that this bar can make. A missing garnish
+ * is just left off; a missing liquid rules the drink out. Half-strength halves
+ * any base spirit.
+ */
+export function classicsFor(strength: Strength, catalog: Catalog = DEFAULT_CATALOG): Classic[] {
+  const has = (id: string) => catalog.byId.has(id);
+  const isGarnish = (id: string) => DEFAULT_CATALOG.byId.get(id)?.type === "garnish";
+  return CLASSICS.filter((c) => c.strengths.includes(strength)).flatMap((c) => {
+    const kept = c.proposal.recipe.filter((r) => has(r.ingredient) || !isGarnish(r.ingredient));
+    if (!kept.every((r) => has(r.ingredient))) return [];
+    const recipe =
+      strength === "half"
+        ? kept.map((r) => (catalog.byId.get(r.ingredient)?.type === "base" && r.amount !== "fill" ? { ...r, amount: r.amount / 2 } : r))
+        : kept;
+    return [{ ...c, proposal: { ...c.proposal, recipe } }];
+  });
 }

@@ -1,8 +1,9 @@
 import type { Ingredient } from "./types.ts";
 
 /**
- * The bar. Source: Sloptail/Ingredients.md (Abigail's current plan).
- * Single source of truth for what the model may use and what the bar screen shows.
+ * The default bar. Source: Sloptail/Ingredients.md (Abigail's current plan).
+ * Event profiles (set up on /admin) start from this list; the active profile's
+ * list is what the model may use and what the bar screen shows.
  *
  * House rules baked in here: everything is built in the glass, so nothing needs
  * a shaker; potent flavourings carry a `max` so the model can't drown a drink.
@@ -48,8 +49,37 @@ export const CATALOG: Ingredient[] = [
   { id: "citrus-peel", name: "Citrus peel", type: "garnish", flavor: ["citrus", "aromatic"], alcoholic: false, unit: "piece", max: 1, notes: "Express the oils over the drink" },
 ];
 
-export const CATALOG_BY_ID: ReadonlyMap<string, Ingredient> = new Map(CATALOG.map((i) => [i.id, i]));
+export const TYPE_LABEL: Record<Ingredient["type"], string> = {
+  base: "Bases",
+  mixer: "Mixers",
+  flavoring: "Flavourings",
+  garnish: "Garnishes",
+};
 
-export function getIngredient(id: string): Ingredient | undefined {
-  return CATALOG_BY_ID.get(id);
+/** An ingredient list plus an id index. Everything that needs to know what's behind the bar takes one. */
+export interface Catalog {
+  list: readonly Ingredient[];
+  byId: ReadonlyMap<string, Ingredient>;
+}
+
+export function makeCatalog(list: readonly Ingredient[]): Catalog {
+  return { list, byId: new Map(list.map((i) => [i.id, i])) };
+}
+
+export const DEFAULT_CATALOG: Catalog = makeCatalog(CATALOG);
+
+/** "Lime juice" -> "lime-juice". Ingredient ids look like this. */
+export function slugify(name: string): string {
+  return name
+    .toLowerCase()
+    .normalize("NFKD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+}
+
+/** Find a typed-in name in the default list, by id or name ("coke", "Lime juice"). */
+export function findKnownIngredient(name: string): Ingredient | undefined {
+  const slug = slugify(name);
+  return CATALOG.find((i) => i.id === slug || slugify(i.name) === slug);
 }

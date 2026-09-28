@@ -1,11 +1,11 @@
 import {
   ACIDITY_BANDS,
   ALCOHOL_BUDGET,
-  CATALOG_BY_ID,
   FILL_TO_ML,
   ML_PER_PART,
   offeredIngredients,
   SWEETNESS_BANDS,
+  type Catalog,
   type Ingredient,
   type Level,
   type Proposal,
@@ -16,6 +16,8 @@ import type { Message } from "./client.ts";
 import { PROPOSAL_JSON_SCHEMA } from "./parse.ts";
 
 export interface PromptContext {
+  /** What's behind the bar for this event. */
+  catalog: Catalog;
   userName: string;
   request: UserRequest;
   unavailable: ReadonlySet<string>;
@@ -66,13 +68,13 @@ const REFERENCE_POINTS =
   "Acid: Coke 0.1, tonic 0.3, apple juice 0.5, white wine 0.6, orange juice 0.8, lemonade 1.";
 
 /** One line per earlier drink: name and what went in it, no amounts. */
-function historyLine(p: Proposal): string {
-  const parts = p.recipe.map((r) => CATALOG_BY_ID.get(r.ingredient)?.name ?? r.ingredient);
+function historyLine(p: Proposal, catalog: Catalog): string {
+  const parts = p.recipe.map((r) => catalog.byId.get(r.ingredient)?.name ?? r.ingredient);
   return `- ${p.name}: ${parts.join(", ")}`;
 }
 
 export function systemPrompt(ctx: PromptContext): string {
-  const available = offeredIngredients(ctx.request.strength, ctx.unavailable);
+  const available = offeredIngredients(ctx.catalog, ctx.request.strength, ctx.unavailable);
   const budget = ALCOHOL_BUDGET[ctx.request.strength];
   return `You are the bartender at a tech company's "AI happy hour". Guests order from their phones and you invent a drink for each of them. Drinks must be genuinely good, interesting, and quick to make behind a small pop-up bar with unusual flavourings (tinctures, teas, acids, smoke) and no shaker.
 
@@ -113,7 +115,7 @@ export function proposeMessages(ctx: PromptContext): Message[] {
     r.acidity ? `Sourness: ${r.acidity}` : "",
   ].filter(Boolean);
   const history = ctx.history?.length
-    ? `\n\nThey've already had or been offered:\n${ctx.history.map(historyLine).join("\n")}\nMake this one clearly different from those (a different base or mixer, and a different flavour direction), unless they ask for one of them again.`
+    ? `\n\nThey've already had or been offered:\n${ctx.history.map((p) => historyLine(p, ctx.catalog)).join("\n")}\nMake this one clearly different from those (a different base or mixer, and a different flavour direction), unless they ask for one of them again.`
     : "";
   return [
     { role: "system", content: systemPrompt(ctx) },

@@ -1,10 +1,11 @@
-import { useCallback, useMemo, useReducer, useState } from "react";
+import { useCallback, useEffect, useMemo, useReducer, useState } from "react";
 import type { Adventurousness, Level, Order, Proposal, Strength, UserRequest } from "@sloptail/shared";
-import { classicsFor } from "@sloptail/shared";
+import { classicsFor, DEFAULT_CATALOG, makeCatalog } from "@sloptail/shared";
 import {
   Banner,
   Button,
   Card,
+  CatalogProvider,
   Choice,
   Drawer,
   ProposalCard,
@@ -223,6 +224,10 @@ export function UserApp() {
   const [drawer, setDrawer] = useState(false);
   const ideas = useMemo(pickIdeas, []);
   const user = loadUser();
+  const [catalog, setCatalog] = useState(DEFAULT_CATALOG);
+  useEffect(() => {
+    api.catalog().then((r) => setCatalog(makeCatalog(r.catalog))).catch(() => {});
+  }, []);
 
   const request = (): UserRequest | null =>
     s.strength && s.adventurousness
@@ -271,188 +276,190 @@ export function UserApp() {
   const stepIndex = STEP_ORDER.indexOf(s.step);
 
   return (
-    <div className="page">
-      <header className="page-header">
-        <span className="brand">Sloptail</span>
-        <Button variant="ghost" size="sm" onClick={() => setDrawer(true)}>
-          My drinks
-        </Button>
-      </header>
+    <CatalogProvider value={catalog}>
+      <div className="page">
+        <header className="page-header">
+          <span className="brand">Sloptail</span>
+          <Button variant="ghost" size="sm" onClick={() => setDrawer(true)}>
+            My drinks
+          </Button>
+        </header>
 
-      {stepIndex >= 0 ? <Steps current={stepIndex + 1} total={STEP_ORDER.length} /> : null}
+        {stepIndex >= 0 ? <Steps current={stepIndex + 1} total={STEP_ORDER.length} /> : null}
 
-      {s.error ? <Banner tone="danger">{s.error}</Banner> : null}
+        {s.error ? <Banner tone="danger">{s.error}</Banner> : null}
 
-      {s.step === "name" && (
-        <NameStep
-          name={s.name}
-          onChange={(name) => dispatch({ type: "name", name })}
-          onNext={() => {
-            saveUser({ ...user, name: s.name.trim() });
-            dispatch({ type: "go", step: "kind" });
-          }}
-        />
-      )}
-
-      {s.step === "kind" && (
-        <Stack gap={16}>
-          <Choice<Kind>
-            value={s.kind}
-            onChange={(kind) => dispatch({ type: "kind", kind })}
-            options={[
-              { value: "cocktail", label: "Cocktail" },
-              { value: "mocktail", label: "Mocktail" },
-            ]}
+        {s.step === "name" && (
+          <NameStep
+            name={s.name}
+            onChange={(name) => dispatch({ type: "name", name })}
+            onNext={() => {
+              saveUser({ ...user, name: s.name.trim() });
+              dispatch({ type: "go", step: "kind" });
+            }}
           />
-          <Button variant="ghost" onClick={() => dispatch({ type: "go", step: "name" })}>
-            Not {s.name}?
-          </Button>
-        </Stack>
-      )}
+        )}
 
-      {s.step === "strength" && (
-        <Stack gap={16}>
-          <Choice<Strength>
-            value={s.strength}
-            onChange={(strength) => dispatch({ type: "strength", strength })}
-            options={
-              s.kind === "mocktail"
-                ? [
-                    { value: "zero", label: "Zero alcohol" },
-                    { value: "trace", label: "Low alcohol", hint: "(a dash of bitters is fine)" },
-                  ]
-                : [
-                    { value: "full", label: "Full strength" },
-                    { value: "half", label: "Half strength" },
-                  ]
-            }
-          />
-          <Button variant="ghost" onClick={() => dispatch({ type: "go", step: "kind" })}>
-            Back
-          </Button>
-        </Stack>
-      )}
-
-      {s.step === "adventure" && (
-        <Stack gap={16}>
-          <h1>How adventurous are you feeling?</h1>
-          <Choice<Adventurousness>
-            value={s.adventurousness}
-            onChange={(adventurousness) => dispatch({ type: "adventure", adventurousness })}
-            options={[
-              { value: 1, label: "Not at all" },
-              { value: 2, label: "Get creative" },
-              { value: 3, label: "Fuck my shit up" },
-            ]}
-          />
-          <Button variant="ghost" onClick={() => dispatch({ type: "go", step: "strength" })}>
-            Back
-          </Button>
-        </Stack>
-      )}
-
-      {s.step === "disclaimer" && (
-        <Stack gap={16}>
-          <Card tone="danger" className="stack">
-            <h2>Disclaimer</h2>
-            <p>
-              We're going maximally weird with this. It'll be drinkable, in the sense that it'll be a liquid in a glass. We're not
-              making any further guarantees. That sound ok?
-            </p>
-          </Card>
-          <Button size="lg" onClick={() => dispatch({ type: "go", step: "prompt" })}>
-            I accept
-          </Button>
-          <Button variant="secondary" onClick={() => dispatch({ type: "adventure", adventurousness: 2 })}>
-            Back to safety
-          </Button>
-        </Stack>
-      )}
-
-      {s.step === "classics" && s.strength && (
-        <Stack gap={16}>
-          <h1>The classics</h1>
-          <Stack gap={10}>
-            {classicsFor(s.strength).map((c) => (
-              <Card key={c.id} flat className="stack" style={{ gap: 6 }}>
-                <div className="row between">
-                  <h3>{c.proposal.name}</h3>
-                  <Button size="sm" variant="secondary" onClick={() => dispatch({ type: "proposal", proposal: c.proposal, prompt: "a classic" })}>
-                    This one
-                  </Button>
-                </div>
-                <p className="small muted">{c.proposal.description}</p>
-              </Card>
-            ))}
+        {s.step === "kind" && (
+          <Stack gap={16}>
+            <Choice<Kind>
+              value={s.kind}
+              onChange={(kind) => dispatch({ type: "kind", kind })}
+              options={[
+                { value: "cocktail", label: "Cocktail" },
+                { value: "mocktail", label: "Mocktail" },
+              ]}
+            />
+            <Button variant="ghost" onClick={() => dispatch({ type: "go", step: "name" })}>
+              Not {s.name}?
+            </Button>
           </Stack>
-          <Button variant="secondary" onClick={() => dispatch({ type: "adventure", adventurousness: 2 })}>
-            Ok, maybe I'm more adventurous than that
-          </Button>
-        </Stack>
-      )}
+        )}
 
-      {s.step === "prompt" && (
-        <Stack gap={16}>
-          <h1>What do you feel like?</h1>
-          <TextArea
-            id="prompt"
-            aria-label="What do you feel like?"
-            value={s.prompt}
-            onChange={(e) => dispatch({ type: "prompt", prompt: e.target.value })}
-            maxLength={500}
+        {s.step === "strength" && (
+          <Stack gap={16}>
+            <Choice<Strength>
+              value={s.strength}
+              onChange={(strength) => dispatch({ type: "strength", strength })}
+              options={
+                s.kind === "mocktail"
+                  ? [
+                      { value: "zero", label: "Zero alcohol" },
+                      { value: "trace", label: "Low alcohol", hint: "(a dash of bitters is fine)" },
+                    ]
+                  : [
+                      { value: "full", label: "Full strength" },
+                      { value: "half", label: "Half strength" },
+                    ]
+              }
+            />
+            <Button variant="ghost" onClick={() => dispatch({ type: "go", step: "kind" })}>
+              Back
+            </Button>
+          </Stack>
+        )}
+
+        {s.step === "adventure" && (
+          <Stack gap={16}>
+            <h1>How adventurous are you feeling?</h1>
+            <Choice<Adventurousness>
+              value={s.adventurousness}
+              onChange={(adventurousness) => dispatch({ type: "adventure", adventurousness })}
+              options={[
+                { value: 1, label: "Not at all" },
+                { value: 2, label: "Get creative" },
+                { value: 3, label: "Fuck my shit up" },
+              ]}
+            />
+            <Button variant="ghost" onClick={() => dispatch({ type: "go", step: "strength" })}>
+              Back
+            </Button>
+          </Stack>
+        )}
+
+        {s.step === "disclaimer" && (
+          <Stack gap={16}>
+            <Card tone="danger" className="stack">
+              <h2>Disclaimer</h2>
+              <p>
+                We're going maximally weird with this. It'll be drinkable, in the sense that it'll be a liquid in a glass. We're not
+                making any further guarantees. That sound ok?
+              </p>
+            </Card>
+            <Button size="lg" onClick={() => dispatch({ type: "go", step: "prompt" })}>
+              I accept
+            </Button>
+            <Button variant="secondary" onClick={() => dispatch({ type: "adventure", adventurousness: 2 })}>
+              Back to safety
+            </Button>
+          </Stack>
+        )}
+
+        {s.step === "classics" && s.strength && (
+          <Stack gap={16}>
+            <h1>The classics</h1>
+            <Stack gap={10}>
+              {classicsFor(s.strength, catalog).map((c) => (
+                <Card key={c.id} flat className="stack" style={{ gap: 6 }}>
+                  <div className="row between">
+                    <h3>{c.proposal.name}</h3>
+                    <Button size="sm" variant="secondary" onClick={() => dispatch({ type: "proposal", proposal: c.proposal, prompt: "a classic" })}>
+                      This one
+                    </Button>
+                  </div>
+                  <p className="small muted">{c.proposal.description}</p>
+                </Card>
+              ))}
+            </Stack>
+            <Button variant="secondary" onClick={() => dispatch({ type: "adventure", adventurousness: 2 })}>
+              Ok, maybe I'm more adventurous than that
+            </Button>
+          </Stack>
+        )}
+
+        {s.step === "prompt" && (
+          <Stack gap={16}>
+            <h1>What do you feel like?</h1>
+            <TextArea
+              id="prompt"
+              aria-label="What do you feel like?"
+              value={s.prompt}
+              onChange={(e) => dispatch({ type: "prompt", prompt: e.target.value })}
+              maxLength={500}
+            />
+            <Suggestions items={ideas} onPick={(p) => dispatch({ type: "prompt", prompt: p })} />
+            <FlavourDial label="Sweet" value={s.sweetness} onChange={(level) => dispatch({ type: "flavour", key: "sweetness", level })} />
+            <FlavourDial label="Sour" value={s.acidity} onChange={(level) => dispatch({ type: "flavour", key: "acidity", level })} />
+            <Button size="lg" onClick={generate}>
+              Make something up
+            </Button>
+            <Button variant="ghost" onClick={() => dispatch({ type: "go", step: "adventure" })}>
+              Back
+            </Button>
+          </Stack>
+        )}
+
+        {s.step === "loading" && <Spinner label={LOADING_LINES[Math.floor(Math.random() * LOADING_LINES.length)]} />}
+
+        {s.step === "proposal" && s.proposal && (
+          <ProposalStep
+            proposal={s.proposal}
+            subtitle={s.proposalPrompt}
+            onTweak={tweak}
+            onSubmit={submit}
+            onRegenerate={generate}
+            onBack={() => dispatch({ type: "go", step: s.adventurousness === 1 ? "classics" : "prompt" })}
           />
-          <Suggestions items={ideas} onPick={(p) => dispatch({ type: "prompt", prompt: p })} />
-          <FlavourDial label="Sweet" value={s.sweetness} onChange={(level) => dispatch({ type: "flavour", key: "sweetness", level })} />
-          <FlavourDial label="Sour" value={s.acidity} onChange={(level) => dispatch({ type: "flavour", key: "acidity", level })} />
-          <Button size="lg" onClick={generate}>
-            Make something up
-          </Button>
-          <Button variant="ghost" onClick={() => dispatch({ type: "go", step: "adventure" })}>
-            Back
-          </Button>
-        </Stack>
-      )}
+        )}
 
-      {s.step === "loading" && <Spinner label={LOADING_LINES[Math.floor(Math.random() * LOADING_LINES.length)]} />}
+        {s.step === "tracking" && s.orderId && (
+          <Tracking
+            orderId={s.orderId}
+            userId={user.userId}
+            onDone={(keepPrefs) => {
+              saveActiveOrder(null);
+              dispatch({ type: "reset", keepPrefs });
+            }}
+          />
+        )}
 
-      {s.step === "proposal" && s.proposal && (
-        <ProposalStep
-          proposal={s.proposal}
-          subtitle={s.proposalPrompt}
-          onTweak={tweak}
-          onSubmit={submit}
-          onRegenerate={generate}
-          onBack={() => dispatch({ type: "go", step: s.adventurousness === 1 ? "classics" : "prompt" })}
-        />
-      )}
-
-      {s.step === "tracking" && s.orderId && (
-        <Tracking
-          orderId={s.orderId}
-          userId={user.userId}
-          onDone={(keepPrefs) => {
-            saveActiveOrder(null);
-            dispatch({ type: "reset", keepPrefs });
-          }}
-        />
-      )}
-
-      <Drawer open={drawer} onClose={() => setDrawer(false)} title="My drinks">
-        <PastOrders
-          userId={user.userId}
-          onReorder={(order) => {
-            setDrawer(false);
-            saveActiveOrder(null);
-            dispatch({ type: "reorder", order });
-          }}
-          onNew={() => {
-            setDrawer(false);
-            saveActiveOrder(null);
-            dispatch({ type: "reset", keepPrefs: true });
-          }}
-        />
-      </Drawer>
-    </div>
+        <Drawer open={drawer} onClose={() => setDrawer(false)} title="My drinks">
+          <PastOrders
+            userId={user.userId}
+            onReorder={(order) => {
+              setDrawer(false);
+              saveActiveOrder(null);
+              dispatch({ type: "reorder", order });
+            }}
+            onNew={() => {
+              setDrawer(false);
+              saveActiveOrder(null);
+              dispatch({ type: "reset", keepPrefs: true });
+            }}
+          />
+        </Drawer>
+      </div>
+    </CatalogProvider>
   );
 }
 

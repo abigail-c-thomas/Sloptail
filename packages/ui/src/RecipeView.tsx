@@ -1,11 +1,13 @@
-import { CATALOG_BY_ID, formatAmount, type Proposal, type Recipe } from "@sloptail/shared";
+import { formatAmount, type Proposal, type Recipe } from "@sloptail/shared";
+import { useCatalog } from "./CatalogContext.tsx";
 
 /** Ingredient list in build order. `compact` for the bar screen. */
 export function RecipeList({ recipe, compact }: { recipe: Recipe; compact?: boolean }) {
+  const catalog = useCatalog();
   return (
     <ol className={`recipe ${compact ? "compact" : ""}`}>
       {recipe.map((item, i) => {
-        const ing = CATALOG_BY_ID.get(item.ingredient);
+        const ing = catalog.byId.get(item.ingredient);
         const garnish = ing?.type === "garnish";
         return (
           <li key={`${item.ingredient}-${i}`} className={garnish ? "garnish" : ""}>

@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { CATALOG, type Order } from "@sloptail/shared";
-import { Badge, Banner, Button, Card, Drawer, RecipeList, Stack, TextField } from "@sloptail/ui";
+import { DEFAULT_CATALOG, makeCatalog, TYPE_LABEL, type Order } from "@sloptail/shared";
+import { Badge, Banner, Button, Card, CatalogProvider, Drawer, RecipeList, Stack, TextField } from "@sloptail/ui";
 import { BarApiError, makeBarApi, type BarView } from "./barApi.ts";
 
 const POLL_MS = 2000;
@@ -83,134 +83,135 @@ export function BarApp() {
   }
 
   const making = view?.queue.filter((o) => o.status === "making") ?? [];
+  const catalog = view ? makeCatalog(view.catalog) : DEFAULT_CATALOG;
+  const left = new Map(view?.stock.map((l) => [l.ingredient, Math.max(0, 1 - l.used / (l.stock || 1))]));
   const undo = lastReady && now - lastReady.at < UNDO_MS ? lastReady.order : null;
 
   return (
-    <div className="bar">
-      <header className="bar-header">
-        <span className="brand">Sloptail</span>
-        <div className="row">
-          <input
-            className="input"
-            style={{ width: 140, minHeight: 36, padding: "6px 10px" }}
-            placeholder="Your name"
-            value={bartender}
-            onChange={(e) => setBartender(e.target.value)}
-            aria-label="Bartender name"
-          />
-          <Button variant="secondary" size="sm" onClick={() => setDrawer(true)}>
-            Stock{view?.unavailable.length ? ` (${view.unavailable.length} out)` : ""}
-          </Button>
+    <CatalogProvider value={catalog}>
+      <div className="bar">
+        <header className="bar-header">
+          <span className="brand">Sloptail{view?.profile === "practice" ? <Badge tone="warn">practice</Badge> : null}</span>
+          <div className="row">
+            <input
+              className="input"
+              style={{ width: 140, minHeight: 36, padding: "6px 10px" }}
+              placeholder="Your name"
+              value={bartender}
+              onChange={(e) => setBartender(e.target.value)}
+              aria-label="Bartender name"
+            />
+            <Button variant="secondary" size="sm" onClick={() => setDrawer(true)}>
+              Stock{view?.unavailable.length ? ` (${view.unavailable.length} out)` : ""}
+            </Button>
+          </div>
+        </header>
+
+        {error ? <Banner tone="danger">{error}</Banner> : null}
+        {undo ? (
+          <div className="undo row between">
+            <span>
+              <b>{undo.userName}</b> ready
+            </span>
+            <Button
+              size="sm"
+              variant="ghost"
+              onClick={() => {
+                setLastReady(null);
+                void act(() => api.claim(undo.id, undo.claimedBy ?? (bartender || "bar")));
+              }}
+            >
+              Undo
+            </Button>
+          </div>
+        ) : null}
+
+        <div className="bar-columns">
+          <section className="bar-col">
+            <h2>
+              Queue <span className="count">{view?.stats.queued ?? 0}</span>
+            </h2>
+            {view?.batches.map((b) => (
+              <div key={b.key} className={b.orders.length > 1 ? "batch" : "stack"} style={{ gap: 8 }}>
+                {b.orders.length > 1 ? <div className="batch-label">×{b.orders.length} {b.label}</div> : null}
+                {b.orders.map((o) => (
+                  <OrderCard key={o.id} order={o} now={now}>
+                    <Button size="sm" onClick={() => act(() => api.claim(o.id, bartender || "bar"))}>
+                      Make
+                    </Button>
+                    <Button size="sm" variant="ok" onClick={() => ready(o)}>
+                      Ready
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      aria-label="Cancel"
+                      onClick={() => confirm(`Cancel ${o.userName}'s ${o.proposal.name}?`) && act(() => api.cancel(o.id, "the bar couldn't make it"))}
+                    >
+                      ✕
+                    </Button>
+                  </OrderCard>
+                ))}
+              </div>
+            ))}
+          </section>
+
+          <section className="bar-col">
+            <h2>
+              Making <span className="count">{making.length}</span>
+            </h2>
+            {making.map((o) => (
+              <OrderCard key={o.id} order={o} now={now}>
+                <Button size="sm" variant="ok" onClick={() => ready(o)}>
+                  Ready
+                </Button>
+                <Button size="sm" variant="ghost" aria-label="Back to queue" onClick={() => act(() => api.unclaim(o.id))}>
+                  ↩
+                </Button>
+              </OrderCard>
+            ))}
+          </section>
         </div>
-      </header>
 
-      {error ? <Banner tone="danger">{error}</Banner> : null}
-      {undo ? (
-        <div className="undo row between">
-          <span>
-            <b>{undo.userName}</b> ready
-          </span>
-          <Button
-            size="sm"
-            variant="ghost"
-            onClick={() => {
-              setLastReady(null);
-              void act(() => api.claim(undo.id, undo.claimedBy ?? (bartender || "bar")));
-            }}
-          >
-            Undo
-          </Button>
-        </div>
-      ) : null}
-
-      <div className="bar-columns">
-        <section className="bar-col">
-          <h2>
-            Queue <span className="count">{view?.stats.queued ?? 0}</span>
-          </h2>
-          {view?.batches.map((b) => (
-            <div key={b.key} className={b.orders.length > 1 ? "batch" : "stack"} style={{ gap: 8 }}>
-              {b.orders.length > 1 ? <div className="batch-label">×{b.orders.length} {b.label}</div> : null}
-              {b.orders.map((o) => (
-                <OrderCard key={o.id} order={o} now={now}>
-                  <Button size="sm" onClick={() => act(() => api.claim(o.id, bartender || "bar"))}>
-                    Make
-                  </Button>
-                  <Button size="sm" variant="ok" onClick={() => ready(o)}>
-                    Ready
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    aria-label="Cancel"
-                    onClick={() => confirm(`Cancel ${o.userName}'s ${o.proposal.name}?`) && act(() => api.cancel(o.id, "the bar couldn't make it"))}
-                  >
-                    ✕
-                  </Button>
-                </OrderCard>
-              ))}
-            </div>
+        <Drawer open={drawer} onClose={() => setDrawer(false)} title="Stock">
+          <p className="small muted">Tap to mark out. % is a rough estimate of what's left.</p>
+          {(["base", "mixer", "flavoring", "garnish"] as const).map((type) => (
+            <Stack key={type} gap={6}>
+              <h3>{TYPE_LABEL[type]}</h3>
+              <div className="ingredients">
+                {catalog.list.filter((i) => i.type === type).map((i) => {
+                  const out = view?.unavailable.includes(i.id) ?? false;
+                  const frac = left.get(i.id);
+                  return (
+                    <Button
+                      key={i.id}
+                      size="sm"
+                      variant={out ? "danger" : "secondary"}
+                      className={`ingredient-toggle ${out ? "out" : ""}`}
+                      onClick={() =>
+                        act(async () => {
+                          const r = await api.availability(i.id, out);
+                          if (!out && r.affected.length) {
+                            alert(`Still queued with ${i.name}: ${r.affected.map((o) => o.userName).join(", ")}`);
+                          }
+                        })
+                      }
+                    >
+                      <span>{i.name}</span>
+                      {out ? (
+                        <Badge tone="danger">out</Badge>
+                      ) : frac !== undefined ? (
+                        <Badge tone={frac <= 0 ? "danger" : frac < 0.2 ? "warn" : undefined}>~{Math.round(frac * 100)}%</Badge>
+                      ) : null}
+                    </Button>
+                  );
+                })}
+              </div>
+            </Stack>
           ))}
-        </section>
-
-        <section className="bar-col">
-          <h2>
-            Making <span className="count">{making.length}</span>
-          </h2>
-          {making.map((o) => (
-            <OrderCard key={o.id} order={o} now={now}>
-              <Button size="sm" variant="ok" onClick={() => ready(o)}>
-                Ready
-              </Button>
-              <Button size="sm" variant="ghost" aria-label="Back to queue" onClick={() => act(() => api.unclaim(o.id))}>
-                ↩
-              </Button>
-            </OrderCard>
-          ))}
-        </section>
+        </Drawer>
       </div>
-
-      <Drawer open={drawer} onClose={() => setDrawer(false)} title="Stock">
-        <p className="small muted">Tap to mark out.</p>
-        {(["base", "mixer", "flavoring", "garnish"] as const).map((type) => (
-          <Stack key={type} gap={6}>
-            <h3 style={{ textTransform: "capitalize" }}>{type}s</h3>
-            <div className="ingredients">
-              {CATALOG.filter((i) => i.type === type).map((i) => {
-                const out = view?.unavailable.includes(i.id) ?? false;
-                return (
-                  <Button
-                    key={i.id}
-                    size="sm"
-                    variant={out ? "danger" : "secondary"}
-                    className={`ingredient-toggle ${out ? "out" : ""}`}
-                    onClick={() =>
-                      act(async () => {
-                        const r = await api.availability(i.id, out);
-                        if (!out && r.affected.length) {
-                          alert(`Still queued with ${i.name}: ${r.affected.map((o) => o.userName).join(", ")}`);
-                        }
-                      })
-                    }
-                  >
-                    <span>{i.name}</span>
-                    {out ? <Badge tone="danger">out</Badge> : null}
-                  </Button>
-                );
-              })}
-            </div>
-          </Stack>
-        ))}
-        <hr style={{ border: 0, borderTop: "1px solid var(--line)" }} />
-        <Button
-          variant="danger"
-          size="sm"
-          onClick={() => confirm("Wipe every order? This is for rehearsals only.") && act(() => api.reset())}
-        >
-          Reset everything
-        </Button>
-      </Drawer>
-    </div>
+    </CatalogProvider>
   );
 }
 
