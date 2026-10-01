@@ -88,8 +88,10 @@ npm run print -- --token <BAR_TOKEN>       # the bridge; address from /admin unl
 What we know prints well: the thin underlined-space rule (not `<hline>`, which
 the printer ignores outside page mode); bold text. Reverse (white on black)
 text came out smudgy, so we don't use it. Text is reduced to ASCII ("1½" →
-"1 1/2"). Images are 1-bit at 180 dpi, up to 512 dots wide; an SVG logo with
-Atkinson dithering for greys printed cleanly at both 256 and 384 dots wide.
+"1 1/2"). The full 512-dot width clips on the left, so every job sets a
+24-dot left margin and a 480-dot print area (40 font A characters a line).
+Images are 1-bit at 180 dpi; Atkinson dithering makes greys look good, and
+drawings print 288 dots wide with their own blank rows trimmed.
 
 ## Conventions
 

@@ -87,15 +87,24 @@ The active profile's printer address is in the bar view (`GET /api/bar`,
 ## Printing tickets
 
 An Epson TM-T88VI (or any ePOS-Print capable Epson) prints a ticket per
-order: guest name large, glass and strength, numbered build steps, then the
-description and what they asked for, since the ticket travels with the drink.
+order: guest name large, the drink's name, a drawing, the ingredients in
+build order, then the description and (up to three lines of) what they asked
+for, since the ticket travels with the drink.
+
+The drawing is the idea behind the guest's prompt, not the drink. After an
+order comes in, the Durable Object asks the same model, as the next turn of
+the conversation that designed the drink, for a small SVG (`packages/llm/src/art.ts`;
+`ART_REASONING` in `wrangler.jsonc`, medium by default). It's checked against
+an allowlist (no text, scripts or external references) and stored per order.
+The print queue holds a ticket up to 30s for its drawing, then prints without
+it. The bridge renders the SVG with `@resvg/resvg-wasm` and dithers greys.
 
 The Worker can't reach a printer on the venue network, and the bar page
 (https) can't call the printer's plain-http endpoint, so a small bridge runs
 on a laptop that's on the same network as the printer:
 
 ```bash
-npm run print -- --printer 192.168.0.50 --test                   # one sample ticket
+npm run print -- --printer 192.168.0.50 --test [--art pic.svg]  # one sample ticket
 npm run print -- --token <BAR_TOKEN>                             # the real thing
 npm run print -- --preview --token dev --url http://localhost:8787  # tickets in the terminal, no printer
 ```
