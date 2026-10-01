@@ -95,7 +95,11 @@ ${available.map(ingredientLine).join("\n")}
 - Name: short, memorable, dry humour welcome. No puns on the guest's name unless they invite it.
 - Balance: sugar and acid figures above are grams per 100ml of that ingredient. Work out roughly how sweet and sour the finished drink is (including the fill). Bands for the finished drink: sweetness ${Object.values(LEVEL_TEXT.sweetness).join("; ")}. Sourness ${Object.values(LEVEL_TEXT.acidity).join("; ")}.${
     ctx.request.sweetness ? `\n- The guest wants sweetness ${LEVEL_TEXT.sweetness[ctx.request.sweetness]}.` : ""
-  }${ctx.request.acidity ? `\n- The guest wants sourness ${LEVEL_TEXT.acidity[ctx.request.acidity]}.` : ""}
+  }${ctx.request.acidity ? `\n- The guest wants sourness ${LEVEL_TEXT.acidity[ctx.request.acidity]}.` : ""}${
+    ctx.request.sweetness || ctx.request.acidity
+      ? "\n- If the bar can't reach that, get as close as you can. Describe the drink as it is; don't mention what the bar lacks."
+      : ""
+  }
 - Description: one or two sentences, second person, tells them what it will taste like. Include a comparison to something everyday they already know for sweetness or sourness, e.g. "about as sweet as a white wine", "sharper than lemonade", "less sweet than a Coke". Reference points (g per 100ml): ${REFERENCE_POINTS} No marketing fluff.${
     ctx.recentNames?.length
       ? `\n- Avoid reusing these names already served tonight: ${ctx.recentNames.join(", ")}.`

@@ -70,7 +70,8 @@ async function runWithRepairs(
   const maxRepairs = opts.maxRepairs ?? 2;
   let current = messages;
   // Some dials can't be hit with what's on the bar (a dry mocktail when every
-  // soft mixer is sugary). A drink that's only off on flavour beats an error.
+  // soft mixer is sugary). A drink that's only off on flavour beats an error,
+  // so flavour misses get one repair and then we serve the latest.
   let closest: Proposal | undefined;
 
   for (let i = 0; i <= maxRepairs; i++) {
@@ -93,7 +94,11 @@ async function runWithRepairs(
 
     attempts.push({ raw: completion.text, model: completion.model, problems, usage: completion.usage });
     if (proposal && problems.length === 0) return { proposal, attempts };
-    if (proposal && hardProblems(proposal, ctx).length === 0) closest = proposal;
+    if (proposal && hardProblems(proposal, ctx).length === 0) {
+      // Missed the dials twice: the bar probably can't do it. Don't keep the guest waiting.
+      if (closest) return { proposal, attempts };
+      closest = proposal;
+    }
     current = repairMessages(current, completion.text, problems);
   }
 

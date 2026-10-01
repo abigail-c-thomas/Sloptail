@@ -265,7 +265,7 @@ export function flavourIssues(
     issues.push(
       `The guest asked for ${asked} ${name}, but this comes out ${got} (~${pct.toFixed(1)}g per 100ml; ${asked} is ${
         asked === "low" ? `under ${bands.low}` : `over ${bands.high}`
-      }). Rebalance it.`,
+      }). Rebalance it, or get as close as this bar allows.`,
     );
   };
   check("sweetness", want.sweetness, levelOf(b.sugarPct, SWEETNESS_BANDS), b.sugarPct, SWEETNESS_BANDS);
