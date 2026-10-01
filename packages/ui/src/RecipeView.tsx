@@ -1,8 +1,8 @@
 import { buildOrder, formatAmount, type Proposal, type Recipe } from "@sloptail/shared";
 import { useCatalog } from "./CatalogContext.tsx";
 
-/** Ingredient list in build order. `compact` for the bar screen. */
-export function RecipeList({ recipe, compact }: { recipe: Recipe; compact?: boolean }) {
+/** Ingredient list in build order. `compact` for the bar screen; `decimal` writes parts as ".5". */
+export function RecipeList({ recipe, compact, decimal }: { recipe: Recipe; compact?: boolean; decimal?: boolean }) {
   const catalog = useCatalog();
   return (
     <ol className={`recipe ${compact ? "compact" : ""}`}>
@@ -12,7 +12,7 @@ export function RecipeList({ recipe, compact }: { recipe: Recipe; compact?: bool
         return (
           <li key={`${item.ingredient}-${i}`} className={garnish ? "garnish" : ""}>
             <span>{ing?.name ?? item.ingredient}</span>
-            {garnish && item.amount === 1 ? null : <span className="amt">{formatAmount(item, ing)}</span>}
+            {garnish && item.amount === 1 ? null : <span className="amt">{formatAmount(item, ing, { decimal })}</span>}
           </li>
         );
       })}

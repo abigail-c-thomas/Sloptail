@@ -13,10 +13,11 @@ export function Qr({ text, className }: { text: string; className?: string }) {
     return { size: n, path: d };
   }, [text]);
   // Four-module quiet zone, as the spec asks, so phones lock on from across a room.
+  // No backing square: on a dark theme this is a light-on-dark (inverted) code,
+  // which current iOS and Android cameras read.
   return (
     <svg className={className} viewBox={`-4 -4 ${size + 8} ${size + 8}`} role="img" aria-label={text} shapeRendering="crispEdges">
-      <rect x={-4} y={-4} width={size + 8} height={size + 8} fill="#fff" />
-      <path d={path} fill="#000" />
+      <path d={path} fill="currentColor" />
     </svg>
   );
 }

@@ -131,6 +131,9 @@ app.get("/users/:userId/orders", async (c) => {
   return c.json(await bar(c.env).getOrdersForUser(c.req.param("userId")));
 });
 
+/** "Same abi who ordered X?": guests who already ordered under a name. Public; names and drink names only, like the board. */
+app.get("/guests", async (c) => c.json(await bar(c.env).getGuestsNamed((c.req.query("name") ?? "").slice(0, 40))));
+
 // --- bar (token-protected) -------------------------------------------------
 
 const barApi = new Hono<App>();

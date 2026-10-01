@@ -12,6 +12,13 @@ describe("parts", () => {
     assert.equal(formatAmount({ ingredient: "rum", amount: 2 }, rum), "2 parts");
   });
 
+  it("formats parts as decimals for the bar", () => {
+    const rum = C.byId.get("rum");
+    assert.equal(formatAmount({ ingredient: "rum", amount: 1.5 }, rum, { decimal: true }), "1.5 parts");
+    assert.equal(formatAmount({ ingredient: "rum", amount: 0.5 }, rum, { decimal: true }), ".5 part");
+    assert.equal(formatAmount({ ingredient: "rum", amount: 0.25 }, rum, { decimal: true }), ".25 part");
+  });
+
   it("counts a part as 30ml for strength", () => {
     assert.equal(estimateAlcoholMl([{ ingredient: "vodka", amount: 1.5 }], C), 18);
   });

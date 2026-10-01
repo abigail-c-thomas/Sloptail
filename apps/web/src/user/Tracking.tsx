@@ -10,7 +10,18 @@ const POLL_MS = 3000;
  * Polling rather than push: phones lock, iOS web push needs a PWA install,
  * and the bartender is going to shout the name anyway.
  */
-export function Tracking({ orderId, userId, onDone }: { orderId: string; userId: string; onDone: (keepPrefs: boolean) => void }) {
+export function Tracking({
+  orderId,
+  userId,
+  onDone,
+  onReorder,
+}: {
+  orderId: string;
+  userId: string;
+  onDone: (keepPrefs: boolean) => void;
+  /** Same drink again. */
+  onReorder: (order: Order) => void;
+}) {
   const [order, setOrder] = useState<Order | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [collecting, setCollecting] = useState(false);
@@ -81,7 +92,7 @@ export function Tracking({ orderId, userId, onDone }: { orderId: string; userId:
         </Card>
         {error ? <Banner tone="danger">{error}</Banner> : null}
         <Button size="lg" loading={collecting} onClick={collect}>
-          Got it
+          I've picked it up
         </Button>
       </Stack>
     );
@@ -90,14 +101,12 @@ export function Tracking({ orderId, userId, onDone }: { orderId: string; userId:
   if (order.status === "collected") {
     return (
       <Stack gap={16}>
-        <Card tone="ok" className="stack">
-          <h2>Enjoy your {name}</h2>
-        </Card>
-        <Button size="lg" onClick={() => onDone(true)}>
-          Another
+        <h1>Enjoy your {name}!</h1>
+        <Button size="lg" onClick={() => onReorder(order)}>
+          Another!
         </Button>
-        <Button variant="ghost" onClick={() => onDone(false)}>
-          Start over
+        <Button variant="secondary" onClick={() => onDone(true)}>
+          Make me something new
         </Button>
       </Stack>
     );

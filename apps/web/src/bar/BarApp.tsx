@@ -143,10 +143,7 @@ export function BarApp() {
                 {b.orders.map((o) => (
                   <OrderCard key={o.id} order={o} now={now}>
                     <Button size="sm" onClick={() => act(() => api.claim(o.id, bartender || "bar"))}>
-                      Make
-                    </Button>
-                    <Button size="sm" variant="ok" onClick={() => ready(o)}>
-                      Ready
+                      Start
                     </Button>
                     <ReprintButton order={o} onReprint={() => act(() => api.reprint(o.id))} />
                     <Button
@@ -229,13 +226,9 @@ function OrderCard({ order, now, children }: { order: Order; now: number; childr
     <Card className={`order-card stack ${stale ? "stale" : ""}`} style={{ gap: 6 }}>
       <div className="row between">
         <span className="who">{order.userName}</span>
-        <span className="row" style={{ gap: 6 }}>
-          {order.claimedBy ? <Badge tone="accent">{order.claimedBy}</Badge> : null}
-          <span className="age">{age(order.createdAt, now)}</span>
-        </span>
+        <span className="age">{age(order.createdAt, now)}</span>
       </div>
-      <div className="glass">{order.proposal.glass}</div>
-      <RecipeList recipe={order.proposal.recipe} compact />
+      <RecipeList recipe={order.proposal.recipe} compact decimal />
       <div className="row">{children}</div>
     </Card>
   );

@@ -9,20 +9,22 @@
   gap: 16px;
 }
 .page-header { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
-.brand { font-weight: 800; letter-spacing: -0.02em; font-size: 1.1rem; }
+.brand { font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; }
 .page-footer { margin-top: auto; text-align: center; }
 /* Name step sits in the vertical middle of the screen. */
 .name-step { margin: auto 0; padding-bottom: 20vh; }
 /* Centred field: once focused, the caret would sit in the middle of "Name". */
 .name-step input:focus::placeholder { color: transparent; }
 
-/* Optional sweet/sour pickers: label on the left, compact segmented control. */
-.flavour-dial { display: grid; grid-template-columns: 3.5em 1fr; align-items: center; gap: 8px; }
-.flavour-dial .choice-opt { min-height: 40px; padding: 8px 10px; }
+/* Optional sweet/sour pickers: secondary to the free text, so small and quiet. */
+.flavour-dials { display: flex; flex-direction: column; gap: 6px; }
+.flavour-dial { display: grid; grid-template-columns: 4em 1fr; align-items: center; gap: 8px; font-size: 0.85rem; }
+.flavour-dial .choice-opt .label { font-weight: 400; }
+#prompt:focus::placeholder { color: transparent; }
 
-.ready-card { text-align: center; padding: 28px 16px; }
-.ready-card h1 { font-size: 2rem; }
-.big-name { font-size: 2.4rem; font-weight: 800; letter-spacing: -0.02em; line-height: 1.05; }
+.ready-card { text-align: center; padding: 28px 0; }
+.ready-card h1 { font-size: 1.6rem; }
+.big-name { font-size: 2.4rem; font-weight: 700; text-transform: uppercase; line-height: 1.1; }
 
 /* --- Bar screen: wide, dense, two columns ----------------------------- */
 .bar {
@@ -43,19 +45,18 @@
 .bar-col { display: flex; flex-direction: column; gap: 10px; }
 .bar-col > h2 { display: flex; justify-content: space-between; align-items: baseline; padding: 0 4px; }
 .bar-col > h2 .count { font-size: 0.9rem; color: var(--text-muted); font-weight: 500; }
-.batch { border: 1px dashed var(--line); border-radius: var(--radius); padding: 8px; display: flex; flex-direction: column; gap: 8px; background: var(--surface-2); }
+.batch { border-left: 2px solid var(--line); padding-left: 10px; display: flex; flex-direction: column; gap: 8px; }
 .batch-label { font-size: 0.8rem; color: var(--text-muted); padding: 0 4px; }
-.order-card { padding: 12px; }
-.order-card .who { font-size: 1.15rem; font-weight: 800; }
-.order-card .glass { color: var(--text-muted); font-size: 0.85rem; text-transform: capitalize; }
-.order-card .age { font-family: var(--mono); font-size: 0.8rem; color: var(--text-muted); }
+.order-card { padding: 10px 0; }
+.order-card .who { font-size: 1.15rem; font-weight: 700; text-transform: uppercase; }
+.order-card .age { font-size: 0.8rem; color: var(--text-muted); }
 .order-card.stale { border-color: var(--warn); }
-.undo { padding: 6px 12px; border-radius: var(--radius-sm); background: var(--ok-soft); border: 1px solid var(--ok); }
+.undo { padding: 6px 0; color: var(--ok); border-top: 1px dashed var(--ok); border-bottom: 1px dashed var(--ok); }
 
 .ingredients { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 6px; }
 .ingredient-toggle { justify-content: space-between; text-align: left; font-weight: 500; }
 .ingredient-toggle.out { text-decoration: line-through; opacity: 0.7; }
-.empty { color: var(--text-muted); text-align: center; padding: 24px 8px; border: 1px dashed var(--line); border-radius: var(--radius); }
+.empty { color: var(--text-muted); text-align: center; padding: 24px 8px; border-top: 1px dashed var(--line); border-bottom: 1px dashed var(--line); }
 
 /* --- Tickets design bench --------------------------------------------- */
 .tickets-page { padding: 24px 16px 64px; max-width: 1400px; margin: 0 auto; display: flex; flex-direction: column; gap: 20px; }
@@ -63,29 +64,28 @@
 .ticket-figure { margin: 0; display: flex; flex-direction: column; gap: 8px; align-items: center; }
 
 /* --- Room screen: landscape TV, read from across the room --------------- */
+/* Left half: QR. Right half: in progress on top, ready below. Each cell pads itself. */
 .screen {
-  min-height: 100dvh;
-  padding: 4vh 4vw;
+  height: 100dvh;
   display: grid;
-  grid-template-columns: auto minmax(0, 1fr) minmax(0, 1fr);
-  gap: 4vw;
-  align-items: start;
+  grid-template-columns: 1fr 1fr;
+  grid-template-rows: 1fr 1fr;
   overflow: hidden;
 }
-.screen-qr { display: flex; flex-direction: column; align-items: center; gap: 2vh; }
-.screen-qr .qr { width: min(38vh, 30vw); height: auto; border-radius: var(--radius); }
-.screen-url { font-size: 2.2vh; color: var(--text-muted); font-family: var(--mono); }
+.screen > section { min-width: 0; min-height: 0; padding: 7vh 4vw; }
+.screen-qr { grid-row: 1 / -1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2vh; }
+.screen-qr .qr { width: min(60vh, 36vw); height: auto; color: var(--text); }
+.screen-url { font-size: 2.2vh; color: var(--text-muted); }
+.screen-col { overflow: hidden; }
 .screen-col h2 { font-size: 4vh; color: var(--text-muted); margin-bottom: 2vh; }
-.screen-col ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 2vh; }
-.screen-col li { display: flex; flex-direction: column; }
-.screen-col .who { font-size: 5vh; font-weight: 800; letter-spacing: -0.02em; line-height: 1.05; }
-.screen-col .drink { font-size: 2.4vh; color: var(--text-muted); }
+/* Names flow left to right in columns so a half-height section holds a crowd. */
+.screen-col ul { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(20vw, 1fr)); gap: 2vh 2vw; }
+.screen-col li { display: flex; flex-direction: column; min-width: 0; }
+.screen-col .who { font-size: 5vh; font-weight: 700; text-transform: uppercase; line-height: 1.1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.screen-col .drink { font-size: 2.4vh; color: var(--text-muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .screen-col.ready h2, .screen-col.ready .who { color: var(--ok); }
-.screen-queued { margin-top: 3vh; font-size: 2.6vh; color: var(--text-muted); }
-@media (orientation: portrait) {
-  .screen { grid-template-columns: 1fr 1fr; }
-  .screen-qr { grid-column: 1 / -1; }
-}
+.screen-col.ready { position: relative; }
+.screen-col.ready::before { content: ""; position: absolute; top: 0; left: 4vw; right: 4vw; border-top: 1px dashed var(--line); }
 
 /* --- Admin: event setup on a laptop --------------------------------------- */
 .admin { max-width: 1280px; margin: 0 auto; padding: 16px 16px 96px; display: flex; flex-direction: column; gap: 16px; }

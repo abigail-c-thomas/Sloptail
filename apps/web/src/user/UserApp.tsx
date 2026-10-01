@@ -16,7 +16,7 @@ import {
   TextArea,
   TextField,
 } from "@sloptail/ui";
-import { api, ApiError } from "../api.ts";
+import { api, ApiError, type NamedGuest } from "../api.ts";
 import {
   loadActiveOrder,
   loadLastRequest,
@@ -42,7 +42,8 @@ type Step =
   | "classics"
   | "loading"
   | "proposal"
-  | "tracking";
+  | "tracking"
+  | "same";
 
 type Kind = "cocktail" | "mocktail";
 
@@ -62,6 +63,8 @@ interface State {
   proposalPrompt?: string;
   error?: string;
   orderId?: string;
+  /** Other guests who ordered under the name just typed: "same abi who ordered X?" */
+  sameName?: NamedGuest[];
 }
 
 type Action =
@@ -75,6 +78,7 @@ type Action =
   | { type: "proposal"; proposal: Proposal; prompt: string; generated?: boolean }
   | { type: "error"; error: string }
   | { type: "submitted"; orderId: string }
+  | { type: "sameName"; guests: NamedGuest[] }
   | { type: "reorder"; order: Order }
   | { type: "reset"; keepPrefs: boolean };
 
@@ -115,6 +119,8 @@ function reducer(s: State, a: Action): State {
       };
     case "error":
       return { ...s, error: a.error, step: s.proposal ? "proposal" : "prompt" };
+    case "sameName":
+      return { ...s, sameName: a.guests, step: "same" };
     case "submitted":
       return { ...s, orderId: a.orderId, step: "tracking" };
     case "reorder":
@@ -293,10 +299,31 @@ export function UserApp() {
           <NameStep
             name={s.name}
             onChange={(name) => dispatch({ type: "name", name })}
-            onNext={() => {
-              saveUser({ ...user, name: s.name.trim() });
-              dispatch({ type: "go", step: "kind" });
+            onNext={async () => {
+              const name = s.name.trim();
+              saveUser({ ...user, name });
+              // New phone, cleared storage, different browser: offer to pick their orders back up.
+              const guests = await api.guestsNamed(name).catch(() => [] as NamedGuest[]);
+              const others = guests.filter((g) => g.userId !== user.userId);
+              dispatch(others.length ? { type: "sameName", guests: others } : { type: "go", step: "kind" });
             }}
+          />
+        )}
+
+        {s.step === "same" && s.sameName && (
+          <SameNameStep
+            name={s.name.trim()}
+            guests={s.sameName}
+            onPick={(g) => {
+              saveUser({ userId: g.userId, name: s.name.trim() });
+              if (g.status === "queued" || g.status === "making" || g.status === "ready") {
+                saveActiveOrder(g.orderId);
+                dispatch({ type: "submitted", orderId: g.orderId });
+              } else {
+                dispatch({ type: "go", step: "kind" });
+              }
+            }}
+            onNone={() => dispatch({ type: "go", step: "kind" })}
           />
         )}
 
@@ -400,16 +427,19 @@ export function UserApp() {
         {s.step === "prompt" && (
           <Stack gap={16}>
             <h1>What do you feel like?</h1>
+            <div className="flavour-dials">
+              <FlavourDial label="Sweet" value={s.sweetness} onChange={(level) => dispatch({ type: "flavour", key: "sweetness", level })} />
+              <FlavourDial label="Sour" value={s.acidity} onChange={(level) => dispatch({ type: "flavour", key: "acidity", level })} />
+            </div>
             <TextArea
               id="prompt"
               aria-label="What do you feel like?"
+              placeholder="Free text"
               value={s.prompt}
               onChange={(e) => dispatch({ type: "prompt", prompt: e.target.value })}
               maxLength={500}
             />
             <Suggestions items={ideas} onPick={(p) => dispatch({ type: "prompt", prompt: p })} />
-            <FlavourDial label="Sweet" value={s.sweetness} onChange={(level) => dispatch({ type: "flavour", key: "sweetness", level })} />
-            <FlavourDial label="Sour" value={s.acidity} onChange={(level) => dispatch({ type: "flavour", key: "acidity", level })} />
             <Button size="lg" onClick={generate}>
               Make something up
             </Button>
@@ -439,6 +469,10 @@ export function UserApp() {
             onDone={(keepPrefs) => {
               saveActiveOrder(null);
               dispatch({ type: "reset", keepPrefs });
+            }}
+            onReorder={(order) => {
+              saveActiveOrder(null);
+              dispatch({ type: "reorder", order });
             }}
           />
         )}
@@ -480,6 +514,48 @@ function FlavourDial({ label, value, onChange }: { label: string; value: Level |
         ]}
       />
     </div>
+  );
+}
+
+function SameNameStep({
+  name,
+  guests,
+  onPick,
+  onNone,
+}: {
+  name: string;
+  guests: NamedGuest[];
+  onPick: (g: NamedGuest) => void;
+  onNone: () => void;
+}) {
+  if (guests.length === 1) {
+    const g = guests[0]!;
+    return (
+      <Stack gap={16}>
+        <h1>
+          Same {name} who ordered {g.drink}?
+        </h1>
+        <Button size="lg" onClick={() => onPick(g)}>
+          Yes, that's me
+        </Button>
+        <Button variant="secondary" onClick={onNone}>
+          No, different {name}
+        </Button>
+      </Stack>
+    );
+  }
+  return (
+    <Stack gap={16}>
+      <h1>Which {name} are you?</h1>
+      {guests.map((g) => (
+        <Button key={g.userId} variant="secondary" onClick={() => onPick(g)}>
+          The one who ordered {g.drink}
+        </Button>
+      ))}
+      <Button variant="ghost" onClick={onNone}>
+        None of these
+      </Button>
+    </Stack>
   );
 }
 

@@ -18,6 +18,7 @@ import {
   cancelOrder,
   claimOrder,
   collectOwnOrder,
+  guestsNamed,
   createState,
   estimatedOut,
   markPrinted,
@@ -34,6 +35,7 @@ import {
   toPrint,
   unclaimOrder,
   type BarState,
+  type NamedGuest,
   type Batch,
   type Board,
   type Stats,
@@ -170,6 +172,10 @@ export class BarDO extends DurableObject<Env> {
 
   getOrdersForUser(userId: string): Order[] {
     return ordersForUser(this.state, userId);
+  }
+
+  getGuestsNamed(name: string): NamedGuest[] {
+    return guestsNamed(this.state, name);
   }
 
   /** The active ingredient list and what's out, for the guest app. */

@@ -30,11 +30,18 @@ export interface ProposeResponse {
   attempts: number;
 }
 
+/** Mirrors NamedGuest in packages/state/src/selectors.ts. */
+export interface NamedGuest {
+  userId: string;
+  drink: string;
+  orderId: string;
+  status: Order["status"];
+}
+
 /** Mirrors Board in packages/state/src/selectors.ts. */
 export interface Board {
-  making: { userName: string; drink: string }[];
+  inProgress: { userName: string; drink: string }[];
   ready: { userName: string; drink: string }[];
-  queued: number;
 }
 
 export const api = {
@@ -46,4 +53,5 @@ export const api = {
   board: () => call<Board>("/board"),
   catalog: () => call<{ catalog: Ingredient[]; unavailable: string[] }>("/catalog"),
   userOrders: (userId: string) => call<Order[]>(`/users/${userId}/orders`),
+  guestsNamed: (name: string) => call<NamedGuest[]>(`/guests?name=${encodeURIComponent(name)}`),
 };

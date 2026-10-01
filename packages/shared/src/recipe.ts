@@ -16,8 +16,9 @@ const ML_PER_UNIT: Record<Ingredient["unit"], number> = {
 
 const FRACTIONS: Record<number, string> = { 0.25: "¼", 0.5: "½", 0.75: "¾" };
 
-/** 1.5 -> "1½", 0.25 -> "¼", 0.6 -> "0.6". */
-function formatParts(n: number): string {
+/** 1.5 -> "1½", 0.25 -> "¼", 0.6 -> "0.6". `decimal`: 1.5 -> "1.5", 0.5 -> ".5". */
+function formatParts(n: number, decimal = false): string {
+  if (decimal) return String(n).replace(/^0\./, ".");
   const whole = Math.floor(n);
   const frac = FRACTIONS[n - whole];
   if (frac) return whole ? `${whole}${frac}` : frac;
@@ -41,15 +42,18 @@ export function offeredIngredients(
   return catalog.list.filter((i) => !unavailable.has(i.id) && allowedForStrength(i, strength));
 }
 
-/** Human-readable amount, e.g. "1½ parts", "2 dashes", "top up". */
-export function formatAmount(item: RecipeItem, ingredient?: Ingredient): string {
+/**
+ * Human-readable amount, e.g. "1½ parts", "2 dashes", "top up".
+ * `decimal` writes parts as ".5" / "1.5", quicker to read at the bar.
+ */
+export function formatAmount(item: RecipeItem, ingredient?: Ingredient, { decimal = false } = {}): string {
   if (item.amount === "fill") return "top up";
   const unit = ingredient?.unit ?? "part";
   const n = item.amount;
   const plural = n === 1 ? "" : "s";
   switch (unit) {
     case "part":
-      return `${formatParts(n)} part${n > 1 ? "s" : ""}`;
+      return `${formatParts(n, decimal)} part${n > 1 ? "s" : ""}`;
     case "dash":
       return `${n} dash${n === 1 ? "" : "es"}`;
     case "drop":

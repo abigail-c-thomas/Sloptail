@@ -29,6 +29,33 @@ export function ordersForUser(state: BarState, userId: string): Order[] {
     .sort((a, b) => b.createdAt - a.createdAt);
 }
 
+/** A guest who has ordered under some name, identified by their latest drink. */
+export interface NamedGuest {
+  userId: string;
+  drink: string;
+  orderId: string;
+  status: Order["status"];
+}
+
+/**
+ * Guests who ordered under this name (case- and space-insensitive), most recent
+ * first, so a guest on a new phone can say "that's me" and pick their orders
+ * back up. Cancelled orders don't count. Names and drink names only.
+ */
+export function guestsNamed(state: BarState, name: string, limit = 3): NamedGuest[] {
+  const key = name.trim().toLowerCase();
+  const latest = new Map<string, Order>();
+  for (const o of Object.values(state.orders)) {
+    if (o.status === "cancelled" || o.userName.trim().toLowerCase() !== key) continue;
+    const prev = latest.get(o.userId);
+    if (!prev || o.createdAt > prev.createdAt) latest.set(o.userId, o);
+  }
+  return [...latest.values()]
+    .sort((a, b) => b.createdAt - a.createdAt)
+    .slice(0, limit)
+    .map((o) => ({ userId: o.userId, drink: o.proposal.name, orderId: o.id, status: o.status }));
+}
+
 /** Live orders (not collected/cancelled) that use an ingredient. */
 export function ordersUsing(state: BarState, ingredient: string): Order[] {
   return Object.values(state.orders).filter(
@@ -96,21 +123,19 @@ export const BOARD_READY_MS = 15 * 60 * 1000;
 
 /** What the room screen shows. Names and drink names only; no recipes or ids. */
 export interface Board {
-  making: { userName: string; drink: string }[];
+  /** Queued or being made, oldest first. */
+  inProgress: { userName: string; drink: string }[];
   ready: { userName: string; drink: string }[];
-  queued: number;
 }
 
 export function board(state: BarState, now: number): Board {
   const entry = (o: Order) => ({ userName: o.userName, drink: o.proposal.name });
-  const live = queue(state);
   return {
-    making: live.filter((o) => o.status === "making").map(entry),
+    inProgress: queue(state).map(entry),
     ready: readyOrders(state)
       .filter((o) => now - (o.readyAt ?? 0) < BOARD_READY_MS)
       .reverse()
       .map(entry),
-    queued: live.filter((o) => o.status === "queued").length,
   };
 }
 

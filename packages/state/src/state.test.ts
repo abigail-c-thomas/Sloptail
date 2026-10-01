@@ -8,6 +8,7 @@ import {
   board,
   collectOwnOrder,
   estimatedOut,
+  guestsNamed,
   stockLevels,
   cancelOrder,
   claimOrder,
@@ -122,8 +123,21 @@ describe("orders", () => {
   });
 });
 
+describe("guestsNamed", () => {
+  it("finds each guest's latest drink by name, ignoring case and cancelled orders", () => {
+    let state = submit(createState(), gt, "u1", 1).state;
+    state = submit(state, mule, "u1", 2).state;
+    state = submit(state, gt, "u2", 3).state;
+    state = cancelOrder(state, "3", "nope", 4);
+    state = submit(state, gt, "u3", 5).state;
+    assert.deepEqual(guestsNamed(state, " u1 "), [{ userId: "u1", drink: "Mule", orderId: "2", status: "queued" }]);
+    assert.deepEqual(guestsNamed(state, "U2"), []);
+    assert.deepEqual(guestsNamed(state, "nobody"), []);
+  });
+});
+
 describe("board", () => {
-  it("shows who's being made and who's ready, newest ready first, and drops stale ready orders", () => {
+  it("shows who's queued or being made and who's ready, newest ready first, and drops stale ready orders", () => {
     let state = submit(createState(), gt, "u1", 1).state;
     state = submit(state, mule, "u2", 2).state;
     state = submit(state, gt, "u3", 3).state;
@@ -132,9 +146,8 @@ describe("board", () => {
     state = markReady(state, "2", 20);
     state = markReady(state, "3", 30);
     const b = board(state, 100);
-    assert.deepEqual(b.making, [{ userName: "U1", drink: "M&T" }]);
+    assert.deepEqual(b.inProgress, [{ userName: "U1", drink: "M&T" }, { userName: "U4", drink: "Mule" }]);
     assert.deepEqual(b.ready.map((r) => r.userName), ["U3", "U2"]);
-    assert.equal(b.queued, 1);
     assert.deepEqual(board(state, 25 + BOARD_READY_MS).ready.map((r) => r.userName), ["U3"]);
   });
 });
