@@ -97,20 +97,15 @@
 /* --- Admin: event setup on a laptop --------------------------------------- */
 .admin { max-width: 1280px; margin: 0 auto; padding: 16px 16px 96px; display: flex; flex-direction: column; gap: 16px; }
 .admin-table-wrap { overflow-x: auto; }
-.admin-table { border-collapse: collapse; width: 100%; font-size: 0.9rem; }
+.admin-table { border-collapse: collapse; width: auto; font-size: 0.9rem; }
 .admin-table th { text-align: left; font-weight: 600; color: var(--text-muted); padding: 4px; white-space: nowrap; }
 .admin-table td { padding: 2px 4px; vertical-align: middle; }
 .admin-table .input { min-height: 34px; padding: 4px 8px; width: 100%; min-width: 60px; }
-/* Column 1 is the remove button. */
-.admin-table td:nth-child(2) .input { min-width: 150px; }
-.admin-table td:nth-child(3) .input { min-width: 104px; }
-.admin-table td:nth-child(4) .input { min-width: 96px; }
-.admin-table td:nth-child(10) .input, .admin-table td:nth-child(11) .input { min-width: 140px; }
+.admin-table td:nth-child(2) .input { min-width: 180px; }
 .admin-table .admin-remove { width: 1%; padding-right: 8px; }
 .admin-table .admin-remove .btn { padding: 0 4px; text-decoration: none; }
 .admin-group td { padding-top: 14px; font-weight: 700; text-transform: capitalize; }
 .admin-stock { white-space: nowrap; }
-.admin-summary { color: var(--text-muted); font-size: 0.85rem; }
 .admin-stock .input { width: 90px; }
 .admin-stock .badge { margin-left: 4px; }
 .admin-save {
