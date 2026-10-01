@@ -119,6 +119,12 @@ export function requestReprint(state: BarState, id: string): BarState {
   return { ...state, orders: { ...state.orders, [id]: rest } };
 }
 
+/** The guest taps "Got it" on their phone. Only the guest who ordered can do this. */
+export function collectOwnOrder(state: BarState, id: string, userId: string, now: number): BarState {
+  if (getOrder(state, id).userId !== userId) throw new StateError("not-found", `No order ${id}`);
+  return markCollected(state, id, now);
+}
+
 export function cancelOrder(state: BarState, id: string, reason: string, now: number): BarState {
   return transition(state, id, "cancelled", { cancelledAt: now, cancelReason: reason });
 }

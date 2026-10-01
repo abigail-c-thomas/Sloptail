@@ -1,4 +1,4 @@
-import type { EditBody, Order, Proposal, ProposeBody, SubmitBody } from "@sloptail/shared";
+import type { EditBody, Ingredient, Order, Proposal, ProposeBody, SubmitBody } from "@sloptail/shared";
 
 export class ApiError extends Error {
   constructor(
@@ -11,7 +11,7 @@ export class ApiError extends Error {
   }
 }
 
-async function call<T>(path: string, init: RequestInit & { token?: string } = {}): Promise<T> {
+export async function call<T>(path: string, init: RequestInit & { token?: string } = {}): Promise<T> {
   const headers: Record<string, string> = { "Content-Type": "application/json" };
   if (init.token) headers.Authorization = `Bearer ${init.token}`;
   const res = await fetch(`/api${path}`, { ...init, headers });
@@ -30,10 +30,20 @@ export interface ProposeResponse {
   attempts: number;
 }
 
+/** Mirrors Board in packages/state/src/selectors.ts. */
+export interface Board {
+  making: { userName: string; drink: string }[];
+  ready: { userName: string; drink: string }[];
+  queued: number;
+}
+
 export const api = {
   propose: (b: ProposeBody) => call<ProposeResponse>("/propose", post(b)),
   edit: (b: EditBody) => call<ProposeResponse>("/edit", post(b)),
   submit: (b: SubmitBody) => call<Order>("/orders", post(b)),
   order: (id: string) => call<Order>(`/orders/${id}`),
+  collect: (id: string, userId: string) => call<Order>(`/orders/${id}/collected`, post({ userId })),
+  board: () => call<Board>("/board"),
+  catalog: () => call<{ catalog: Ingredient[]; unavailable: string[] }>("/catalog"),
   userOrders: (userId: string) => call<Order[]>(`/users/${userId}/orders`),
 };

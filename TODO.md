@@ -9,13 +9,17 @@ Legend: **[you]** needs Abigail · **[claude]** Claude can do alone · **[both]*
 - [x] **[claude]** Baseline run on `anthropic/claude-opus-5` (old catalog): 20/20 valid, 18/20 first try, avg 9.1s per proposal. Slow for a phone; low diversity at level 3 (tequila + saline + chilli almost every time).
 - [x] **[claude]** Sweep done on the real catalog; results in `packages/llm/evals/results/`.
 - [x] **[both]** Decided: GPT 5.6 Luna default (more varied, ~4s), Gemini 3.8 Flash fallback (~2s but samey), Haiku second fallback. Low reasoning effort.
-- [ ] **[claude]** Prompt tweaks if needed: vary the base spirit unless named; feed recent drinks into the prompt for diversity. Low priority with Luna.
+- [x] **[claude]** Feed the guest's own earlier drinks (ordered, or shown this visit) into the prompt so a new one isn't a repeat.
+- [ ] **[claude]** Prompt tweaks if needed: vary the base spirit unless named. Low priority with Luna.
+- [ ] **[both]** Check the sugar/acid figures in `packages/shared/src/catalog.ts` against what we actually buy (agave and honey syrup dilution especially); the sweet/sour dials depend on them.
 
 ## 2. Ingredients
 
 - [x] **[you]** List what the bar will actually stock: `Sloptail/Ingredients.md`.
 - [x] **[claude]** Catalog rebuilt from that list; classics rewritten as built-in-glass highballs; tests updated.
 - [ ] **[you]** Open questions from the list: vermouth in or out? Cream/yogurt vs lactic acid solution (I've assumed the solution)? Rough quantities per bottle, so we can do out-of-stock estimates?
+- [x] **[claude]** Admin screen (`/admin`): practice and real ingredient lists, stock, printer address, start buttons.
+- [ ] **[you]** Enter the practice and real ingredient lists and rough stock on `/admin`, check the model-filled rows, then hit Start practice.
 - [x] **[you]** House rules: standard cocktail strength max (20-22ml pure alcohol), everything built in the glass, no shaking. Applied.
 
 ## 3. Deploy
@@ -46,7 +50,8 @@ Legend: **[you]** needs Abigail · **[claude]** Claude can do alone · **[both]*
 - [ ] **[you]** What device(s) at the bar: one shared laptop/tablet, or a phone each? Shapes the bar screen layout.
 - [ ] **[both]** Redesign the bar screen for that device. Currently a readable three-column placeholder.
 - [ ] **[claude]** Streaming or progress feedback during the model call if latency is over ~4s.
-- [ ] **[claude]** QR code page / slide for the auditorium.
+- [x] **[claude]** Room screen at `/screen`: QR code to the guest page, who's being made, who's ready.
+- [x] **[claude]** Bar screen pass: fewer words, two columns; guests mark their own drink collected.
 
 ## 6. Logistics questions the software can't answer
 

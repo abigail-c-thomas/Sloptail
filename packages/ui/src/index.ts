@@ -10,3 +10,4 @@ export * from "./Drawer.tsx";
 export * from "./RecipeView.tsx";
 export * from "./Stack.tsx";
 export * from "./Paper.tsx";
+export * from "./CatalogContext.tsx";

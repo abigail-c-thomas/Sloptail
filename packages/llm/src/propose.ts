@@ -1,4 +1,4 @@
-import { describeIssue, validateRecipe, type Proposal } from "@sloptail/shared";
+import { describeIssue, flavourIssues, validateRecipe, type Proposal } from "@sloptail/shared";
 import type { LlmClient, Message } from "./client.ts";
 import { ParseError, parseProposal, PROPOSAL_JSON_SCHEMA } from "./parse.ts";
 import { editMessages, proposeMessages, repairMessages, type PromptContext } from "./prompt.ts";
@@ -45,12 +45,17 @@ export function edit(
   client: LlmClient,
   opts: ProposeOptions = {},
 ): Promise<ProposeResult> {
-  return runWithRepairs(editMessages(ctx, previous, tweak), ctx, client, opts);
+  // The tweak ("sweeter please") outranks the original flavour dials, so don't hold the edit to them.
+  const loose = { ...ctx, request: { ...ctx.request, sweetness: undefined, acidity: undefined } };
+  return runWithRepairs(editMessages(ctx, previous, tweak), loose, client, opts);
 }
 
 /** Validate a proposal the way the loop does; exported so evals can score model output. */
 export function problemsWith(proposal: Proposal, ctx: PromptContext): string[] {
-  return validateRecipe(proposal.recipe, ctx.request.strength, ctx.unavailable).map(describeIssue);
+  return [
+    ...validateRecipe(proposal.recipe, ctx.request.strength, ctx.catalog, ctx.unavailable).map(describeIssue),
+    ...flavourIssues(proposal.recipe, proposal.glass, ctx.request, ctx.catalog),
+  ];
 }
 
 async function runWithRepairs(

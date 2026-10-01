@@ -110,6 +110,7 @@ export function soapEnvelope(body: string, jobId?: string): string {
 }
 
 export class EposPrinter {
+  readonly host: string;
   readonly url: string;
   private readonly timeoutMs: number;
   private readonly minIntervalMs: number;
@@ -122,6 +123,7 @@ export class EposPrinter {
   private pending = 0;
 
   constructor(opts: PrinterOptions) {
+    this.host = opts.host;
     const scheme = opts.https ? "https" : "http";
     const devid = encodeURIComponent(opts.deviceId ?? "local_printer");
     this.timeoutMs = opts.timeoutMs ?? 10_000;

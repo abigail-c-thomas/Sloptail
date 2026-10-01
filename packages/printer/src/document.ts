@@ -250,6 +250,8 @@ const REPLACEMENTS: Record<string, string> = {
  */
 export function printable(s: string): string {
   return s
+    // "1½" must not become "11/2".
+    .replace(/(\d)([½¼¾])/g, "$1 $2")
     .replace(/[‘’‚“”„–—−… ·×½¼¾ßæÆøØłŁ]/g, (c) => REPLACEMENTS[c]!)
     .normalize("NFD")
     .replace(/[̀-ͯ]/g, "")

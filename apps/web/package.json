@@ -12,6 +12,7 @@
     "@sloptail/shared": "*",
     "@sloptail/ticket": "*",
     "@sloptail/ui": "*",
+    "qrcode-generator": "^2.0.4",
     "react": "^19",
     "react-dom": "^19"
   },

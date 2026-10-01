@@ -1,16 +1,18 @@
-import { CATALOG_BY_ID, buildOrder, formatAmount, type Proposal, type Recipe } from "@sloptail/shared";
+import { buildOrder, formatAmount, type Proposal, type Recipe } from "@sloptail/shared";
+import { useCatalog } from "./CatalogContext.tsx";
 
 /** Ingredient list in build order. `compact` for the bar screen. */
 export function RecipeList({ recipe, compact }: { recipe: Recipe; compact?: boolean }) {
+  const catalog = useCatalog();
   return (
     <ol className={`recipe ${compact ? "compact" : ""}`}>
-      {buildOrder(recipe).map((item, i) => {
-        const ing = CATALOG_BY_ID.get(item.ingredient);
+      {buildOrder(recipe, catalog).map((item, i) => {
+        const ing = catalog.byId.get(item.ingredient);
         const garnish = ing?.type === "garnish";
         return (
           <li key={`${item.ingredient}-${i}`} className={garnish ? "garnish" : ""}>
             <span>{ing?.name ?? item.ingredient}</span>
-            <span className="amt">{formatAmount(item, ing)}</span>
+            {garnish && item.amount === 1 ? null : <span className="amt">{formatAmount(item, ing)}</span>}
           </li>
         );
       })}

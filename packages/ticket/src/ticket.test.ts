@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import type { Order } from "@sloptail/shared";
+import { DEFAULT_CATALOG, type Order } from "@sloptail/shared";
 import { orderTicket } from "./ticket.ts";
 
 const order: Order = {
@@ -17,15 +17,15 @@ const order: Order = {
     recipe: [
       { ingredient: "mint-sprig", amount: 1 },
       { ingredient: "soda", amount: "fill" },
-      { ingredient: "black-tea", amount: 60 },
-      { ingredient: "honey-syrup", amount: 15 },
+      { ingredient: "black-tea", amount: 2 },
+      { ingredient: "honey-syrup", amount: 0.5 },
       { ingredient: "angostura", amount: 2 },
     ],
   },
 };
 
 describe("orderTicket", () => {
-  const text = orderTicket(order, { timeZone: "UTC" }).toText();
+  const text = orderTicket(order, DEFAULT_CATALOG, { timeZone: "UTC" }).toText();
 
   it("leads with the name, big", () => {
     assert.match(text.split("\n")[1]!, /A {2}D {2}A/);
@@ -51,6 +51,6 @@ describe("orderTicket", () => {
   });
 
   it("ends with a cut", () => {
-    assert.match(orderTicket(order).toXml(), /<cut type="feed"\/><\/epos-print>$/);
+    assert.match(orderTicket(order, DEFAULT_CATALOG).toXml(), /<cut type="feed"\/><\/epos-print>$/);
   });
 });

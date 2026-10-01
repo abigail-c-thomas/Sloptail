@@ -1,34 +1,35 @@
 import type { Ingredient } from "./types.ts";
 
 /**
- * The bar. Source: Sloptail/Ingredients.md (Abigail's current plan).
- * Single source of truth for what the model may use and what the bar screen shows.
+ * The default bar. Source: Sloptail/Ingredients.md (Abigail's current plan).
+ * Event profiles (set up on /admin) start from this list; the active profile's
+ * list is what the model may use and what the bar screen shows.
  *
  * House rules baked in here: everything is built in the glass, so nothing needs
  * a shaker; potent flavourings carry a `max` so the model can't drown a drink.
  */
 export const CATALOG: Ingredient[] = [
   // --- Bases ------------------------------------------------------------
-  { id: "rum", name: "Rum", type: "base", flavor: ["sweet", "molasses", "warm"], alcoholic: true, abv: 40, unit: "ml" },
-  { id: "mezcal", name: "Mezcal", type: "base", flavor: ["smoky", "agave", "earthy"], alcoholic: true, abv: 45, unit: "ml" },
-  { id: "vodka", name: "Vodka", type: "base", flavor: ["neutral", "clean"], alcoholic: true, abv: 40, unit: "ml" },
-  { id: "whiskey", name: "Whiskey", type: "base", flavor: ["oak", "vanilla", "warm", "grain"], alcoholic: true, abv: 40, unit: "ml" },
-  { id: "sweet-vermouth", name: "Sweet vermouth", type: "base", flavor: ["herbal", "sweet", "wine", "bitter"], alcoholic: true, abv: 16, unit: "ml", notes: "TBC whether we stock it" },
+  { id: "rum", name: "Rum", type: "base", flavor: ["sweet", "molasses", "warm"], alcoholic: true, abv: 40, unit: "part" },
+  { id: "mezcal", name: "Mezcal", type: "base", flavor: ["smoky", "agave", "earthy"], alcoholic: true, abv: 45, unit: "part" },
+  { id: "vodka", name: "Vodka", type: "base", flavor: ["neutral", "clean"], alcoholic: true, abv: 40, unit: "part" },
+  { id: "whiskey", name: "Whiskey", type: "base", flavor: ["oak", "vanilla", "warm", "grain"], alcoholic: true, abv: 40, unit: "part" },
+  { id: "sweet-vermouth", name: "Sweet vermouth", type: "base", flavor: ["herbal", "sweet", "wine", "bitter"], alcoholic: true, abv: 16, unit: "part", sugar: 15, acid: 0.5, notes: "TBC whether we stock it" },
 
   // --- Mixers ------------------------------------------------------------
-  { id: "soda", name: "Soda water", type: "mixer", flavor: ["neutral", "sparkling"], alcoholic: false, unit: "ml" },
-  { id: "ginger-beer", name: "Ginger beer", type: "mixer", flavor: ["spicy", "ginger", "sparkling", "sweet"], alcoholic: false, unit: "ml" },
-  { id: "tonic", name: "Tonic water", type: "mixer", flavor: ["bitter", "quinine", "sparkling"], alcoholic: false, unit: "ml" },
-  { id: "cola", name: "Coke", type: "mixer", flavor: ["sweet", "caramel", "sparkling"], alcoholic: false, unit: "ml" },
-  { id: "pineapple-juice", name: "Pineapple juice", type: "mixer", flavor: ["tropical", "sweet", "fruity"], alcoholic: false, unit: "ml" },
-  { id: "black-tea", name: "Black tea (cold)", type: "mixer", flavor: ["tannic", "malty", "dry"], alcoholic: false, unit: "ml", notes: "Brewed strong, chilled" },
-  { id: "herbal-tea", name: "Chamomile tea (cold)", type: "mixer", flavor: ["floral", "honeyed", "gentle"], alcoholic: false, unit: "ml", notes: "Brewed strong, chilled" },
+  { id: "soda", name: "Soda water", type: "mixer", flavor: ["neutral", "sparkling"], alcoholic: false, unit: "part" },
+  { id: "ginger-beer", name: "Ginger beer", type: "mixer", flavor: ["spicy", "ginger", "sparkling", "sweet"], alcoholic: false, unit: "part", sugar: 10, acid: 0.3 },
+  { id: "tonic", name: "Tonic water", type: "mixer", flavor: ["bitter", "quinine", "sparkling"], alcoholic: false, unit: "part", sugar: 8.5, acid: 0.3 },
+  { id: "cola", name: "Coke", type: "mixer", flavor: ["sweet", "caramel", "sparkling"], alcoholic: false, unit: "part", sugar: 10.6, acid: 0.1 },
+  { id: "pineapple-juice", name: "Pineapple juice", type: "mixer", flavor: ["tropical", "sweet", "fruity"], alcoholic: false, unit: "part", sugar: 10, acid: 0.8 },
+  { id: "black-tea", name: "Black tea (cold)", type: "mixer", flavor: ["tannic", "malty", "dry"], alcoholic: false, unit: "part", notes: "Brewed strong, chilled" },
+  { id: "herbal-tea", name: "Chamomile tea (cold)", type: "mixer", flavor: ["floral", "honeyed", "gentle"], alcoholic: false, unit: "part", notes: "Brewed strong, chilled" },
 
   // --- Flavorings --------------------------------------------------------
-  { id: "lime-juice", name: "Lime juice", type: "flavoring", flavor: ["sour", "citrus"], alcoholic: false, unit: "ml", max: 30 },
-  { id: "agave-syrup", name: "Agave syrup", type: "flavoring", flavor: ["sweet", "clean"], alcoholic: false, unit: "ml", max: 25 },
-  { id: "honey-syrup", name: "Buckwheat honey syrup", type: "flavoring", flavor: ["sweet", "dark", "malty", "floral"], alcoholic: false, unit: "ml", max: 25 },
-  { id: "pomegranate-molasses", name: "Pomegranate molasses", type: "flavoring", flavor: ["tart", "sweet", "sticky", "fruity"], alcoholic: false, unit: "barspoon", max: 3 },
+  { id: "lime-juice", name: "Lime juice", type: "flavoring", flavor: ["sour", "citrus"], alcoholic: false, unit: "part", max: 1, sugar: 1.5, acid: 6 },
+  { id: "agave-syrup", name: "Agave syrup", type: "flavoring", flavor: ["sweet", "clean"], alcoholic: false, unit: "part", max: 0.75, sugar: 40 },
+  { id: "honey-syrup", name: "Buckwheat honey syrup", type: "flavoring", flavor: ["sweet", "dark", "malty", "floral"], alcoholic: false, unit: "part", max: 0.75, sugar: 55 },
+  { id: "pomegranate-molasses", name: "Pomegranate molasses", type: "flavoring", flavor: ["tart", "sweet", "sticky", "fruity"], alcoholic: false, unit: "barspoon", max: 3, sugar: 50, acid: 4 },
   { id: "angostura", name: "Angostura bitters", type: "flavoring", flavor: ["bitter", "spice", "clove"], alcoholic: true, abv: 45, unit: "dash", max: 4 },
   { id: "liquid-smoke", name: "Liquid smoke", type: "flavoring", flavor: ["smoky", "savoury"], alcoholic: false, unit: "drop", max: 2, notes: "Overpowering. 1 drop is plenty." },
   { id: "rose-water", name: "Rose water", type: "flavoring", flavor: ["floral", "perfumed"], alcoholic: false, unit: "drop", max: 3, notes: "Goes soapy fast." },
@@ -48,8 +49,37 @@ export const CATALOG: Ingredient[] = [
   { id: "citrus-peel", name: "Citrus peel", type: "garnish", flavor: ["citrus", "aromatic"], alcoholic: false, unit: "piece", max: 1, notes: "Express the oils over the drink" },
 ];
 
-export const CATALOG_BY_ID: ReadonlyMap<string, Ingredient> = new Map(CATALOG.map((i) => [i.id, i]));
+export const TYPE_LABEL: Record<Ingredient["type"], string> = {
+  base: "Bases",
+  mixer: "Mixers",
+  flavoring: "Flavourings",
+  garnish: "Garnishes",
+};
 
-export function getIngredient(id: string): Ingredient | undefined {
-  return CATALOG_BY_ID.get(id);
+/** An ingredient list plus an id index. Everything that needs to know what's behind the bar takes one. */
+export interface Catalog {
+  list: readonly Ingredient[];
+  byId: ReadonlyMap<string, Ingredient>;
+}
+
+export function makeCatalog(list: readonly Ingredient[]): Catalog {
+  return { list, byId: new Map(list.map((i) => [i.id, i])) };
+}
+
+export const DEFAULT_CATALOG: Catalog = makeCatalog(CATALOG);
+
+/** "Lime juice" -> "lime-juice". Ingredient ids look like this. */
+export function slugify(name: string): string {
+  return name
+    .toLowerCase()
+    .normalize("NFKD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+}
+
+/** Find a typed-in name in the default list, by id or name ("coke", "Lime juice"). */
+export function findKnownIngredient(name: string): Ingredient | undefined {
+  const slug = slugify(name);
+  return CATALOG.find((i) => i.id === slug || slugify(i.name) === slug);
 }

@@ -1,12 +1,25 @@
 import { DurableObject } from "cloudflare:workers";
-import type { Order, PrinterReport } from "@sloptail/shared";
+import {
+  CATALOG,
+  EventConfig,
+  makeCatalog,
+  type Catalog,
+  type Ingredient,
+  type Order,
+  type PrinterReport,
+  type Profile,
+  type ProfileName,
+  type Proposal,
+} from "@sloptail/shared";
 import {
   StateError,
   batches,
+  board,
   cancelOrder,
   claimOrder,
+  collectOwnOrder,
   createState,
-  markCollected,
+  estimatedOut,
   markPrinted,
   markReady,
   ordersForUser,
@@ -16,12 +29,15 @@ import {
   requestReprint,
   setAvailability,
   stats,
+  stockLevels,
   submitOrder,
   toPrint,
   unclaimOrder,
   type BarState,
   type Batch,
+  type Board,
   type Stats,
+  type StockLevel,
   type SubmitInput,
 } from "@sloptail/state";
 import type { Env } from "./env.ts";
@@ -33,12 +49,24 @@ export interface BarView {
   queue: Order[];
   batches: Batch[];
   ready: Order[];
+  /** Marked out by the bar. */
   unavailable: string[];
   stats: Stats;
-  /** Recently collected, newest first, for the "done" column. */
-  recent: Order[];
+  /** The active profile's ingredients. */
+  catalog: Ingredient[];
+  stock: StockLevel[];
+  profile: ProfileName;
+  /** For the receipt printer. Empty if not set. */
+  printerIp: string;
   /** Last report from the print bridge, or null if none has ever checked in. */
   printer: PrinterStatus | null;
+}
+
+export interface PrintQueue {
+  orders: Order[];
+  catalog: Ingredient[];
+  /** From the admin screen; the bridge uses it unless told otherwise. */
+  printerIp: string;
 }
 
 export interface PrinterStatus extends PrinterReport {
@@ -46,7 +74,29 @@ export interface PrinterStatus extends PrinterReport {
   at: number;
 }
 
+export interface AdminView {
+  config: EventConfig;
+  stats: Stats;
+  /** For the active profile. */
+  stock: StockLevel[];
+}
+
+/** What the worker needs to build a prompt, in one round-trip. */
+export interface PromptInputs {
+  catalog: Ingredient[];
+  unavailable: string[];
+  recentNames: string[];
+  history: Proposal[];
+}
+
 const STORAGE_KEY = "state";
+const CONFIG_KEY = "config";
+
+/** Before anything's set up: both profiles get the default bar, and the real one is running. */
+function defaultConfig(): EventConfig {
+  const profile = (): Profile => ({ ingredients: CATALOG.map((i) => ({ ...i })), printerIp: "" });
+  return { active: "real", profiles: { practice: profile(), real: profile() } };
+}
 
 /** Model calls per user per minute, and for the whole bar per minute. In-memory; resets if the DO restarts, which is fine. */
 const RATE = { perUser: 8, global: 120, windowMs: 60_000 };
@@ -58,6 +108,8 @@ const RATE = { perUser: 8, global: 120, windowMs: 60_000 };
  */
 export class BarDO extends DurableObject<Env> {
   private state: BarState = createState();
+  private config: EventConfig = defaultConfig();
+  private catalog: Catalog = makeCatalog(this.config.profiles.real.ingredients);
   private llmCalls = new Map<string, number[]>();
   /** In memory only: a heartbeat, not state worth persisting. */
   private printer: PrinterStatus | null = null;
@@ -67,7 +119,24 @@ export class BarDO extends DurableObject<Env> {
     ctx.blockConcurrencyWhile(async () => {
       const saved = await ctx.storage.get<BarState>(STORAGE_KEY);
       if (saved) this.state = saved;
+      const config = EventConfig.safeParse(await ctx.storage.get(CONFIG_KEY));
+      if (config.success) this.setConfig(config.data);
     });
+  }
+
+  private setConfig(config: EventConfig): void {
+    this.config = config;
+    this.catalog = makeCatalog(config.profiles[config.active].ingredients);
+  }
+
+  private async commitConfig(config: EventConfig): Promise<void> {
+    this.setConfig(config);
+    await this.ctx.storage.put(CONFIG_KEY, config);
+  }
+
+  /** Marked out by the bar, plus anything the stock estimate says has run out. */
+  private effectiveUnavailable(): string[] {
+    return [...new Set([...this.state.unavailable, ...estimatedOut(this.state, this.catalog)])];
   }
 
   private async commit(next: BarState): Promise<void> {
@@ -103,8 +172,18 @@ export class BarDO extends DurableObject<Env> {
     return ordersForUser(this.state, userId);
   }
 
-  getUnavailable(): string[] {
-    return [...this.state.unavailable];
+  /** The active ingredient list and what's out, for the guest app. */
+  getCatalog(): { catalog: Ingredient[]; unavailable: string[] } {
+    return { catalog: [...this.catalog.list], unavailable: this.effectiveUnavailable() };
+  }
+
+  getPromptInputs(userId: string): PromptInputs {
+    return {
+      catalog: [...this.catalog.list],
+      unavailable: this.effectiveUnavailable(),
+      recentNames: this.getRecentNames(),
+      history: this.getUserHistory(userId),
+    };
   }
 
   /** Names served so far, for the prompt's "don't repeat" hint. */
@@ -115,24 +194,44 @@ export class BarDO extends DurableObject<Env> {
       .map((o) => o.proposal.name);
   }
 
+  /** A guest's last few ordered drinks, newest first, for the prompt's "make it different" hint. */
+  getUserHistory(userId: string, limit = 5): Proposal[] {
+    return ordersForUser(this.state, userId)
+      .filter((o) => o.status !== "cancelled")
+      .slice(0, limit)
+      .map((o) => o.proposal);
+  }
+
+  getBoard(): Board {
+    return board(this.state, Date.now());
+  }
+
   getBarView(): BarView {
-    const recent = Object.values(this.state.orders)
-      .filter((o) => o.status === "collected" || o.status === "cancelled")
-      .sort((a, b) => (b.collectedAt ?? b.cancelledAt ?? 0) - (a.collectedAt ?? a.cancelledAt ?? 0))
-      .slice(0, 10);
     return {
       queue: queue(this.state),
-      batches: batches(this.state),
+      batches: batches(this.state, this.catalog),
       ready: readyOrders(this.state),
       unavailable: [...this.state.unavailable],
       stats: stats(this.state),
-      recent,
+      catalog: [...this.catalog.list],
+      stock: stockLevels(this.state, this.catalog),
+      profile: this.config.active,
+      printerIp: this.config.profiles[this.config.active].printerIp,
       printer: this.printer,
     };
   }
 
-  getPrintQueue(): Order[] {
-    return toPrint(this.state);
+  /** Everything the print bridge needs in one call: what to print, and how to name the ingredients. */
+  getPrintQueue(): PrintQueue {
+    return {
+      orders: toPrint(this.state),
+      catalog: [...this.catalog.list],
+      printerIp: this.config.profiles[this.config.active].printerIp,
+    };
+  }
+
+  getAdminView(): AdminView {
+    return { config: this.config, stats: stats(this.state), stock: stockLevels(this.state, this.catalog) };
   }
 
   getOrdersUsing(ingredient: string): Order[] {
@@ -142,6 +241,10 @@ export class BarDO extends DurableObject<Env> {
   // --- writes ------------------------------------------------------------
 
   submit(input: Omit<SubmitInput, "now">): Promise<Result<Order>> {
+    const unknown = input.proposal.recipe.find((r) => !this.catalog.byId.has(r.ingredient));
+    if (unknown) {
+      return Promise.resolve({ ok: false, code: "unavailable-ingredient", message: `This bar doesn't have ${unknown.ingredient}` });
+    }
     return this.mutate((s) => {
       const { state, order } = submitOrder(s, { ...input, now: Date.now() });
       return { state, value: order };
@@ -160,8 +263,8 @@ export class BarDO extends DurableObject<Env> {
     return this.mutateOrder((s) => markReady(s, id, Date.now()), id);
   }
 
-  collected(id: string): Promise<Result<Order>> {
-    return this.mutateOrder((s) => markCollected(s, id, Date.now()), id);
+  collectedByGuest(id: string, userId: string): Promise<Result<Order>> {
+    return this.mutateOrder((s) => collectOwnOrder(s, id, userId, Date.now()), id);
   }
 
   cancel(id: string, reason: string): Promise<Result<Order>> {
@@ -181,6 +284,9 @@ export class BarDO extends DurableObject<Env> {
   }
 
   setIngredientAvailable(ingredient: string, available: boolean): Promise<Result<string[]>> {
+    if (!this.catalog.byId.has(ingredient)) {
+      return Promise.resolve({ ok: false, code: "not-found", message: `Unknown ingredient ${ingredient}` });
+    }
     return this.mutate((s) => {
       const state = setAvailability(s, ingredient, available);
       return { state, value: [...state.unavailable] };
@@ -204,8 +310,22 @@ export class BarDO extends DurableObject<Env> {
     return true;
   }
 
-  /** Wipe everything. Bar-only, for resetting between rehearsals. */
+  /** Wipe every order and out-of-stock mark. Config is kept. */
   async reset(): Promise<void> {
     await this.commit(createState());
+  }
+
+  // --- admin -------------------------------------------------------------
+
+  async saveProfile(name: ProfileName, profile: Profile): Promise<AdminView> {
+    await this.commitConfig({ ...this.config, profiles: { ...this.config.profiles, [name]: profile } });
+    return this.getAdminView();
+  }
+
+  /** Switch to a profile and start clean: all orders go. */
+  async start(name: ProfileName): Promise<AdminView> {
+    await this.commitConfig({ ...this.config, active: name });
+    await this.reset();
+    return this.getAdminView();
   }
 }

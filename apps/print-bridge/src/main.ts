@@ -4,16 +4,19 @@
  * them one at a time (with a gap so each can be torn off), marks them printed,
  * and reports printer health so the bar screen can say "out of paper".
  *
- *   node apps/print-bridge/src/main.ts --printer 192.168.0.50 --token BAR_TOKEN [--url https://…] [--gap 3]
+ *   node apps/print-bridge/src/main.ts --token BAR_TOKEN [--printer 192.168.0.50] [--url https://…] [--gap 3]
  *   node apps/print-bridge/src/main.ts --printer 192.168.0.50 --test      # one sample ticket, then exit
  *   node apps/print-bridge/src/main.ts --preview --token BAR_TOKEN        # show tickets in the terminal; prints nothing
+ *
+ * The printer address comes from the active profile on /admin unless
+ * --printer overrides it, so swapping Practice for Real moves printing too.
  *
  * Run one bridge per printer. The server remembers what has been printed, so
  * restarting the bridge doesn't reprint anything; "Reprint" on the bar screen
  * clears the mark and the bridge picks the order up again.
  */
 import { parseArgs } from "node:util";
-import type { Order } from "@sloptail/shared";
+import { DEFAULT_CATALOG, makeCatalog, type Catalog, type Ingredient, type Order } from "@sloptail/shared";
 import { EposPrinter, type PrintResult } from "@sloptail/printer";
 import { orderTicket } from "@sloptail/ticket";
 
@@ -60,7 +63,7 @@ async function api<T>(path: string, body?: unknown): Promise<T> {
 if (args.test) {
   if (!args.printer) fail("--test needs --printer <ip>");
   const printer = new EposPrinter({ host: args.printer, https: args.https });
-  const doc = orderTicket(sampleOrder(), { timeZone });
+  const doc = orderTicket(sampleOrder(), DEFAULT_CATALOG, { timeZone });
   console.log(doc.toText());
   const r = await printer.print(doc, "test");
   log(r.success ? "✓" : "✗", r.message, r.code ? `(${r.code}, status 0x${r.raw.toString(16)})` : "", r.detail ?? "");
@@ -68,13 +71,17 @@ if (args.test) {
 }
 
 if (!args.token) fail("Needs --token (the BAR_TOKEN) or BAR_TOKEN in the environment.");
-if (!args.printer && !args.preview) fail("Needs --printer <ip> (or --preview to just show tickets here).");
 
 // --- the loop ----------------------------------------------------------------
 
-const printer = args.printer
-  ? new EposPrinter({ host: args.printer, https: args.https, minIntervalMs: Number(args.gap) * 1000 })
-  : null;
+/** Mirrors PrintQueue in apps/server/src/bar-do.ts. */
+interface PrintQueue {
+  orders: Order[];
+  catalog: Ingredient[];
+  printerIp: string;
+}
+
+let printer: EposPrinter | null = null;
 const POLL_MS = Number(args.poll) * 1000;
 /** Status probe when idle, so the bar hears about "cover open" before the next order. */
 const PROBE_MS = 10_000;
@@ -93,13 +100,30 @@ let last: PrintResult | null = null;
 let lastProbe = 0;
 let serverDown = false;
 
-async function handle(order: Order) {
-  if (!printer) {
-    console.log(`\n${orderTicket(order, { timeZone }).toText()}\n`);
+/** Point at the right printer: --printer if given, else the active profile's address. */
+function usePrinter(serverIp: string): EposPrinter | null {
+  const host = args.printer || serverIp;
+  if (!host) {
+    if (printer || !warnedNoPrinter) log("No printer address. Set one on /admin, or pass --printer <ip>.");
+    warnedNoPrinter = true;
+    printer = null;
+    return null;
+  }
+  // Don't swap printers with jobs still queued on the old one.
+  if (printer && (printer.host === host || printer.queued > 0)) return printer;
+  printer = new EposPrinter({ host, https: args.https, minIntervalMs: Number(args.gap) * 1000 });
+  log(`Printing to ${printer.url}`);
+  return printer;
+}
+let warnedNoPrinter = false;
+
+async function handle(order: Order, catalog: Catalog, to: EposPrinter | null) {
+  if (args.preview || !to) {
+    console.log(`\n${orderTicket(order, catalog, { timeZone }).toText()}\n`);
     justPrinted.set(order.id, Date.now() + 24 * 3600_000); // preview once per run
     return;
   }
-  const r = await printer.print(orderTicket(order, { timeZone }), `order-${order.id}`);
+  const r = await to.print(orderTicket(order, catalog, { timeZone }), `order-${order.id}`);
   last = r;
   if (!r.success) {
     log(`✗ #${order.id} ${order.userName}: ${r.message} ${r.code ? `(${r.code}${r.detail ? `: ${r.detail}` : ""})` : ""} Will retry.`);
@@ -119,9 +143,9 @@ async function tick() {
   const now = Date.now();
   for (const [id, at] of justPrinted) if (now - at > JUST_PRINTED_MS) justPrinted.delete(id);
 
-  let orders: Order[];
+  let queue: PrintQueue;
   try {
-    orders = await api<Order[]>("/print-queue");
+    queue = await api<PrintQueue>("/print-queue");
     if (serverDown) log("Server reachable again.");
     serverDown = false;
   } catch (e) {
@@ -130,10 +154,16 @@ async function tick() {
     return;
   }
 
-  for (const order of orders) {
+  const to = args.preview ? null : usePrinter(queue.printerIp);
+  if (!args.preview && !to) {
+    await api("/printer", { ok: false, warning: false, message: "No printer address set (see /admin).", pending: 0 }).catch(() => {});
+    return;
+  }
+  const catalog = makeCatalog(queue.catalog);
+  for (const order of queue.orders) {
     if (inFlight.has(order.id) || justPrinted.has(order.id)) continue;
     inFlight.add(order.id);
-    void handle(order).finally(() => inFlight.delete(order.id));
+    void handle(order, catalog, to).finally(() => inFlight.delete(order.id));
   }
 
   if (!printer) return;
@@ -149,7 +179,7 @@ async function tick() {
   }
 }
 
-log(`Sloptail print bridge → ${printer ? printer.url : "terminal preview"}, orders from ${base}`);
+log(`Sloptail print bridge: orders from ${base}${args.preview ? ", shown here (preview)" : ""}`);
 for (;;) {
   const started = Date.now();
   await tick();
@@ -169,10 +199,10 @@ function sampleOrder(): Order {
       glass: "highball",
       description: "Smoky mezcal lifted by pineapple and a numbing Szechuan tingle; think bonfire, but fruity.",
       recipe: [
-        { ingredient: "mezcal", amount: 50 },
-        { ingredient: "lime-juice", amount: 15 },
+        { ingredient: "mezcal", amount: 1.5 },
+        { ingredient: "lime-juice", amount: 0.5 },
         { ingredient: "szechuan-tincture", amount: 2 },
-        { ingredient: "pineapple-juice", amount: 40 },
+        { ingredient: "pineapple-juice", amount: 1.25 },
         { ingredient: "ginger-beer", amount: "fill" },
         { ingredient: "citrus-peel", amount: 1 },
       ],

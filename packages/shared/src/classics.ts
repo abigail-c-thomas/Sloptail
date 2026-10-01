@@ -1,5 +1,5 @@
 import type { Proposal, Strength } from "./types.ts";
-import { CATALOG_BY_ID } from "./catalog.ts";
+import { DEFAULT_CATALOG, type Catalog } from "./catalog.ts";
 
 export interface Classic {
   id: string;
@@ -10,7 +10,8 @@ export interface Classic {
 
 /**
  * Menu for "not at all adventurous" guests and a fallback when the model is
- * down. Everything here is built in the glass from CATALOG.
+ * down. Everything here is built in the glass from the default CATALOG;
+ * classicsFor drops any that need something the current bar doesn't stock.
  */
 export const CLASSICS: Classic[] = [
   {
@@ -21,8 +22,8 @@ export const CLASSICS: Classic[] = [
       description: "Rum, lime and a lot of ginger beer. Spicy, cold, reliable.",
       glass: "highball",
       recipe: [
-        { ingredient: "rum", amount: 50 },
-        { ingredient: "lime-juice", amount: 15 },
+        { ingredient: "rum", amount: 1.5 },
+        { ingredient: "lime-juice", amount: 0.5 },
         { ingredient: "ginger-beer", amount: "fill" },
         { ingredient: "mint-sprig", amount: 1 },
       ],
@@ -36,8 +37,8 @@ export const CLASSICS: Classic[] = [
       description: "Rum and Coke with enough lime to make it a cocktail.",
       glass: "highball",
       recipe: [
-        { ingredient: "rum", amount: 50 },
-        { ingredient: "lime-juice", amount: 10 },
+        { ingredient: "rum", amount: 1.5 },
+        { ingredient: "lime-juice", amount: 0.25 },
         { ingredient: "cola", amount: "fill" },
         { ingredient: "citrus-peel", amount: 1 },
       ],
@@ -51,7 +52,7 @@ export const CLASSICS: Classic[] = [
       description: "Whiskey, ginger beer, a dash of bitters. The grown-up highball.",
       glass: "highball",
       recipe: [
-        { ingredient: "whiskey", amount: 50 },
+        { ingredient: "whiskey", amount: 1.5 },
         { ingredient: "angostura", amount: 2 },
         { ingredient: "ginger-beer", amount: "fill" },
         { ingredient: "citrus-peel", amount: 1 },
@@ -66,7 +67,7 @@ export const CLASSICS: Classic[] = [
       description: "Smoke and quinine. Like a gin and tonic that's been to a bonfire.",
       glass: "highball",
       recipe: [
-        { ingredient: "mezcal", amount: 45 },
+        { ingredient: "mezcal", amount: 1.5 },
         { ingredient: "tonic", amount: "fill" },
         { ingredient: "rosemary-sprig", amount: 1 },
       ],
@@ -80,8 +81,8 @@ export const CLASSICS: Classic[] = [
       description: "Exactly what it says. Clean and cold.",
       glass: "highball",
       recipe: [
-        { ingredient: "vodka", amount: 50 },
-        { ingredient: "lime-juice", amount: 15 },
+        { ingredient: "vodka", amount: 1.5 },
+        { ingredient: "lime-juice", amount: 0.5 },
         { ingredient: "soda", amount: "fill" },
         { ingredient: "mint-sprig", amount: 1 },
       ],
@@ -95,9 +96,9 @@ export const CLASSICS: Classic[] = [
       description: "Whiskey, honey and lime, lengthened with soda.",
       glass: "highball",
       recipe: [
-        { ingredient: "whiskey", amount: 50 },
-        { ingredient: "honey-syrup", amount: 15 },
-        { ingredient: "lime-juice", amount: 20 },
+        { ingredient: "whiskey", amount: 1.5 },
+        { ingredient: "honey-syrup", amount: 0.5 },
+        { ingredient: "lime-juice", amount: 0.75 },
         { ingredient: "soda", amount: "fill" },
       ],
     },
@@ -110,8 +111,8 @@ export const CLASSICS: Classic[] = [
       description: "Pineapple, lime and ginger beer. Tastes like a holiday you didn't book.",
       glass: "highball",
       recipe: [
-        { ingredient: "pineapple-juice", amount: 60 },
-        { ingredient: "lime-juice", amount: 10 },
+        { ingredient: "pineapple-juice", amount: 2 },
+        { ingredient: "lime-juice", amount: 0.25 },
         { ingredient: "ginger-beer", amount: "fill" },
         { ingredient: "mint-sprig", amount: 1 },
       ],
@@ -125,9 +126,9 @@ export const CLASSICS: Classic[] = [
       description: "Strong black tea, dark honey, lime, topped with soda. Dry and refreshing.",
       glass: "highball",
       recipe: [
-        { ingredient: "black-tea", amount: 90 },
-        { ingredient: "honey-syrup", amount: 10 },
-        { ingredient: "lime-juice", amount: 10 },
+        { ingredient: "black-tea", amount: 3 },
+        { ingredient: "honey-syrup", amount: 0.25 },
+        { ingredient: "lime-juice", amount: 0.25 },
         { ingredient: "soda", amount: "fill" },
         { ingredient: "citrus-peel", amount: 1 },
       ],
@@ -141,7 +142,7 @@ export const CLASSICS: Classic[] = [
       description: "Floral tea and bitter tonic. Calming and bracing at the same time.",
       glass: "highball",
       recipe: [
-        { ingredient: "herbal-tea", amount: 60 },
+        { ingredient: "herbal-tea", amount: 2 },
         { ingredient: "tonic", amount: "fill" },
         { ingredient: "rosemary-sprig", amount: 1 },
       ],
@@ -156,7 +157,7 @@ export const CLASSICS: Classic[] = [
       glass: "highball",
       recipe: [
         { ingredient: "ginger-beer", amount: "fill" },
-        { ingredient: "lime-juice", amount: 15 },
+        { ingredient: "lime-juice", amount: 0.5 },
         { ingredient: "angostura", amount: 3 },
         { ingredient: "citrus-peel", amount: 1 },
       ],
@@ -164,19 +165,21 @@ export const CLASSICS: Classic[] = [
   },
 ];
 
-/** Classics suitable for a strength. Half-strength halves any base spirit. */
-export function classicsFor(strength: Strength): Classic[] {
-  return CLASSICS.filter((c) => c.strengths.includes(strength)).map((c) =>
-    strength === "half"
-      ? {
-          ...c,
-          proposal: {
-            ...c.proposal,
-            recipe: c.proposal.recipe.map((r) =>
-              CATALOG_BY_ID.get(r.ingredient)?.type === "base" && r.amount !== "fill" ? { ...r, amount: r.amount / 2 } : r,
-            ),
-          },
-        }
-      : c,
-  );
+/**
+ * Classics suitable for a strength that this bar can make. A missing garnish
+ * is just left off; a missing liquid rules the drink out. Half-strength halves
+ * any base spirit.
+ */
+export function classicsFor(strength: Strength, catalog: Catalog = DEFAULT_CATALOG): Classic[] {
+  const has = (id: string) => catalog.byId.has(id);
+  const isGarnish = (id: string) => DEFAULT_CATALOG.byId.get(id)?.type === "garnish";
+  return CLASSICS.filter((c) => c.strengths.includes(strength)).flatMap((c) => {
+    const kept = c.proposal.recipe.filter((r) => has(r.ingredient) || !isGarnish(r.ingredient));
+    if (!kept.every((r) => has(r.ingredient))) return [];
+    const recipe =
+      strength === "half"
+        ? kept.map((r) => (catalog.byId.get(r.ingredient)?.type === "base" && r.amount !== "fill" ? { ...r, amount: r.amount / 2 } : r))
+        : kept;
+    return [{ ...c, proposal: { ...c.proposal, recipe } }];
+  });
 }

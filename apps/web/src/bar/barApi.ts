@@ -7,8 +7,18 @@ export interface BarView {
   ready: Order[];
   unavailable: string[];
   stats: { queued: number; making: number; ready: number; collected: number; cancelled: number; avgWaitSeconds: number | null };
-  recent: Order[];
   printer: { ok: boolean; warning: boolean; message: string; pending: number; at: number } | null;
+  catalog: Ingredient[];
+  stock: StockLevel[];
+  profile: "practice" | "real";
+  printerIp: string;
+}
+
+/** Mirrors StockLevel in packages/state/src/selectors.ts. */
+export interface StockLevel {
+  ingredient: string;
+  stock: number;
+  used: number;
 }
 
 export class BarApiError extends Error {
@@ -36,12 +46,10 @@ export function makeBarApi(token: string) {
     claim: (id: string, bartender: string) => call<Order>(`/orders/${id}/claim`, { bartender }),
     unclaim: (id: string) => call<Order>(`/orders/${id}/unclaim`, {}),
     ready: (id: string) => call<Order>(`/orders/${id}/ready`, {}),
-    collected: (id: string) => call<Order>(`/orders/${id}/collected`, {}),
     cancel: (id: string, reason: string) => call<Order>(`/orders/${id}/cancel`, { reason }),
     availability: (ingredient: Ingredient["id"], available: boolean) =>
       call<{ unavailable: string[]; affected: Order[] }>("/availability", { ingredient, available }),
     reprint: (id: string) => call<Order>(`/orders/${id}/reprint`, {}),
-    reset: () => call<{ ok: true }>("/reset", {}),
   };
 }
 

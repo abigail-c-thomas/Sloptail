@@ -10,9 +10,10 @@ const POLL_MS = 3000;
  * Polling rather than push: phones lock, iOS web push needs a PWA install,
  * and the bartender is going to shout the name anyway.
  */
-export function Tracking({ orderId, onDone }: { orderId: string; onDone: (keepPrefs: boolean) => void }) {
+export function Tracking({ orderId, userId, onDone }: { orderId: string; userId: string; onDone: (keepPrefs: boolean) => void }) {
   const [order, setOrder] = useState<Order | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [collecting, setCollecting] = useState(false);
   const announced = useRef(false);
 
   useEffect(() => {
@@ -57,6 +58,19 @@ export function Tracking({ orderId, onDone }: { orderId: string; onDone: (keepPr
 
   const name = order.proposal.name;
 
+  // The guest, not the bar, says when it's been picked up: that clears it off the room screen.
+  const collect = async () => {
+    setCollecting(true);
+    try {
+      setOrder(await api.collect(order.id, userId));
+      setError(null);
+    } catch (e) {
+      setError((e as Error).message);
+    } finally {
+      setCollecting(false);
+    }
+  };
+
   if (order.status === "ready") {
     return (
       <Stack gap={16}>
@@ -65,11 +79,9 @@ export function Tracking({ orderId, onDone }: { orderId: string; onDone: (keepPr
           <div className="big-name">{order.userName}</div>
           <h1>{name}</h1>
         </Card>
-        <Button size="lg" onClick={() => onDone(true)}>
-          Another
-        </Button>
-        <Button variant="ghost" onClick={() => onDone(false)}>
-          Start over
+        {error ? <Banner tone="danger">{error}</Banner> : null}
+        <Button size="lg" loading={collecting} onClick={collect}>
+          Got it
         </Button>
       </Stack>
     );
@@ -83,6 +95,9 @@ export function Tracking({ orderId, onDone }: { orderId: string; onDone: (keepPr
         </Card>
         <Button size="lg" onClick={() => onDone(true)}>
           Another
+        </Button>
+        <Button variant="ghost" onClick={() => onDone(false)}>
+          Start over
         </Button>
       </Stack>
     );

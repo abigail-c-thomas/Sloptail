@@ -3,15 +3,20 @@ import { cors } from "hono/cors";
 import { validator } from "hono/validator";
 import { z } from "zod";
 import {
-  CATALOG,
   ClaimBody,
+  CollectBody,
+  DescribeBody,
   EditBody,
+  makeCatalog,
   OutOfBody,
   PrinterReport,
+  Profile,
+  ProfileName,
   ProposeBody,
+  StartBody,
   SubmitBody,
 } from "@sloptail/shared";
-import { OpenRouterClient, ProposeError, edit, propose } from "@sloptail/llm";
+import { OpenRouterClient, ProposeError, describeIngredients, edit, propose } from "@sloptail/llm";
 import type { Env } from "./env.ts";
 import type { Result } from "./bar-do.ts";
 
@@ -58,21 +63,27 @@ function unwrap<T>(c: { json: (o: unknown, status?: 404 | 409 | 200) => Response
 
 app.get("/health", (c) => c.json({ ok: true }));
 
-app.get("/catalog", async (c) => {
-  const unavailable = await bar(c.env).getUnavailable();
-  return c.json({ catalog: CATALOG, unavailable });
-});
+app.get("/catalog", async (c) => c.json(await bar(c.env).getCatalog()));
 
 const TOO_MANY = "Easy there. The bartender-bot needs a minute; try again shortly.";
 
 app.post("/propose", body(ProposeBody), async (c) => {
-  const { userId, userName, request } = c.req.valid("json");
+  const { userId, userName, request, seen = [] } = c.req.valid("json");
   const b = bar(c.env);
   if (!(await b.allowLlmCall(userId))) return c.json({ error: TOO_MANY }, 429);
-  const [unavailable, recentNames] = await Promise.all([b.getUnavailable(), b.getRecentNames()]);
+  const inputs = await b.getPromptInputs(userId);
+  // What they've been shown this visit, then what they've ordered before; one entry per drink.
+  const history = [...seen, ...inputs.history].filter((p, i, all) => all.findIndex((q) => q.name === p.name) === i).slice(0, 8);
   try {
     const result = await propose(
-      { userName, request, unavailable: new Set(unavailable), recentNames },
+      {
+        catalog: makeCatalog(inputs.catalog),
+        userName,
+        request,
+        unavailable: new Set(inputs.unavailable),
+        recentNames: inputs.recentNames,
+        history,
+      },
       llm(c.env),
     );
     return c.json({ proposal: result.proposal, attempts: result.attempts.length });
@@ -85,10 +96,10 @@ app.post("/edit", body(EditBody), async (c) => {
   const { userId, request, proposal, tweak } = c.req.valid("json");
   const b = bar(c.env);
   if (!(await b.allowLlmCall(userId))) return c.json({ error: TOO_MANY }, 429);
-  const unavailable = await b.getUnavailable();
+  const inputs = await b.getPromptInputs(userId);
   try {
     const result = await edit(
-      { userName: "guest", request, unavailable: new Set(unavailable) },
+      { catalog: makeCatalog(inputs.catalog), userName: "guest", request, unavailable: new Set(inputs.unavailable) },
       proposal,
       tweak,
       llm(c.env),
@@ -108,6 +119,13 @@ app.get("/orders/:id", async (c) => {
   const order = await bar(c.env).getOrder(c.req.param("id"));
   return order ? c.json(order) : c.json({ error: "not found" }, 404);
 });
+
+app.post("/orders/:id/collected", body(CollectBody), async (c) =>
+  unwrap(c, await bar(c.env).collectedByGuest(c.req.param("id"), c.req.valid("json").userId)),
+);
+
+/** For the screen in the room: who's being made and who's ready. Public; names only. */
+app.get("/board", async (c) => c.json(await bar(c.env).getBoard()));
 
 app.get("/users/:userId/orders", async (c) => {
   return c.json(await bar(c.env).getOrdersForUser(c.req.param("userId")));
@@ -131,7 +149,6 @@ barApi.post("/orders/:id/claim", body(ClaimBody), async (c) =>
 );
 barApi.post("/orders/:id/unclaim", async (c) => unwrap(c, await bar(c.env).unclaim(c.req.param("id"))));
 barApi.post("/orders/:id/ready", async (c) => unwrap(c, await bar(c.env).ready(c.req.param("id"))));
-barApi.post("/orders/:id/collected", async (c) => unwrap(c, await bar(c.env).collected(c.req.param("id"))));
 barApi.post("/orders/:id/cancel", body(z.object({ reason: z.string().max(200).default("cancelled by bar") })), async (c) =>
   unwrap(c, await bar(c.env).cancel(c.req.param("id"), c.req.valid("json").reason)),
 );
@@ -148,7 +165,6 @@ barApi.post("/printer", body(PrinterReport), async (c) => {
 
 barApi.post("/availability", body(OutOfBody), async (c) => {
   const { ingredient, available } = c.req.valid("json");
-  if (!CATALOG.some((i) => i.id === ingredient)) return c.json({ error: "unknown ingredient" }, 400);
   const b = bar(c.env);
   const r = await b.setIngredientAvailable(ingredient, available);
   if (!r.ok) return unwrap(c, r);
@@ -162,6 +178,33 @@ barApi.post("/reset", async (c) => {
 });
 
 app.route("/bar", barApi);
+
+// --- admin (token-protected): event setup -----------------------------------
+
+const adminApi = new Hono<App>();
+
+adminApi.use("*", async (c, next) => {
+  const expected = c.env.ADMIN_TOKEN || c.env.BAR_TOKEN;
+  const auth = c.req.header("Authorization") ?? "";
+  const token = auth.startsWith("Bearer ") ? auth.slice(7) : "";
+  if (!expected || token !== expected) return c.json({ error: "unauthorised" }, 401);
+  await next();
+});
+
+adminApi.get("/", async (c) => c.json(await bar(c.env).getAdminView()));
+
+adminApi.put("/profiles/:name", body(Profile), async (c) => {
+  const name = ProfileName.safeParse(c.req.param("name"));
+  if (!name.success) return c.json({ error: "unknown profile" }, 404);
+  return c.json(await bar(c.env).saveProfile(name.data, c.req.valid("json")));
+});
+
+/** Typed-in names -> catalog entries for the admin to review. Doesn't save anything; names the model couldn't do come back in `failed`. */
+adminApi.post("/describe", body(DescribeBody), async (c) => c.json(await describeIngredients(c.req.valid("json").names, llm(c.env))));
+
+adminApi.post("/start", body(StartBody), async (c) => c.json(await bar(c.env).start(c.req.valid("json").profile)));
+
+app.route("/admin", adminApi);
 
 // --- errors ----------------------------------------------------------------
 

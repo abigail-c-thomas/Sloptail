@@ -9,6 +9,7 @@ describe("text helpers", () => {
   it("reduces to printable ASCII", () => {
     assert.equal(printable("José’s “drink” — ½ strength 🍸"), `Jose's "drink" - 1/2 strength `);
     assert.equal(printable("a\nb\tc"), "a\nb c");
+    assert.equal(printable("1½ parts, ¾ part"), "1 1/2 parts, 3/4 part");
   });
 
   it("wraps words and hard-breaks long ones", () => {

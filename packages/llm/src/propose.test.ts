@@ -1,12 +1,13 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import type { Proposal } from "@sloptail/shared";
+import { DEFAULT_CATALOG, type Proposal } from "@sloptail/shared";
 import { FakeClient } from "./client.ts";
 import { extractJson } from "./parse.ts";
 import { edit, propose, ProposeError } from "./propose.ts";
 import type { PromptContext } from "./prompt.ts";
 
 const ctx: PromptContext = {
+  catalog: DEFAULT_CATALOG,
   userName: "Abigail",
   request: { strength: "full", adventurousness: 2, prompt: "something with mezcal, bit bitter" },
   unavailable: new Set(),
@@ -17,8 +18,8 @@ const good: Proposal = {
   description: "Smoky, bitter, cold, and a little smug about it.",
   glass: "rocks",
   recipe: [
-    { ingredient: "mezcal", amount: 35 },
-    { ingredient: "sweet-vermouth", amount: 20 },
+    { ingredient: "mezcal", amount: 1.25 },
+    { ingredient: "sweet-vermouth", amount: 0.75 },
     { ingredient: "angostura", amount: 2 },
     { ingredient: "citrus-peel", amount: 1 },
   ],
@@ -64,7 +65,7 @@ describe("propose", () => {
       ...good,
       recipe: [
         { ingredient: "tonic", amount: "fill" },
-        { ingredient: "lime-juice", amount: 15 },
+        { ingredient: "lime-juice", amount: 0.5 },
       ],
     };
     const client = new FakeClient([JSON.stringify(good), JSON.stringify(fixed)]);
@@ -79,9 +80,42 @@ describe("propose", () => {
     assert.equal(client.requests.length, 3);
   });
 
+  it("asks for jigger-friendly measures", async () => {
+    const odd = { ...good, recipe: [{ ingredient: "mezcal", amount: 1.2 }, ...good.recipe.slice(1)] };
+    const client = new FakeClient([JSON.stringify(odd), JSON.stringify(good)]);
+    const result = await propose(ctx, client);
+    assert.match(result.attempts[0]?.problems[0] ?? "", /quarter-part/);
+    assert.equal(result.attempts.length, 2);
+  });
+
+  it("repairs a drink that's the opposite of the requested sweetness", async () => {
+    const dryCtx: PromptContext = { ...ctx, request: { ...ctx.request, sweetness: "low" } };
+    const sweet: Proposal = {
+      ...good,
+      glass: "highball",
+      recipe: [
+        { ingredient: "rum", amount: 1.5 },
+        { ingredient: "agave-syrup", amount: 0.5 },
+        { ingredient: "cola", amount: "fill" },
+      ],
+    };
+    const client = new FakeClient([JSON.stringify(sweet), JSON.stringify(good)]);
+    const result = await propose(dryCtx, client);
+    assert.match(result.attempts[0]?.problems[0] ?? "", /low sweetness, but this comes out high/);
+    assert.match(client.requests[0]?.messages[0]?.content ?? "", /guest wants sweetness low/);
+    assert.match(client.requests[0]?.messages[1]?.content ?? "", /Sweetness: low/);
+  });
+
+  it("tells the model what this guest has already had", async () => {
+    const client = new FakeClient([JSON.stringify(good)]);
+    await propose({ ...ctx, history: [good] }, client);
+    assert.match(client.requests[0]?.messages[1]?.content ?? "", /Quiet Bonfire: Mezcal, Sweet vermouth/);
+    assert.match(client.requests[0]?.messages[1]?.content ?? "", /clearly different/);
+  });
+
   it("excludes unavailable ingredients from the prompt and rejects their use", async () => {
     const noMezcal: PromptContext = { ...ctx, unavailable: new Set(["mezcal"]) };
-    const swapped = { ...good, recipe: [{ ingredient: "vodka", amount: 35 }, ...good.recipe.slice(1)] };
+    const swapped = { ...good, recipe: [{ ingredient: "vodka", amount: 1.25 }, ...good.recipe.slice(1)] };
     const client = new FakeClient([JSON.stringify(good), JSON.stringify(swapped)]);
     const result = await propose(noMezcal, client);
     assert.doesNotMatch(client.requests[0]?.messages[0]?.content ?? "", /- mezcal:/);
@@ -99,6 +133,21 @@ describe("edit", () => {
     assert.match(msgs.at(-2)?.content ?? "", /Quiet Bonfire/);
     assert.match(msgs.at(-1)?.content ?? "", /more smoke/);
     assert.equal(result.proposal.name, "Louder Bonfire");
+  });
+
+  it("lets a tweak override the original flavour dials", async () => {
+    const sweeter: Proposal = {
+      ...good,
+      glass: "highball",
+      recipe: [
+        { ingredient: "rum", amount: 1.5 },
+        { ingredient: "agave-syrup", amount: 0.5 },
+        { ingredient: "cola", amount: "fill" },
+      ],
+    };
+    const client = new FakeClient([JSON.stringify(sweeter)]);
+    const result = await edit({ ...ctx, request: { ...ctx.request, sweetness: "low" } }, good, "much sweeter", client);
+    assert.equal(result.attempts.length, 1);
   });
 });
 

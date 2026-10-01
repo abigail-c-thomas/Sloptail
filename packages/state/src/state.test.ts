@@ -1,9 +1,14 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import type { Proposal, UserRequest } from "@sloptail/shared";
+import { CATALOG, DEFAULT_CATALOG, makeCatalog, type Proposal, type UserRequest } from "@sloptail/shared";
 import {
+  BOARD_READY_MS,
   StateError,
   batches,
+  board,
+  collectOwnOrder,
+  estimatedOut,
+  stockLevels,
   cancelOrder,
   claimOrder,
   createState,
@@ -28,7 +33,7 @@ const gt: Proposal = {
   description: "mezcal and tonic",
   glass: "highball",
   recipe: [
-    { ingredient: "mezcal", amount: 50 },
+    { ingredient: "mezcal", amount: 1.5 },
     { ingredient: "tonic", amount: "fill" },
     { ingredient: "citrus-peel", amount: 1 },
   ],
@@ -39,7 +44,7 @@ const mule: Proposal = {
   description: "vodka ginger beer",
   glass: "highball",
   recipe: [
-    { ingredient: "vodka", amount: 50 },
+    { ingredient: "vodka", amount: 1.5 },
     { ingredient: "ginger-beer", amount: "fill" },
   ],
 };
@@ -102,11 +107,53 @@ describe("orders", () => {
     assert.equal(state.orders["1"]?.claimedBy, undefined);
   });
 
+  it("lets only the guest who ordered mark it collected", () => {
+    let { state } = submit(createState(), gt, "u1");
+    state = markReady(state, "1", 1);
+    assert.throws(() => collectOwnOrder(state, "1", "u2", 2), /No order/);
+    assert.equal(collectOwnOrder(state, "1", "u1", 2).orders["1"]?.status, "collected");
+  });
+
   it("lists a user's orders newest first", () => {
     const a = submit(createState(), gt, "u1", 1);
     const b = submit(a.state, mule, "u1", 2);
     const c = submit(b.state, gt, "u2", 3);
     assert.deepEqual(ordersForUser(c.state, "u1").map((o) => o.id), ["2", "1"]);
+  });
+});
+
+describe("board", () => {
+  it("shows who's being made and who's ready, newest ready first, and drops stale ready orders", () => {
+    let state = submit(createState(), gt, "u1", 1).state;
+    state = submit(state, mule, "u2", 2).state;
+    state = submit(state, gt, "u3", 3).state;
+    state = submit(state, mule, "u4", 4).state;
+    state = claimOrder(state, "1", "Sam", 10);
+    state = markReady(state, "2", 20);
+    state = markReady(state, "3", 30);
+    const b = board(state, 100);
+    assert.deepEqual(b.making, [{ userName: "U1", drink: "M&T" }]);
+    assert.deepEqual(b.ready.map((r) => r.userName), ["U3", "U2"]);
+    assert.equal(b.queued, 1);
+    assert.deepEqual(board(state, 25 + BOARD_READY_MS).ready.map((r) => r.userName), ["U3"]);
+  });
+});
+
+describe("stock", () => {
+  it("estimates use per ingredient, fills included, and flags what's run out", () => {
+    const catalog = makeCatalog(
+      CATALOG.map((i) => (i.id === "mezcal" ? { ...i, stock: 90 } : i.id === "tonic" ? { ...i, stock: 1000 } : i)),
+    );
+    let state = submit(createState(), gt, "u1", 1).state;
+    state = submit(state, gt, "u2", 2).state;
+    state = submit(state, gt, "u3", 3).state;
+    state = cancelOrder(state, "3", "x", 4);
+    // Two drinks: 45ml mezcal each, tonic tops each highball up to 240ml.
+    assert.deepEqual(stockLevels(state, catalog), [
+      { ingredient: "mezcal", stock: 90, used: 90 },
+      { ingredient: "tonic", stock: 1000, used: 390 },
+    ]);
+    assert.deepEqual(estimatedOut(state, catalog), ["mezcal"]);
   });
 });
 
@@ -140,7 +187,7 @@ describe("batches", () => {
     s = submit(s, gt, "b", 2).state;
     s = submit(s, mule, "c", 3).state;
     s = submit(s, gt, "d", 4).state;
-    const b = batches(s);
+    const b = batches(s, DEFAULT_CATALOG);
     assert.deepEqual(b.map((x) => x.orders.map((o) => o.id)), [["1", "3"], ["2", "4"]]);
     assert.match(b[0]?.label ?? "", /Vodka/);
   });
@@ -148,7 +195,7 @@ describe("batches", () => {
   it("caps batch size and spills into a new batch", () => {
     let s = createState();
     for (let i = 0; i < 5; i++) s = submit(s, gt, `u${i}`, i).state;
-    const b = batches(s, 3);
+    const b = batches(s, DEFAULT_CATALOG, 3);
     assert.deepEqual(b.map((x) => x.orders.length), [3, 2]);
   });
 
@@ -156,7 +203,7 @@ describe("batches", () => {
     let s = submit(createState(), gt, "a", 1).state;
     s = submit(s, gt, "b", 2).state;
     s = claimOrder(s, "1", "Sam", 3);
-    assert.deepEqual(batches(s).flatMap((x) => x.orders.map((o) => o.id)), ["2"]);
+    assert.deepEqual(batches(s, DEFAULT_CATALOG).flatMap((x) => x.orders.map((o) => o.id)), ["2"]);
   });
 });
 

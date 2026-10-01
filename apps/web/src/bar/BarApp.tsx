@@ -1,17 +1,18 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { CATALOG, type Order } from "@sloptail/shared";
-import { Badge, Banner, Button, Card, Drawer, RecipeList, Stack, TextField } from "@sloptail/ui";
+import { DEFAULT_CATALOG, makeCatalog, TYPE_LABEL, type Order } from "@sloptail/shared";
+import { Badge, Banner, Button, Card, CatalogProvider, Drawer, RecipeList, Stack, TextField } from "@sloptail/ui";
 import { BarApiError, makeBarApi, type BarView } from "./barApi.ts";
 
 const POLL_MS = 2000;
 const STALE_AFTER_MS = 5 * 60 * 1000;
+const UNDO_MS = 8000;
 /** The print bridge reports every couple of seconds; this long without one means it's gone. */
 const PRINTER_SILENT_MS = 20 * 1000;
 
 /**
- * Bar screen. Assumed device: a laptop or tablet in a browser, landscape.
- * Three columns: what to make next (batched), what's being made, what's on
- * the bar waiting to be collected. Ingredient availability lives in a drawer.
+ * Bar screen. Two columns: what to make next (batched) and what's being made.
+ * Once a drink is marked ready the bar is done with it; the guest taps "Got it"
+ * on their phone and the room screen (/screen) shows who's waiting.
  */
 export function BarApp() {
   const [token, setToken] = useState(() => new URLSearchParams(window.location.search).get("token") ?? localStorage.getItem("sloptail:barToken") ?? "");
@@ -20,6 +21,8 @@ export function BarApp() {
   const [error, setError] = useState<string | null>(null);
   const [drawer, setDrawer] = useState(false);
   const [now, setNow] = useState(Date.now());
+  /** Last order marked ready, so a mis-tap can be taken back. */
+  const [lastReady, setLastReady] = useState<{ order: Order; at: number } | null>(null);
 
   // Persist token from the URL, then remove it from the address bar.
   useEffect(() => {
@@ -54,7 +57,7 @@ export function BarApp() {
     return () => clearInterval(t);
   }, [refresh]);
 
-  /** Optimistic-ish: run the mutation, then refresh immediately. */
+  /** Run the mutation, then refresh immediately. */
   const act = async (fn: () => Promise<unknown>) => {
     try {
       await fn();
@@ -64,177 +67,159 @@ export function BarApp() {
     await refresh();
   };
 
+  const ready = (o: Order) =>
+    act(async () => {
+      await api.ready(o.id);
+      setLastReady({ order: o, at: Date.now() });
+    });
+
   if (!token || (error && !view)) {
     return (
       <div className="page">
         <h1>Bar</h1>
         {error ? <Banner tone="danger">{error}</Banner> : null}
-        <TextField id="token" label="Bar token" value={token} onChange={(e) => setToken(e.target.value)} help="Set as BAR_TOKEN on the server, or open /bar?token=…" />
+        <TextField id="token" label="Bar token" value={token} onChange={(e) => setToken(e.target.value)} />
         <Button onClick={refresh}>Connect</Button>
       </div>
     );
   }
 
   const making = view?.queue.filter((o) => o.status === "making") ?? [];
-  const s = view?.stats;
+  const catalog = view ? makeCatalog(view.catalog) : DEFAULT_CATALOG;
+  const left = new Map(view?.stock.map((l) => [l.ingredient, Math.max(0, 1 - l.used / (l.stock || 1))]));
+  const undo = lastReady && now - lastReady.at < UNDO_MS ? lastReady.order : null;
 
   return (
-    <div className="bar">
-      <header className="bar-header">
-        <div className="row" style={{ gap: 12 }}>
-          <span className="brand">Sloptail bar</span>
-          {s ? (
-            <div className="bar-stats">
-              <span><b>{s.queued}</b> queued</span>
-              <span><b>{s.making}</b> making</span>
-              <span><b>{s.ready}</b> on bar</span>
-              <span><b>{s.collected}</b> served</span>
-              {s.avgWaitSeconds !== null ? <span>avg wait <b>{Math.round(s.avgWaitSeconds / 60)}m</b></span> : null}
-            </div>
-          ) : null}
-        </div>
-        <div className="row">
-          <PrinterBadge printer={view?.printer ?? null} now={now} />
-          <input
-            className="input"
-            style={{ width: 140, minHeight: 36, padding: "6px 10px" }}
-            placeholder="Your name"
-            value={bartender}
-            onChange={(e) => setBartender(e.target.value)}
-            aria-label="Bartender name"
-          />
-          <Button variant="secondary" size="sm" onClick={() => setDrawer(true)}>
-            Ingredients{view?.unavailable.length ? ` (${view.unavailable.length} out)` : ""}
-          </Button>
-        </div>
-      </header>
+    <CatalogProvider value={catalog}>
+      <div className="bar">
+        <header className="bar-header">
+          <span className="brand">Sloptail{view?.profile === "practice" ? <Badge tone="warn">practice</Badge> : null}</span>
+          <div className="row">
+            <PrinterBadge printer={view?.printer ?? null} now={now} />
+            <input
+              className="input"
+              style={{ width: 140, minHeight: 36, padding: "6px 10px" }}
+              placeholder="Your name"
+              value={bartender}
+              onChange={(e) => setBartender(e.target.value)}
+              aria-label="Bartender name"
+            />
+            <Button variant="secondary" size="sm" onClick={() => setDrawer(true)}>
+              Stock{view?.unavailable.length ? ` (${view.unavailable.length} out)` : ""}
+            </Button>
+          </div>
+        </header>
 
-      {error ? <Banner tone="danger">{error}</Banner> : null}
-      {view?.printer && !view.printer.ok && now - view.printer.at < PRINTER_SILENT_MS ? (
-        <Banner tone="danger">{view.printer.message}</Banner>
-      ) : null}
+        {error ? <Banner tone="danger">{error}</Banner> : null}
+        {view?.printer && !view.printer.ok && now - view.printer.at < PRINTER_SILENT_MS ? (
+          <Banner tone="danger">{view.printer.message}</Banner>
+        ) : null}
+        {undo ? (
+          <div className="undo row between">
+            <span>
+              <b>{undo.userName}</b> ready
+            </span>
+            <Button
+              size="sm"
+              variant="ghost"
+              onClick={() => {
+                setLastReady(null);
+                void act(() => api.claim(undo.id, undo.claimedBy ?? (bartender || "bar")));
+              }}
+            >
+              Undo
+            </Button>
+          </div>
+        ) : null}
 
-      <div className="bar-columns">
-        <section className="bar-col">
-          <h2>
-            Up next <span className="count">{view?.stats.queued ?? 0}</span>
-          </h2>
-          {view?.batches.length === 0 ? <div className="empty">Nothing queued. Have a drink yourself.</div> : null}
-          {view?.batches.map((b) => (
-            <div key={b.key} className="batch">
-              <div className="batch-label">
-                <span>{b.label}</span>
-                {b.orders.length > 1 ? <span>×{b.orders.length} · make together</span> : null}
-              </div>
-              {b.orders.map((o) => (
-                <OrderCard key={o.id} order={o} now={now}>
-                  <Button size="sm" onClick={() => act(() => api.claim(o.id, bartender || "bar"))}>
-                    Make
-                  </Button>
-                  <Button size="sm" variant="ok" onClick={() => act(() => api.ready(o.id))}>
-                    Done
-                  </Button>
-                  <ReprintButton order={o} onReprint={() => act(() => api.reprint(o.id))} />
-                  <Button size="sm" variant="ghost" onClick={() => confirm(`Cancel ${o.userName}'s ${o.proposal.name}?`) && act(() => api.cancel(o.id, "the bar couldn't make it"))}>
-                    ✕
-                  </Button>
-                </OrderCard>
-              ))}
-            </div>
-          ))}
-        </section>
-
-        <section className="bar-col">
-          <h2>
-            Making <span className="count">{making.length}</span>
-          </h2>
-          {making.length === 0 ? <div className="empty">Nobody's shaking anything.</div> : null}
-          {making.map((o) => (
-            <OrderCard key={o.id} order={o} now={now}>
-              <Button size="sm" variant="ok" onClick={() => act(() => api.ready(o.id))}>
-                Ready, shout it
-              </Button>
-              <Button size="sm" variant="ghost" onClick={() => act(() => api.unclaim(o.id))}>
-                Back to queue
-              </Button>
-              <ReprintButton order={o} onReprint={() => act(() => api.reprint(o.id))} />
-            </OrderCard>
-          ))}
-        </section>
-
-        <section className="bar-col">
-          <h2>
-            On the bar <span className="count">{view?.ready.length ?? 0}</span>
-          </h2>
-          {view?.ready.length === 0 ? <div className="empty">Nothing waiting.</div> : null}
-          {view?.ready.map((o) => (
-            <Card key={o.id} className="order-card ready stack" style={{ gap: 6 }}>
-              <div className="ready-name">{o.userName}</div>
-              <div className="what">{o.proposal.name}</div>
-              <div className="row">
-                <Button size="sm" variant="secondary" onClick={() => act(() => api.collected(o.id))}>
-                  Collected
-                </Button>
-                <span className="age">{age(o.readyAt ?? o.createdAt, now)} waiting</span>
-              </div>
-            </Card>
-          ))}
-          {view?.recent.length ? (
-            <details>
-              <summary className="muted small">Recently served</summary>
-              <ul className="small muted">
-                {view.recent.map((o) => (
-                  <li key={o.id}>
-                    {o.userName}: {o.proposal.name} {o.status === "cancelled" ? "(cancelled)" : ""}
-                  </li>
+        <div className="bar-columns">
+          <section className="bar-col">
+            <h2>
+              Queue <span className="count">{view?.stats.queued ?? 0}</span>
+            </h2>
+            {view?.batches.map((b) => (
+              <div key={b.key} className={b.orders.length > 1 ? "batch" : "stack"} style={{ gap: 8 }}>
+                {b.orders.length > 1 ? <div className="batch-label">×{b.orders.length} {b.label}</div> : null}
+                {b.orders.map((o) => (
+                  <OrderCard key={o.id} order={o} now={now}>
+                    <Button size="sm" onClick={() => act(() => api.claim(o.id, bartender || "bar"))}>
+                      Make
+                    </Button>
+                    <Button size="sm" variant="ok" onClick={() => ready(o)}>
+                      Ready
+                    </Button>
+                    <ReprintButton order={o} onReprint={() => act(() => api.reprint(o.id))} />
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      aria-label="Cancel"
+                      onClick={() => confirm(`Cancel ${o.userName}'s ${o.proposal.name}?`) && act(() => api.cancel(o.id, "the bar couldn't make it"))}
+                    >
+                      ✕
+                    </Button>
+                  </OrderCard>
                 ))}
-              </ul>
-            </details>
-          ) : null}
-        </section>
-      </div>
+              </div>
+            ))}
+          </section>
 
-      <Drawer open={drawer} onClose={() => setDrawer(false)} title="Ingredients">
-        <p className="small muted">Tap anything you've run out of. The model stops using it and new orders can't include it.</p>
-        {(["base", "mixer", "flavoring", "garnish"] as const).map((type) => (
-          <Stack key={type} gap={6}>
-            <h3 style={{ textTransform: "capitalize" }}>{type}s</h3>
-            <div className="ingredients">
-              {CATALOG.filter((i) => i.type === type).map((i) => {
-                const out = view?.unavailable.includes(i.id) ?? false;
-                return (
-                  <Button
-                    key={i.id}
-                    size="sm"
-                    variant={out ? "danger" : "secondary"}
-                    className={`ingredient-toggle ${out ? "out" : ""}`}
-                    onClick={() =>
-                      act(async () => {
-                        const r = await api.availability(i.id, out);
-                        if (!out && r.affected.length) {
-                          alert(`${r.affected.length} live order(s) use ${i.name}: ${r.affected.map((o) => o.userName).join(", ")}. They're still queued; cancel them if needed.`);
-                        }
-                      })
-                    }
-                  >
-                    <span>{i.name}</span>
-                    {out ? <Badge tone="danger">out</Badge> : null}
-                  </Button>
-                );
-              })}
-            </div>
-          </Stack>
-        ))}
-        <hr style={{ border: 0, borderTop: "1px solid var(--line)" }} />
-        <Button
-          variant="danger"
-          size="sm"
-          onClick={() => confirm("Wipe every order? This is for rehearsals only.") && act(() => api.reset())}
-        >
-          Reset everything
-        </Button>
-      </Drawer>
-    </div>
+          <section className="bar-col">
+            <h2>
+              Making <span className="count">{making.length}</span>
+            </h2>
+            {making.map((o) => (
+              <OrderCard key={o.id} order={o} now={now}>
+                <Button size="sm" variant="ok" onClick={() => ready(o)}>
+                  Ready
+                </Button>
+                <Button size="sm" variant="ghost" aria-label="Back to queue" onClick={() => act(() => api.unclaim(o.id))}>
+                  ↩
+                </Button>
+                <ReprintButton order={o} onReprint={() => act(() => api.reprint(o.id))} />
+              </OrderCard>
+            ))}
+          </section>
+        </div>
+
+        <Drawer open={drawer} onClose={() => setDrawer(false)} title="Stock">
+          <p className="small muted">Tap to mark out. % is a rough estimate of what's left.</p>
+          {(["base", "mixer", "flavoring", "garnish"] as const).map((type) => (
+            <Stack key={type} gap={6}>
+              <h3>{TYPE_LABEL[type]}</h3>
+              <div className="ingredients">
+                {catalog.list.filter((i) => i.type === type).map((i) => {
+                  const out = view?.unavailable.includes(i.id) ?? false;
+                  const frac = left.get(i.id);
+                  return (
+                    <Button
+                      key={i.id}
+                      size="sm"
+                      variant={out ? "danger" : "secondary"}
+                      className={`ingredient-toggle ${out ? "out" : ""}`}
+                      onClick={() =>
+                        act(async () => {
+                          const r = await api.availability(i.id, out);
+                          if (!out && r.affected.length) {
+                            alert(`Still queued with ${i.name}: ${r.affected.map((o) => o.userName).join(", ")}`);
+                          }
+                        })
+                      }
+                    >
+                      <span>{i.name}</span>
+                      {out ? (
+                        <Badge tone="danger">out</Badge>
+                      ) : frac !== undefined ? (
+                        <Badge tone={frac <= 0 ? "danger" : frac < 0.2 ? "warn" : undefined}>~{Math.round(frac * 100)}%</Badge>
+                      ) : null}
+                    </Button>
+                  );
+                })}
+              </div>
+            </Stack>
+          ))}
+        </Drawer>
+      </div>
+    </CatalogProvider>
   );
 }
 
@@ -244,14 +229,12 @@ function OrderCard({ order, now, children }: { order: Order; now: number; childr
     <Card className={`order-card stack ${stale ? "stale" : ""}`} style={{ gap: 6 }}>
       <div className="row between">
         <span className="who">{order.userName}</span>
-        <span className="age">{age(order.createdAt, now)}</span>
-      </div>
-      <div className="row between">
-        <span className="what">
-          {order.proposal.name} · {order.proposal.glass}
+        <span className="row" style={{ gap: 6 }}>
+          {order.claimedBy ? <Badge tone="accent">{order.claimedBy}</Badge> : null}
+          <span className="age">{age(order.createdAt, now)}</span>
         </span>
-        {order.claimedBy ? <Badge tone="accent">{order.claimedBy}</Badge> : null}
       </div>
+      <div className="glass">{order.proposal.glass}</div>
       <RecipeList recipe={order.proposal.recipe} compact />
       <div className="row">{children}</div>
     </Card>

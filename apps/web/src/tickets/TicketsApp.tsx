@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { CLASSICS, type Order } from "@sloptail/shared";
+import { CLASSICS, DEFAULT_CATALOG, makeCatalog, type Catalog, type Order } from "@sloptail/shared";
 import { Paper } from "@sloptail/ui";
 import { orderTicket, type TicketInput } from "@sloptail/ticket";
 import { makeBarApi } from "../bar/barApi.ts";
@@ -25,10 +25,10 @@ const SAMPLES: { label: string; ticket: TicketInput }[] = [
         glass: "highball",
         description: "Smoky mezcal lifted by pineapple and a numbing Szechuan tingle; think bonfire, but fruity.",
         recipe: [
-          { ingredient: "mezcal", amount: 50 },
-          { ingredient: "lime-juice", amount: 15 },
+          { ingredient: "mezcal", amount: 1.5 },
+          { ingredient: "lime-juice", amount: 0.5 },
           { ingredient: "szechuan-tincture", amount: 2 },
-          { ingredient: "pineapple-juice", amount: 40 },
+          { ingredient: "pineapple-juice", amount: 1.25 },
           { ingredient: "ginger-beer", amount: "fill" },
           { ingredient: "citrus-peel", amount: 1 },
         ],
@@ -47,8 +47,8 @@ const SAMPLES: { label: string; ticket: TicketInput }[] = [
         glass: "rocks",
         description: "Cold chamomile, buckwheat honey and a lactic tang. Soft, round, a little floral.",
         recipe: [
-          { ingredient: "herbal-tea", amount: 90 },
-          { ingredient: "honey-syrup", amount: 15 },
+          { ingredient: "herbal-tea", amount: 3 },
+          { ingredient: "honey-syrup", amount: 0.5 },
           { ingredient: "lactic-acid", amount: 3 },
           { ingredient: "sage-leaf", amount: 1 },
         ],
@@ -69,6 +69,7 @@ const SAMPLES: { label: string; ticket: TicketInput }[] = [
 
 export function TicketsApp() {
   const [live, setLive] = useState<Order[] | null>(null);
+  const [catalog, setCatalog] = useState<Catalog>(DEFAULT_CATALOG);
   const token = localStorage.getItem("sloptail:barToken");
 
   useEffect(() => {
@@ -77,7 +78,10 @@ export function TicketsApp() {
     const load = () =>
       api
         .view()
-        .then((v) => setLive([...v.queue, ...v.ready]))
+        .then((v) => {
+          setLive([...v.queue, ...v.ready]);
+          setCatalog(makeCatalog(v.catalog));
+        })
         .catch(() => setLive(null));
     void load();
     const t = setInterval(load, 5000);
@@ -96,7 +100,7 @@ export function TicketsApp() {
       <div className="tickets-grid">
         {live?.map((o) => (
           <figure key={o.id} className="ticket-figure">
-            <Paper doc={orderTicket(o)} />
+            <Paper doc={orderTicket(o, catalog)} />
             <figcaption className="small muted">
               Live #{o.id} · {o.status}
             </figcaption>
@@ -104,7 +108,7 @@ export function TicketsApp() {
         ))}
         {SAMPLES.map((s) => (
           <figure key={s.label} className="ticket-figure">
-            <Paper doc={orderTicket(s.ticket)} />
+            <Paper doc={orderTicket(s.ticket, catalog)} />
             <figcaption className="small muted">{s.label}</figcaption>
           </figure>
         ))}

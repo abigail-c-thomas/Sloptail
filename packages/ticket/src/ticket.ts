@@ -1,5 +1,5 @@
-import { CATALOG_BY_ID, buildOrder, formatAmount, type Order, type Strength } from "@sloptail/shared";
-import { PrintDocument, type TextStyle } from "@sloptail/printer";
+import { buildOrder, formatAmount, type Catalog, type Order, type Strength } from "@sloptail/shared";
+import { PrintDocument, printable, type TextStyle } from "@sloptail/printer";
 
 /**
  * The ticket for one order. Two readers: the bartender (top half: who, what
@@ -17,7 +17,7 @@ const STRENGTH_LABEL: Record<Strength, string> = {
 /** An order, or a proposal the guest hasn't ordered yet (no id or time). */
 export type TicketInput = Pick<Order, "userName" | "request" | "proposal"> & Partial<Pick<Order, "id" | "createdAt">>;
 
-export function orderTicket(order: TicketInput, opts: { timeZone?: string } = {}): PrintDocument {
+export function orderTicket(order: TicketInput, catalog: Catalog, opts: { timeZone?: string } = {}): PrintDocument {
   const doc = new PrintDocument();
   const small: TextStyle = { font: "font_b" };
   const { proposal, request } = order;
@@ -44,11 +44,12 @@ export function orderTicket(order: TicketInput, opts: { timeZone?: string } = {}
 
   // --- build steps -----------------------------------------------------
   let step = 0;
-  for (const item of buildOrder(proposal.recipe)) {
-    const ing = CATALOG_BY_ID.get(item.ingredient);
+  for (const item of buildOrder(proposal.recipe, catalog)) {
+    const ing = catalog.byId.get(item.ingredient);
     const garnish = ing?.type === "garnish";
-    const label = `${garnish ? " +" : String(++step).padStart(2)}  ${ing?.name ?? item.ingredient}`;
-    const amount = formatAmount(item, ing);
+    // Measure what will actually print ("½" becomes "1/2").
+    const label = printable(`${garnish ? " +" : String(++step).padStart(2)}  ${ing?.name ?? item.ingredient}`);
+    const amount = printable(formatAmount(item, ing));
     const width = doc.cols();
     const room = width - amount.length - 1;
     const left = label.length > room ? label.slice(0, room - 1) + "." : label;

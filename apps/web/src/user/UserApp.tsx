@@ -1,10 +1,11 @@
-import { useCallback, useMemo, useReducer, useState } from "react";
-import type { Adventurousness, Order, Proposal, Strength, UserRequest } from "@sloptail/shared";
-import { classicsFor } from "@sloptail/shared";
+import { useCallback, useEffect, useMemo, useReducer, useState } from "react";
+import type { Adventurousness, Level, Order, Proposal, Strength, UserRequest } from "@sloptail/shared";
+import { classicsFor, DEFAULT_CATALOG, makeCatalog } from "@sloptail/shared";
 import {
   Banner,
   Button,
   Card,
+  CatalogProvider,
   Choice,
   Drawer,
   ProposalCard,
@@ -52,7 +53,11 @@ interface State {
   strength?: Strength;
   adventurousness?: Adventurousness;
   prompt: string;
+  sweetness?: Level;
+  acidity?: Level;
   proposal?: Proposal;
+  /** Drinks the model has offered this visit, newest first, so the next one can be different. */
+  seen: Proposal[];
   /** The prompt the current proposal was generated from, shown as its subtitle. */
   proposalPrompt?: string;
   error?: string;
@@ -66,7 +71,8 @@ type Action =
   | { type: "strength"; strength: Strength }
   | { type: "adventure"; adventurousness: Adventurousness }
   | { type: "prompt"; prompt: string }
-  | { type: "proposal"; proposal: Proposal; prompt: string }
+  | { type: "flavour"; key: "sweetness" | "acidity"; level: Level }
+  | { type: "proposal"; proposal: Proposal; prompt: string; generated?: boolean }
   | { type: "error"; error: string }
   | { type: "submitted"; orderId: string }
   | { type: "reorder"; order: Order }
@@ -95,8 +101,18 @@ function reducer(s: State, a: Action): State {
       };
     case "prompt":
       return { ...s, prompt: a.prompt };
+    case "flavour":
+      // Tapping the selected level again clears it: the dials are optional.
+      return { ...s, [a.key]: s[a.key] === a.level ? undefined : a.level };
     case "proposal":
-      return { ...s, proposal: a.proposal, proposalPrompt: a.prompt, step: "proposal", error: undefined };
+      return {
+        ...s,
+        proposal: a.proposal,
+        proposalPrompt: a.prompt,
+        seen: a.generated ? [a.proposal, ...s.seen].slice(0, 5) : s.seen,
+        step: "proposal",
+        error: undefined,
+      };
     case "error":
       return { ...s, error: a.error, step: s.proposal ? "proposal" : "prompt" };
     case "submitted":
@@ -108,17 +124,21 @@ function reducer(s: State, a: Action): State {
         strength: a.order.request.strength,
         adventurousness: a.order.request.adventurousness,
         prompt: a.order.request.prompt,
+        sweetness: a.order.request.sweetness,
+        acidity: a.order.request.acidity,
         proposal: a.order.proposal,
         proposalPrompt: a.order.request.prompt,
         step: "proposal",
         error: undefined,
       };
     case "reset":
+      // Without a remembered strength (e.g. a classic ordered before a reload) there's nothing to keep.
       return {
-        step: a.keepPrefs ? "prompt" : "kind",
+        step: a.keepPrefs && s.strength && s.adventurousness ? "prompt" : "kind",
         name: s.name,
         ...(a.keepPrefs ? { kind: s.kind, strength: s.strength, adventurousness: s.adventurousness } : {}),
         prompt: "",
+        seen: s.seen,
       };
   }
 }
@@ -128,8 +148,8 @@ function initialState(): State {
   const last = loadLastRequest();
   const active = loadActiveOrder();
   const prefs = last ? { kind: kindOf(last.strength), strength: last.strength, adventurousness: last.adventurousness } : {};
-  if (active) return { step: "tracking", name: user.name, prompt: "", orderId: active, ...prefs };
-  return { step: user.name ? "kind" : "name", name: user.name, prompt: "", ...prefs };
+  if (active) return { step: "tracking", name: user.name, prompt: "", seen: [], orderId: active, ...prefs };
+  return { step: user.name ? "kind" : "name", name: user.name, prompt: "", seen: [], ...prefs };
 }
 
 const STEP_ORDER: Step[] = ["name", "kind", "strength", "adventure", "prompt", "proposal"];
@@ -204,9 +224,15 @@ export function UserApp() {
   const [drawer, setDrawer] = useState(false);
   const ideas = useMemo(pickIdeas, []);
   const user = loadUser();
+  const [catalog, setCatalog] = useState(DEFAULT_CATALOG);
+  useEffect(() => {
+    api.catalog().then((r) => setCatalog(makeCatalog(r.catalog))).catch(() => {});
+  }, []);
 
   const request = (): UserRequest | null =>
-    s.strength && s.adventurousness ? { strength: s.strength, adventurousness: s.adventurousness, prompt: s.prompt } : null;
+    s.strength && s.adventurousness
+      ? { strength: s.strength, adventurousness: s.adventurousness, prompt: s.prompt, sweetness: s.sweetness, acidity: s.acidity }
+      : null;
 
   const generate = useCallback(async () => {
     const req = request();
@@ -214,13 +240,13 @@ export function UserApp() {
     saveLastRequest(req);
     dispatch({ type: "go", step: "loading" });
     try {
-      const { proposal } = await api.propose({ userId: user.userId, userName: s.name, request: req });
-      dispatch({ type: "proposal", proposal, prompt: req.prompt });
+      const { proposal } = await api.propose({ userId: user.userId, userName: s.name, request: req, seen: s.seen });
+      dispatch({ type: "proposal", proposal, prompt: req.prompt, generated: true });
     } catch (e) {
       dispatch({ type: "error", error: (e as Error).message });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [s.strength, s.adventurousness, s.prompt, s.name, user.userId]);
+  }, [s.strength, s.adventurousness, s.prompt, s.sweetness, s.acidity, s.seen, s.name, user.userId]);
 
   const tweak = async (text: string) => {
     const req = request();
@@ -250,184 +276,209 @@ export function UserApp() {
   const stepIndex = STEP_ORDER.indexOf(s.step);
 
   return (
-    <div className="page">
-      <header className="page-header">
-        <span className="brand">Sloptail</span>
-        <Button variant="ghost" size="sm" onClick={() => setDrawer(true)}>
-          My drinks
-        </Button>
-      </header>
+    <CatalogProvider value={catalog}>
+      <div className="page">
+        <header className="page-header">
+          <span className="brand">Sloptail</span>
+          <Button variant="ghost" size="sm" onClick={() => setDrawer(true)}>
+            My drinks
+          </Button>
+        </header>
 
-      {stepIndex >= 0 ? <Steps current={stepIndex + 1} total={STEP_ORDER.length} /> : null}
+        {stepIndex >= 0 ? <Steps current={stepIndex + 1} total={STEP_ORDER.length} /> : null}
 
-      {s.error ? <Banner tone="danger">{s.error}</Banner> : null}
+        {s.error ? <Banner tone="danger">{s.error}</Banner> : null}
 
-      {s.step === "name" && (
-        <NameStep
-          name={s.name}
-          onChange={(name) => dispatch({ type: "name", name })}
-          onNext={() => {
-            saveUser({ ...user, name: s.name.trim() });
-            dispatch({ type: "go", step: "kind" });
-          }}
-        />
-      )}
-
-      {s.step === "kind" && (
-        <Stack gap={16}>
-          <Choice<Kind>
-            value={s.kind}
-            onChange={(kind) => dispatch({ type: "kind", kind })}
-            options={[
-              { value: "cocktail", label: "Cocktail" },
-              { value: "mocktail", label: "Mocktail" },
-            ]}
+        {s.step === "name" && (
+          <NameStep
+            name={s.name}
+            onChange={(name) => dispatch({ type: "name", name })}
+            onNext={() => {
+              saveUser({ ...user, name: s.name.trim() });
+              dispatch({ type: "go", step: "kind" });
+            }}
           />
-          <Button variant="ghost" onClick={() => dispatch({ type: "go", step: "name" })}>
-            Not {s.name}?
-          </Button>
-        </Stack>
-      )}
+        )}
 
-      {s.step === "strength" && (
-        <Stack gap={16}>
-          <Choice<Strength>
-            value={s.strength}
-            onChange={(strength) => dispatch({ type: "strength", strength })}
-            options={
-              s.kind === "mocktail"
-                ? [
-                    { value: "zero", label: "Zero alcohol" },
-                    { value: "trace", label: "Low alcohol", hint: "(a dash of bitters is fine)" },
-                  ]
-                : [
-                    { value: "full", label: "Full strength" },
-                    { value: "half", label: "Half strength" },
-                  ]
-            }
-          />
-          <Button variant="ghost" onClick={() => dispatch({ type: "go", step: "kind" })}>
-            Back
-          </Button>
-        </Stack>
-      )}
-
-      {s.step === "adventure" && (
-        <Stack gap={16}>
-          <h1>How adventurous are you feeling?</h1>
-          <Choice<Adventurousness>
-            value={s.adventurousness}
-            onChange={(adventurousness) => dispatch({ type: "adventure", adventurousness })}
-            options={[
-              { value: 1, label: "Not at all" },
-              { value: 2, label: "Get creative" },
-              { value: 3, label: "Fuck my shit up" },
-            ]}
-          />
-          <Button variant="ghost" onClick={() => dispatch({ type: "go", step: "strength" })}>
-            Back
-          </Button>
-        </Stack>
-      )}
-
-      {s.step === "disclaimer" && (
-        <Stack gap={16}>
-          <Card tone="danger" className="stack">
-            <h2>Disclaimer</h2>
-            <p>
-              We're going maximally weird with this. It'll be drinkable, in the sense that it'll be a liquid in a glass. We're not
-              making any further guarantees. That sound ok?
-            </p>
-          </Card>
-          <Button size="lg" onClick={() => dispatch({ type: "go", step: "prompt" })}>
-            I accept
-          </Button>
-          <Button variant="secondary" onClick={() => dispatch({ type: "adventure", adventurousness: 2 })}>
-            Back to safety
-          </Button>
-        </Stack>
-      )}
-
-      {s.step === "classics" && s.strength && (
-        <Stack gap={16}>
-          <h1>The classics</h1>
-          <Stack gap={10}>
-            {classicsFor(s.strength).map((c) => (
-              <Card key={c.id} flat className="stack" style={{ gap: 6 }}>
-                <div className="row between">
-                  <h3>{c.proposal.name}</h3>
-                  <Button size="sm" variant="secondary" onClick={() => dispatch({ type: "proposal", proposal: c.proposal, prompt: "a classic" })}>
-                    This one
-                  </Button>
-                </div>
-                <p className="small muted">{c.proposal.description}</p>
-              </Card>
-            ))}
+        {s.step === "kind" && (
+          <Stack gap={16}>
+            <Choice<Kind>
+              value={s.kind}
+              onChange={(kind) => dispatch({ type: "kind", kind })}
+              options={[
+                { value: "cocktail", label: "Cocktail" },
+                { value: "mocktail", label: "Mocktail" },
+              ]}
+            />
+            <Button variant="ghost" onClick={() => dispatch({ type: "go", step: "name" })}>
+              Not {s.name}?
+            </Button>
           </Stack>
-          <Button variant="secondary" onClick={() => dispatch({ type: "adventure", adventurousness: 2 })}>
-            Ok, maybe I'm more adventurous than that
-          </Button>
-        </Stack>
-      )}
+        )}
 
-      {s.step === "prompt" && (
-        <Stack gap={16}>
-          <h1>What do you feel like?</h1>
-          <TextArea
-            id="prompt"
-            aria-label="What do you feel like?"
-            value={s.prompt}
-            onChange={(e) => dispatch({ type: "prompt", prompt: e.target.value })}
-            maxLength={500}
+        {s.step === "strength" && (
+          <Stack gap={16}>
+            <Choice<Strength>
+              value={s.strength}
+              onChange={(strength) => dispatch({ type: "strength", strength })}
+              options={
+                s.kind === "mocktail"
+                  ? [
+                      { value: "zero", label: "Zero alcohol" },
+                      { value: "trace", label: "Low alcohol", hint: "(a dash of bitters is fine)" },
+                    ]
+                  : [
+                      { value: "full", label: "Full strength" },
+                      { value: "half", label: "Half strength" },
+                    ]
+              }
+            />
+            <Button variant="ghost" onClick={() => dispatch({ type: "go", step: "kind" })}>
+              Back
+            </Button>
+          </Stack>
+        )}
+
+        {s.step === "adventure" && (
+          <Stack gap={16}>
+            <h1>How adventurous are you feeling?</h1>
+            <Choice<Adventurousness>
+              value={s.adventurousness}
+              onChange={(adventurousness) => dispatch({ type: "adventure", adventurousness })}
+              options={[
+                { value: 1, label: "Not at all" },
+                { value: 2, label: "Get creative" },
+                { value: 3, label: "Fuck my shit up" },
+              ]}
+            />
+            <Button variant="ghost" onClick={() => dispatch({ type: "go", step: "strength" })}>
+              Back
+            </Button>
+          </Stack>
+        )}
+
+        {s.step === "disclaimer" && (
+          <Stack gap={16}>
+            <Card tone="danger" className="stack">
+              <h2>Disclaimer</h2>
+              <p>
+                We're going maximally weird with this. It'll be drinkable, in the sense that it'll be a liquid in a glass. We're not
+                making any further guarantees. That sound ok?
+              </p>
+            </Card>
+            <Button size="lg" onClick={() => dispatch({ type: "go", step: "prompt" })}>
+              I accept
+            </Button>
+            <Button variant="secondary" onClick={() => dispatch({ type: "adventure", adventurousness: 2 })}>
+              Back to safety
+            </Button>
+          </Stack>
+        )}
+
+        {s.step === "classics" && s.strength && (
+          <Stack gap={16}>
+            <h1>The classics</h1>
+            <Stack gap={10}>
+              {classicsFor(s.strength, catalog).map((c) => (
+                <Card key={c.id} flat className="stack" style={{ gap: 6 }}>
+                  <div className="row between">
+                    <h3>{c.proposal.name}</h3>
+                    <Button size="sm" variant="secondary" onClick={() => dispatch({ type: "proposal", proposal: c.proposal, prompt: "a classic" })}>
+                      This one
+                    </Button>
+                  </div>
+                  <p className="small muted">{c.proposal.description}</p>
+                </Card>
+              ))}
+            </Stack>
+            <Button variant="secondary" onClick={() => dispatch({ type: "adventure", adventurousness: 2 })}>
+              Ok, maybe I'm more adventurous than that
+            </Button>
+          </Stack>
+        )}
+
+        {s.step === "prompt" && (
+          <Stack gap={16}>
+            <h1>What do you feel like?</h1>
+            <TextArea
+              id="prompt"
+              aria-label="What do you feel like?"
+              value={s.prompt}
+              onChange={(e) => dispatch({ type: "prompt", prompt: e.target.value })}
+              maxLength={500}
+            />
+            <Suggestions items={ideas} onPick={(p) => dispatch({ type: "prompt", prompt: p })} />
+            <FlavourDial label="Sweet" value={s.sweetness} onChange={(level) => dispatch({ type: "flavour", key: "sweetness", level })} />
+            <FlavourDial label="Sour" value={s.acidity} onChange={(level) => dispatch({ type: "flavour", key: "acidity", level })} />
+            <Button size="lg" onClick={generate}>
+              Make something up
+            </Button>
+            <Button variant="ghost" onClick={() => dispatch({ type: "go", step: "adventure" })}>
+              Back
+            </Button>
+          </Stack>
+        )}
+
+        {s.step === "loading" && <Spinner label={LOADING_LINES[Math.floor(Math.random() * LOADING_LINES.length)]} />}
+
+        {s.step === "proposal" && s.proposal && (
+          <ProposalStep
+            proposal={s.proposal}
+            subtitle={s.proposalPrompt}
+            onTweak={tweak}
+            onSubmit={submit}
+            onRegenerate={generate}
+            onBack={() => dispatch({ type: "go", step: s.adventurousness === 1 ? "classics" : "prompt" })}
           />
-          <Suggestions items={ideas} onPick={(p) => dispatch({ type: "prompt", prompt: p })} />
-          <Button size="lg" onClick={generate}>
-            Make something up
-          </Button>
-          <Button variant="ghost" onClick={() => dispatch({ type: "go", step: "adventure" })}>
-            Back
-          </Button>
-        </Stack>
-      )}
+        )}
 
-      {s.step === "loading" && <Spinner label={LOADING_LINES[Math.floor(Math.random() * LOADING_LINES.length)]} />}
+        {s.step === "tracking" && s.orderId && (
+          <Tracking
+            orderId={s.orderId}
+            userId={user.userId}
+            onDone={(keepPrefs) => {
+              saveActiveOrder(null);
+              dispatch({ type: "reset", keepPrefs });
+            }}
+          />
+        )}
 
-      {s.step === "proposal" && s.proposal && (
-        <ProposalStep
-          proposal={s.proposal}
-          subtitle={s.proposalPrompt}
-          onTweak={tweak}
-          onSubmit={submit}
-          onRegenerate={generate}
-          onBack={() => dispatch({ type: "go", step: s.adventurousness === 1 ? "classics" : "prompt" })}
-        />
-      )}
+        <Drawer open={drawer} onClose={() => setDrawer(false)} title="My drinks">
+          <PastOrders
+            userId={user.userId}
+            onReorder={(order) => {
+              setDrawer(false);
+              saveActiveOrder(null);
+              dispatch({ type: "reorder", order });
+            }}
+            onNew={() => {
+              setDrawer(false);
+              saveActiveOrder(null);
+              dispatch({ type: "reset", keepPrefs: true });
+            }}
+          />
+        </Drawer>
+      </div>
+    </CatalogProvider>
+  );
+}
 
-      {s.step === "tracking" && s.orderId && (
-        <Tracking
-          orderId={s.orderId}
-          onDone={(keepPrefs) => {
-            saveActiveOrder(null);
-            dispatch({ type: "reset", keepPrefs });
-          }}
-        />
-      )}
-
-      <Drawer open={drawer} onClose={() => setDrawer(false)} title="My drinks">
-        <PastOrders
-          userId={user.userId}
-          onReorder={(order) => {
-            setDrawer(false);
-            saveActiveOrder(null);
-            dispatch({ type: "reorder", order });
-          }}
-          onNew={() => {
-            setDrawer(false);
-            saveActiveOrder(null);
-            dispatch({ type: "reset", keepPrefs: true });
-          }}
-        />
-      </Drawer>
+/** Optional low/med/high picker. Tap the selected one again to clear it. */
+function FlavourDial({ label, value, onChange }: { label: string; value: Level | undefined; onChange: (l: Level) => void }) {
+  return (
+    <div className="flavour-dial">
+      <span className="muted">{label}</span>
+      <Choice<Level>
+        inline
+        name={label}
+        value={value}
+        onChange={onChange}
+        options={[
+          { value: "low", label: "Low" },
+          { value: "medium", label: "Med" },
+          { value: "high", label: "High" },
+        ]}
+      />
     </div>
   );
 }
