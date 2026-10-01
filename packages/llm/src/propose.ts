@@ -52,10 +52,12 @@ export function edit(
 
 /** Validate a proposal the way the loop does; exported so evals can score model output. */
 export function problemsWith(proposal: Proposal, ctx: PromptContext): string[] {
-  return [
-    ...validateRecipe(proposal.recipe, ctx.request.strength, ctx.catalog, ctx.unavailable).map(describeIssue),
-    ...flavourIssues(proposal.recipe, proposal.glass, ctx.request, ctx.catalog),
-  ];
+  return [...hardProblems(proposal, ctx), ...flavourIssues(proposal.recipe, proposal.glass, ctx.request, ctx.catalog)];
+}
+
+/** What makes a recipe unservable, as opposed to missing the flavour dials. */
+function hardProblems(proposal: Proposal, ctx: PromptContext): string[] {
+  return validateRecipe(proposal.recipe, ctx.request.strength, ctx.catalog, ctx.unavailable).map(describeIssue);
 }
 
 async function runWithRepairs(
@@ -67,6 +69,9 @@ async function runWithRepairs(
   const attempts: Attempt[] = [];
   const maxRepairs = opts.maxRepairs ?? 2;
   let current = messages;
+  // Some dials can't be hit with what's on the bar (a dry mocktail when every
+  // soft mixer is sugary). A drink that's only off on flavour beats an error.
+  let closest: Proposal | undefined;
 
   for (let i = 0; i <= maxRepairs; i++) {
     const completion = await client.complete({
@@ -88,8 +93,10 @@ async function runWithRepairs(
 
     attempts.push({ raw: completion.text, model: completion.model, problems, usage: completion.usage });
     if (proposal && problems.length === 0) return { proposal, attempts };
+    if (proposal && hardProblems(proposal, ctx).length === 0) closest = proposal;
     current = repairMessages(current, completion.text, problems);
   }
 
+  if (closest) return { proposal: closest, attempts };
   throw new ProposeError(`Model could not produce a valid recipe after ${attempts.length} attempts`, attempts);
 }

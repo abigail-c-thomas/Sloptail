@@ -106,6 +106,23 @@ describe("propose", () => {
     assert.match(client.requests[0]?.messages[1]?.content ?? "", /Sweetness: low/);
   });
 
+  it("serves the closest drink when the flavour dials can't be met", async () => {
+    const dryCtx: PromptContext = { ...ctx, request: { ...ctx.request, sweetness: "low" } };
+    const sweet: Proposal = {
+      ...good,
+      glass: "highball",
+      recipe: [
+        { ingredient: "rum", amount: 1.5 },
+        { ingredient: "agave-syrup", amount: 2 },
+        { ingredient: "cola", amount: "fill" },
+      ],
+    };
+    const client = new FakeClient([JSON.stringify(sweet), "nope", JSON.stringify(sweet)]);
+    const result = await propose(dryCtx, client, { maxRepairs: 2 });
+    assert.deepEqual(result.proposal, sweet);
+    assert.equal(result.attempts.length, 3);
+  });
+
   it("tells the model what this guest has already had", async () => {
     const client = new FakeClient([JSON.stringify(good)]);
     await propose({ ...ctx, history: [good] }, client);
