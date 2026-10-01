@@ -112,20 +112,32 @@ export function AdminApp() {
 
       <Card className="stack">
         <div className="row between">
-          <h2>{live ? `${LABEL[tab]} is running` : `Start ${LABEL[tab].toLowerCase()}`}</h2>
+          <h2>{live ? `${LABEL[tab]} is running` : `${LABEL[view.config.active]} is running`}</h2>
           <Button
             variant={live ? "secondary" : "primary"}
             loading={busy === "start"}
             disabled={dirty || !draft.ingredients.length}
             onClick={() =>
-              confirm(`${live ? "Restart" : "Start"} ${LABEL[tab].toLowerCase()}? This clears all ${orders} orders and out-of-stock marks.`) &&
+              confirm(
+                live
+                  ? `Restart ${LABEL[tab].toLowerCase()}? This clears all ${orders} orders and out-of-stock marks.`
+                  : `Switch from ${LABEL[view.config.active].toLowerCase()} to ${LABEL[tab].toLowerCase()}? Only one can run: ${LABEL[view.config.active].toLowerCase()} stops and its ${orders} orders and out-of-stock marks are cleared.`,
+              ) &&
               run("start", async () => accept(await api.start(tab), false))
             }
           >
-            {live ? "Restart" : `Start ${LABEL[tab].toLowerCase()}`}
+            {live ? "Restart" : `Switch to ${LABEL[tab].toLowerCase()}`}
           </Button>
         </div>
-        {dirty ? <p className="small muted">Save first.</p> : !draft.ingredients.length ? <p className="small muted">Add ingredients first.</p> : null}
+        {dirty ? (
+          <p className="small muted">Save first.</p>
+        ) : !draft.ingredients.length ? (
+          <p className="small muted">Add ingredients first.</p>
+        ) : !live ? (
+          <p className="small muted">
+            Only one profile runs at a time. Switching stops {LABEL[view.config.active].toLowerCase()} and clears its {orders} order{orders === 1 ? "" : "s"}.
+          </p>
+        ) : null}
       </Card>
 
       <Card className="stack">
