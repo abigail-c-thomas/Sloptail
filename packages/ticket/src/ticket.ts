@@ -38,9 +38,9 @@ export function orderTicket(order: TicketInput, catalog: Catalog, opts: { art?: 
   // --- what goes in, in build order --------------------------------------
   for (const item of buildOrder(proposal.recipe, catalog)) {
     const ing = catalog.byId.get(item.ingredient);
-    // Measure what will actually print ("½" becomes "1/2").
+    // Decimals, like the bar screen; measure what will actually print.
     const label = printable(ing?.name ?? item.ingredient);
-    const amount = printable(formatAmount(item, ing));
+    const amount = printable(formatAmount(item, ing, { decimal: true }));
     const width = doc.cols();
     const room = width - amount.length - 1;
     const left = label.length > room ? label.slice(0, room - 1) + "." : label;

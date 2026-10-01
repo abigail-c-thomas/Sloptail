@@ -41,7 +41,7 @@ describe("orderTicket", () => {
       items.map((l) => l.replace(/ \.+ .*$/, "")),
       ["Black tea (cold)", "Buckwheat honey syrup", "Angostura bitters", "Soda water", "Mint sprig"],
     );
-    assert.match(items[1]!, /1\/2 part$/);
+    assert.match(items[1]!, / \.5 part$/);
     assert.match(items[3]!, /top up$/);
     for (const l of items) assert.equal(l.length, 40);
   });
