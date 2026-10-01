@@ -22,6 +22,10 @@ export function BarApp() {
   const [now, setNow] = useState(Date.now());
   /** Last order marked ready, so a mis-tap can be taken back. */
   const [lastReady, setLastReady] = useState<{ order: Order; at: number } | null>(null);
+  /** Order whose ✕ was tapped, waiting for "yes, cancel". In-page, not confirm(): some browsers block dialogs. */
+  const [cancelling, setCancelling] = useState<string | null>(null);
+  /** After marking something out: who's still queued with it. */
+  const [stockNote, setStockNote] = useState<string | null>(null);
 
   // Persist token from the URL, then remove it from the address bar.
   useEffect(() => {
@@ -132,18 +136,34 @@ export function BarApp() {
                 {b.orders.length > 1 ? <div className="batch-label">×{b.orders.length} {b.label}</div> : null}
                 {b.orders.map((o) => (
                   <OrderCard key={o.id} order={o} now={now}>
-                    <Button size="sm" onClick={() => act(() => api.claim(o.id))}>
-                      Start
-                    </Button>
-                    <ReprintButton order={o} onReprint={() => act(() => api.reprint(o.id))} />
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      aria-label="Cancel"
-                      onClick={() => confirm(`Cancel ${o.userName}'s ${o.proposal.name}?`) && act(() => api.cancel(o.id, "the bar couldn't make it"))}
-                    >
-                      ✕
-                    </Button>
+                    {cancelling === o.id ? (
+                      <>
+                        <span className="small">Cancel {o.proposal.name}?</span>
+                        <Button
+                          size="sm"
+                          variant="danger"
+                          onClick={() => {
+                            setCancelling(null);
+                            void act(() => api.cancel(o.id, "the bar couldn't make it"));
+                          }}
+                        >
+                          Yes, cancel
+                        </Button>
+                        <Button size="sm" variant="ghost" onClick={() => setCancelling(null)}>
+                          Keep
+                        </Button>
+                      </>
+                    ) : (
+                      <>
+                        <Button size="sm" onClick={() => act(() => api.claim(o.id))}>
+                          Start
+                        </Button>
+                        <ReprintButton order={o} onReprint={() => act(() => api.reprint(o.id))} />
+                        <Button size="sm" variant="ghost" aria-label="Cancel" onClick={() => setCancelling(o.id)}>
+                          ✕
+                        </Button>
+                      </>
+                    )}
                   </OrderCard>
                 ))}
               </div>
@@ -168,8 +188,16 @@ export function BarApp() {
           </section>
         </div>
 
-        <Drawer open={drawer} onClose={() => setDrawer(false)} title="Stock">
+        <Drawer
+          open={drawer}
+          onClose={() => {
+            setDrawer(false);
+            setStockNote(null);
+          }}
+          title="Stock"
+        >
           <p className="small muted">Tap to mark out. % is a rough estimate of what's left.</p>
+          {stockNote ? <Banner tone="warn">{stockNote}</Banner> : null}
           {(["base", "mixer", "flavoring", "garnish"] as const).map((type) => (
             <Stack key={type} gap={6}>
               <h3>{TYPE_LABEL[type]}</h3>
@@ -186,9 +214,7 @@ export function BarApp() {
                       onClick={() =>
                         act(async () => {
                           const r = await api.availability(i.id, out);
-                          if (!out && r.affected.length) {
-                            alert(`Still queued with ${i.name}: ${r.affected.map((o) => o.userName).join(", ")}`);
-                          }
+                          setStockNote(!out && r.affected.length ? `Still queued with ${i.name}: ${r.affected.map((o) => o.userName).join(", ")}` : null);
                         })
                       }
                     >
