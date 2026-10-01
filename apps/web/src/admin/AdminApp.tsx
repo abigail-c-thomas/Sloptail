@@ -24,6 +24,9 @@ export function AdminApp() {
   const [busy, setBusy] = useState<string | null>(null);
   /** The model fills in type, ABV, flavours etc.; the full table is only for corrections. */
   const [details, setDetails] = useState(false);
+  /** Asked "really switch/restart?" and waiting for the answer. In-page, not confirm(): some browsers block dialogs. */
+  const [confirming, setConfirming] = useState(false);
+  useEffect(() => setConfirming(false), [tab]);
 
   useEffect(() => {
     const url = new URL(window.location.href);
@@ -115,23 +118,36 @@ export function AdminApp() {
       <Card className="stack">
         <div className="row between">
           <h2>{live ? `${LABEL[tab]} is running` : `${LABEL[view.config.active]} is running`}</h2>
-          <Button
-            variant={live ? "secondary" : "primary"}
-            loading={busy === "start"}
-            disabled={dirty || !draft.ingredients.length}
-            onClick={() =>
-              confirm(
-                live
-                  ? `Restart ${LABEL[tab].toLowerCase()}? This clears all ${orders} orders and out-of-stock marks.`
-                  : `Switch from ${LABEL[view.config.active].toLowerCase()} to ${LABEL[tab].toLowerCase()}? Only one can run: ${LABEL[view.config.active].toLowerCase()} stops and its ${orders} orders and out-of-stock marks are cleared.`,
-              ) &&
-              run("start", async () => accept(await api.start(tab), false))
-            }
-          >
-            {live ? "Restart" : `Switch to ${LABEL[tab].toLowerCase()}`}
-          </Button>
+          {confirming ? null : (
+            <Button variant={live ? "secondary" : "primary"} disabled={dirty || !draft.ingredients.length} onClick={() => setConfirming(true)}>
+              {live ? "Restart" : `Switch to ${LABEL[tab].toLowerCase()}`}
+            </Button>
+          )}
         </div>
-        {dirty ? (
+        {confirming ? (
+          <Stack gap={10}>
+            <Banner tone="warn">
+              {live ? `Restart ${LABEL[tab].toLowerCase()}?` : `Stop ${LABEL[view.config.active].toLowerCase()} and switch to ${LABEL[tab].toLowerCase()}?`} This clears{" "}
+              {orders} order{orders === 1 ? "" : "s"} and every out-of-stock mark.
+            </Banner>
+            <div className="row">
+              <Button
+                loading={busy === "start"}
+                onClick={() =>
+                  run("start", async () => {
+                    accept(await api.start(tab), false);
+                    setConfirming(false);
+                  })
+                }
+              >
+                {live ? "Yes, restart" : `Yes, switch to ${LABEL[tab].toLowerCase()}`}
+              </Button>
+              <Button variant="ghost" onClick={() => setConfirming(false)}>
+                Cancel
+              </Button>
+            </div>
+          </Stack>
+        ) : dirty ? (
           <p className="small muted">Save first.</p>
         ) : !draft.ingredients.length ? (
           <p className="small muted">Add ingredients first.</p>
@@ -163,7 +179,7 @@ export function AdminApp() {
                 variant="ghost"
                 disabled={!drafts[other].ingredients.length}
                 onClick={() =>
-                  (!draft.ingredients.length || confirm(`Replace ${LABEL[tab]}'s list with ${LABEL[other]}'s?`)) &&
+                  // Only the draft changes; Discard undoes it.
                   setDraft({ ...draft, ingredients: structuredClone(drafts[other].ingredients) })
                 }
               >
