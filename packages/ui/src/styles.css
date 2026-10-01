@@ -95,8 +95,8 @@ a { color: var(--accent); }
 .btn:active { opacity: 0.7; }
 .btn:disabled { opacity: 0.4; cursor: not-allowed; }
 .btn-primary { background: var(--text); color: var(--bg); }
-/* Brackets are flex items too: no gap, or "[  TEXT  ]". */
-.btn-secondary, .btn-danger { gap: 0; }
+/* Inline text, not flex, so the brackets wrap with the words. */
+.btn-secondary, .btn-danger { display: inline-block; text-align: center; line-height: 1.5; text-wrap: balance; }
 .btn-secondary::before { content: "[ "; white-space: pre; }
 .btn-secondary::after { content: " ]"; white-space: pre; }
 .btn-secondary:hover { color: var(--accent); }
@@ -117,6 +117,8 @@ a { color: var(--accent); }
   border-bottom: 1px dashed var(--line);
   padding: 14px 0;
 }
+/* Neighbouring sections share one rule. */
+.card + .card { border-top: 0; }
 .card.tone-accent { border-color: var(--accent); }
 .card.tone-ok { border-color: var(--ok); }
 .card.tone-warn { border-color: var(--warn); }
@@ -179,6 +181,8 @@ a { color: var(--accent); }
   cursor: pointer;
   min-height: 40px;
 }
+/* Hanging indent so a wrapped line lines up with the text, not the ">". */
+.suggestion { padding-left: 2ch; text-indent: -2ch; }
 .suggestion::before { content: "> "; white-space: pre; }
 .suggestion:hover { color: var(--text); }
 

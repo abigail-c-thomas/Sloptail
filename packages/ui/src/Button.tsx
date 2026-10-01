@@ -13,7 +13,7 @@ export function Button({ variant = "primary", size = "md", block, loading, class
   const cls = ["btn", `btn-${variant}`, size !== "md" ? `btn-${size}` : "", block ? "btn-block" : "", className].join(" ");
   return (
     <button type="button" className={cls} disabled={disabled || loading} {...rest}>
-      {loading ? <span className="spinner" style={{ width: 16, height: 16, borderWidth: 2 }} /> : null}
+      {loading ? <span className="spinner" /> : null}
       {children}
     </button>
   );

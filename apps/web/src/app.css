@@ -53,9 +53,15 @@
 .order-card.stale { border-color: var(--warn); }
 .undo { padding: 6px 0; color: var(--ok); border-top: 1px dashed var(--ok); border-bottom: 1px dashed var(--ok); }
 
-.ingredients { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 6px; }
-.ingredient-toggle { justify-content: space-between; text-align: left; font-weight: 500; }
-.ingredient-toggle.out { text-decoration: line-through; opacity: 0.7; }
+/* Stock: a checklist, one row per ingredient, estimate on the right. */
+.ingredients { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); column-gap: 16px; }
+.btn.ingredient-toggle {
+  display: flex; justify-content: space-between; gap: 8px;
+  text-align: left; text-transform: none; letter-spacing: 0; font-weight: 400;
+  padding: 6px 0; border-bottom: 1px dashed var(--line);
+}
+.btn.ingredient-toggle::before, .btn.ingredient-toggle::after { content: none; }
+.btn.ingredient-toggle.out > span:first-child { text-decoration: line-through; }
 .empty { color: var(--text-muted); text-align: center; padding: 24px 8px; border-top: 1px dashed var(--line); border-bottom: 1px dashed var(--line); }
 
 /* --- Tickets design bench --------------------------------------------- */
