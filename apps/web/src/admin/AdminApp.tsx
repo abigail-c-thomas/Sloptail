@@ -283,6 +283,7 @@ function IngredientTable({
       <table className="admin-table">
         <thead>
           <tr>
+            <th />
             <th>Name</th>
             <th>Type</th>
             <th>Unit</th>
@@ -293,7 +294,6 @@ function IngredientTable({
             <th title="ml (e.g. 2x700), or pieces for garnishes">Stock</th>
             <th>Flavours</th>
             <th>Notes</th>
-            <th />
           </tr>
         </thead>
         {TYPES.map((type) => {
@@ -306,6 +306,12 @@ function IngredientTable({
               </tr>
               {rows.map((i) => (
                 <tr key={i.id}>
+                  {/* First, so it's on screen even when the table scrolls sideways. */}
+                  <td className="admin-remove">
+                    <Button size="sm" variant="ghost" aria-label={`Remove ${i.name}`} onClick={() => remove(i.id)}>
+                      ✕
+                    </Button>
+                  </td>
                   <td>
                     <input className="input" value={i.name} onChange={(e) => update(i.id, { name: e.target.value })} aria-label="Name" />
                   </td>
@@ -345,11 +351,6 @@ function IngredientTable({
                   </td>
                   <td>
                     <TextInput value={i.notes ?? ""} label="Notes" onCommit={(t) => update(i.id, { notes: t.trim() || undefined })} />
-                  </td>
-                  <td>
-                    <Button size="sm" variant="ghost" aria-label={`Remove ${i.name}`} onClick={() => remove(i.id)}>
-                      ✕
-                    </Button>
                   </td>
                 </tr>
               ))}

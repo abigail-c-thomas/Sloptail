@@ -100,10 +100,13 @@
 .admin-table th { text-align: left; font-weight: 600; color: var(--text-muted); padding: 4px; white-space: nowrap; }
 .admin-table td { padding: 2px 4px; vertical-align: middle; }
 .admin-table .input { min-height: 34px; padding: 4px 8px; width: 100%; min-width: 60px; }
-.admin-table td:first-child .input { min-width: 150px; }
-.admin-table td:nth-child(2) .input { min-width: 104px; }
-.admin-table td:nth-child(3) .input { min-width: 96px; }
-.admin-table td:nth-child(9) .input, .admin-table td:nth-child(10) .input { min-width: 140px; }
+/* Column 1 is the remove button. */
+.admin-table td:nth-child(2) .input { min-width: 150px; }
+.admin-table td:nth-child(3) .input { min-width: 104px; }
+.admin-table td:nth-child(4) .input { min-width: 96px; }
+.admin-table td:nth-child(10) .input, .admin-table td:nth-child(11) .input { min-width: 140px; }
+.admin-table .admin-remove { width: 1%; padding-right: 8px; }
+.admin-table .admin-remove .btn { padding: 0 4px; text-decoration: none; }
 .admin-group td { padding-top: 14px; font-weight: 700; text-transform: capitalize; }
 .admin-stock { white-space: nowrap; }
 .admin-stock .input { width: 90px; }
