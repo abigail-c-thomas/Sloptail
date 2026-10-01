@@ -16,7 +16,6 @@ const PRINTER_SILENT_MS = 20 * 1000;
  */
 export function BarApp() {
   const [token, setToken] = useState(() => new URLSearchParams(window.location.search).get("token") ?? localStorage.getItem("sloptail:barToken") ?? "");
-  const [bartender, setBartender] = useState(() => localStorage.getItem("sloptail:bartender") ?? "");
   const [view, setView] = useState<BarView | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [drawer, setDrawer] = useState(false);
@@ -34,7 +33,6 @@ export function BarApp() {
       window.history.replaceState(null, "", url.pathname + url.search);
     }
   }, []);
-  useEffect(() => localStorage.setItem("sloptail:bartender", bartender), [bartender]);
 
   const api = useMemo(() => makeBarApi(token), [token]);
 
@@ -96,14 +94,6 @@ export function BarApp() {
           <span className="brand">Sloptail{view?.profile === "practice" ? <Badge tone="warn">practice</Badge> : null}</span>
           <div className="row">
             <PrinterBadge printer={view?.printer ?? null} now={now} />
-            <input
-              className="input"
-              style={{ width: 140, minHeight: 36, padding: "6px 10px" }}
-              placeholder="Your name"
-              value={bartender}
-              onChange={(e) => setBartender(e.target.value)}
-              aria-label="Bartender name"
-            />
             <Button variant="secondary" size="sm" onClick={() => setDrawer(true)}>
               Stock{view?.unavailable.length ? ` (${view.unavailable.length} out)` : ""}
             </Button>
@@ -124,7 +114,7 @@ export function BarApp() {
               variant="ghost"
               onClick={() => {
                 setLastReady(null);
-                void act(() => api.claim(undo.id, undo.claimedBy ?? (bartender || "bar")));
+                void act(() => api.claim(undo.id, undo.claimedBy ?? "bar"));
               }}
             >
               Undo
@@ -142,7 +132,7 @@ export function BarApp() {
                 {b.orders.length > 1 ? <div className="batch-label">×{b.orders.length} {b.label}</div> : null}
                 {b.orders.map((o) => (
                   <OrderCard key={o.id} order={o} now={now}>
-                    <Button size="sm" onClick={() => act(() => api.claim(o.id, bartender || "bar"))}>
+                    <Button size="sm" onClick={() => act(() => api.claim(o.id, "bar"))}>
                       Start
                     </Button>
                     <ReprintButton order={o} onReprint={() => act(() => api.reprint(o.id))} />

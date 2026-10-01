@@ -44,24 +44,20 @@ export function offeredIngredients(
 
 /**
  * Human-readable amount, e.g. "1½ parts", "2 dashes", "top up".
- * `decimal` writes parts as ".5" / "1.5", quicker to read at the bar.
+ * `decimal` writes amounts as ".5" / "1.5", quicker to read at the bar.
  */
 export function formatAmount(item: RecipeItem, ingredient?: Ingredient, { decimal = false } = {}): string {
   if (item.amount === "fill") return "top up";
   const unit = ingredient?.unit ?? "part";
   const n = item.amount;
-  const plural = n === 1 ? "" : "s";
+  // "½ barspoon", "1 dash", "2 dashes": singular up to one.
+  const many = n > 1;
+  const amount = formatParts(n, decimal);
   switch (unit) {
-    case "part":
-      return `${formatParts(n, decimal)} part${n > 1 ? "s" : ""}`;
     case "dash":
-      return `${n} dash${n === 1 ? "" : "es"}`;
-    case "drop":
-    case "pump":
-    case "piece":
-      return `${n} ${unit}${plural}`;
-    case "barspoon":
-      return `${n} barspoon${plural}`;
+      return `${amount} dash${many ? "es" : ""}`;
+    default:
+      return `${amount} ${unit}${many ? "s" : ""}`;
   }
 }
 
