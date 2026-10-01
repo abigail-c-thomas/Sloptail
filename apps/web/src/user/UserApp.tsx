@@ -201,6 +201,7 @@ const OTHER_IDEAS = [
   "Thriving houseplant",
   "Christmas in summer",
   "Living in Jersey City",
+  "Lemurs in space",
   "Sitting in bed with a good book. It's raining outside",
   "According to all known laws of aviation, there is no way that a bee should be able to fly",
 ];
