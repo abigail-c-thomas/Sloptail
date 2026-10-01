@@ -22,6 +22,8 @@ export function AdminApp() {
   const [tab, setTab] = useState<ProfileName>("real");
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
+  /** The model fills in type, ABV, flavours etc.; the full table is only for corrections. */
+  const [details, setDetails] = useState(false);
 
   useEffect(() => {
     const url = new URL(window.location.href);
@@ -177,20 +179,40 @@ export function AdminApp() {
               const have = new Set(draft.ingredients.map((i) => i.id));
               const fresh = names.filter((n) => !have.has(slugify(n)));
               if (!fresh.length) return;
-              const r = await api.describe(fresh);
+              // Already described for another profile: reuse it (minus that profile's stock) instead of asking again.
+              const elsewhere = new Map(PROFILES.flatMap((p) => drafts[p].ingredients.map((i) => [i.id, i] as const)));
+              const reused = fresh.flatMap((n) => {
+                const hit = elsewhere.get(slugify(n));
+                if (!hit) return [];
+                const { stock: _stock, ...copy } = structuredClone(hit);
+                return [copy];
+              });
+              const rest = fresh.filter((n) => !elsewhere.has(slugify(n)));
+              const r = rest.length ? await api.describe(rest) : { ingredients: [], failed: [] };
               // Whatever the model couldn't fill in still gets a row, to finish by hand.
               const added: Ingredient[] = [];
-              for (const i of [...r.ingredients, ...r.failed.map(blankIngredient)]) {
+              for (const i of [...reused, ...r.ingredients, ...r.failed.map(blankIngredient)]) {
                 if (have.has(i.id)) continue;
                 have.add(i.id);
                 added.push(i);
               }
               setDraft({ ...draft, ingredients: [...draft.ingredients, ...added] });
-              if (r.failed.length) setError(`Fill these in by hand: ${r.failed.join(", ")}`);
+              if (r.failed.length) {
+                setDetails(true);
+                setError(`Fill these in by hand: ${r.failed.join(", ")}`);
+              }
             })
           }
         />
+        {draft.ingredients.length ? (
+          <div className="row">
+            <Button size="sm" variant="secondary" onClick={() => setDetails(!details)}>
+              {details ? "Hide details" : "Edit details"}
+            </Button>
+          </div>
+        ) : null}
         <IngredientTable
+          detailed={details}
           ingredients={draft.ingredients}
           used={live && !dirty ? new Map(view.stock.map((l) => [l.ingredient, l.used])) : undefined}
           onChange={(ingredients) => setDraft({ ...draft, ingredients })}
@@ -278,10 +300,13 @@ function num(text: string): number | undefined {
 }
 
 function IngredientTable({
+  detailed,
   ingredients,
   used,
   onChange,
 }: {
+  /** Every field editable; otherwise name, stock and a summary of what the model filled in. */
+  detailed: boolean;
   ingredients: Ingredient[];
   used: Map<string, number> | undefined;
   onChange: (list: Ingredient[]) => void;
@@ -289,24 +314,58 @@ function IngredientTable({
   const update = (id: string, patch: Partial<Ingredient>) =>
     onChange(ingredients.map((i) => (i.id === id ? dropUndefined({ ...i, ...patch }) : i)));
   const remove = (id: string) => onChange(ingredients.filter((i) => i.id !== id));
+  const columns = detailed ? 11 : 4;
+  const removeCell = (i: Ingredient) => (
+    // First, so it's on screen even when the table scrolls sideways.
+    <td className="admin-remove">
+      <Button size="sm" variant="ghost" aria-label={`Remove ${i.name}`} onClick={() => remove(i.id)}>
+        ✕
+      </Button>
+    </td>
+  );
+  const nameCell = (i: Ingredient) => (
+    <td>
+      <input className="input" value={i.name} onChange={(e) => update(i.id, { name: e.target.value })} aria-label="Name" />
+    </td>
+  );
+  const stockCell = (i: Ingredient) => (
+    <td className="admin-stock">
+      <StockInput value={i.stock} onChange={(stock) => update(i.id, { stock })} />
+      {used && i.stock !== undefined ? (
+        <Badge tone={used.get(i.id)! >= i.stock ? "danger" : used.get(i.id)! > i.stock * 0.8 ? "warn" : undefined}>
+          {Math.max(0, Math.round(i.stock - (used.get(i.id) ?? 0)))}
+          {i.unit === "piece" ? "" : "ml"} left
+        </Badge>
+      ) : null}
+    </td>
+  );
 
   return (
     <div className="admin-table-wrap">
       <table className="admin-table">
         <thead>
-          <tr>
-            <th />
-            <th>Name</th>
-            <th>Type</th>
-            <th>Unit</th>
-            <th title="Alcohol by volume, %">ABV</th>
-            <th title="Grams of sugar per 100ml">Sugar</th>
-            <th title="Grams of acid per 100ml">Acid</th>
-            <th title="Most per drink, in its unit">Max</th>
-            <th title="ml (e.g. 2x700), or pieces for garnishes">Stock</th>
-            <th>Flavours</th>
-            <th>Notes</th>
-          </tr>
+          {!detailed ? (
+            <tr>
+              <th />
+              <th>Name</th>
+              <th title="ml (e.g. 2x700), or pieces for garnishes">Stock</th>
+              <th>Details</th>
+            </tr>
+          ) : (
+            <tr>
+              <th />
+              <th>Name</th>
+              <th>Type</th>
+              <th>Unit</th>
+              <th title="Alcohol by volume, %">ABV</th>
+              <th title="Grams of sugar per 100ml">Sugar</th>
+              <th title="Grams of acid per 100ml">Acid</th>
+              <th title="Most per drink, in its unit">Max</th>
+              <th title="ml (e.g. 2x700), or pieces for garnishes">Stock</th>
+              <th>Flavours</th>
+              <th>Notes</th>
+            </tr>
+          )}
         </thead>
         {TYPES.map((type) => {
           const rows = ingredients.filter((i) => i.type === type);
@@ -314,64 +373,65 @@ function IngredientTable({
           return (
             <tbody key={type}>
               <tr className="admin-group">
-                <td colSpan={11}>{TYPE_LABEL[type]}</td>
+                <td colSpan={columns}>{TYPE_LABEL[type]}</td>
               </tr>
-              {rows.map((i) => (
-                <tr key={i.id}>
-                  {/* First, so it's on screen even when the table scrolls sideways. */}
-                  <td className="admin-remove">
-                    <Button size="sm" variant="ghost" aria-label={`Remove ${i.name}`} onClick={() => remove(i.id)}>
-                      ✕
-                    </Button>
-                  </td>
-                  <td>
-                    <input className="input" value={i.name} onChange={(e) => update(i.id, { name: e.target.value })} aria-label="Name" />
-                  </td>
-                  <td>
-                    <select className="input" value={i.type} onChange={(e) => update(i.id, { type: e.target.value as Ingredient["type"] })} aria-label="Type">
-                      {TYPES.map((t) => (
-                        <option key={t}>{t}</option>
-                      ))}
-                    </select>
-                  </td>
-                  <td>
-                    <select className="input" value={i.unit} onChange={(e) => update(i.id, { unit: e.target.value as Ingredient["unit"] })} aria-label="Unit">
-                      {UNITS.map((u) => (
-                        <option key={u}>{u}</option>
-                      ))}
-                    </select>
-                  </td>
-                  <NumCell value={i.abv} label="ABV" onChange={(abv) => update(i.id, { abv, alcoholic: (abv ?? 0) > 0 })} />
-                  <NumCell value={i.sugar} label="Sugar" onChange={(sugar) => update(i.id, { sugar })} />
-                  <NumCell value={i.acid} label="Acid" onChange={(acid) => update(i.id, { acid })} />
-                  <NumCell value={i.max} label="Max" onChange={(max) => update(i.id, { max: max || undefined })} />
-                  <td className="admin-stock">
-                    <StockInput value={i.stock} onChange={(stock) => update(i.id, { stock })} />
-                    {used && i.stock !== undefined ? (
-                      <Badge tone={used.get(i.id)! >= i.stock ? "danger" : used.get(i.id)! > i.stock * 0.8 ? "warn" : undefined}>
-                        {Math.max(0, Math.round(i.stock - (used.get(i.id) ?? 0)))}
-                        {i.unit === "piece" ? "" : "ml"} left
-                      </Badge>
-                    ) : null}
-                  </td>
-                  <td>
-                    <TextInput
-                      value={i.flavor.join(", ")}
-                      label="Flavours"
-                      onCommit={(t) => update(i.id, { flavor: t.split(",").map((f) => f.trim()).filter(Boolean) })}
-                    />
-                  </td>
-                  <td>
-                    <TextInput value={i.notes ?? ""} label="Notes" onCommit={(t) => update(i.id, { notes: t.trim() || undefined })} />
-                  </td>
-                </tr>
-              ))}
+              {rows.map((i) =>
+                !detailed ? (
+                  <tr key={i.id}>
+                    {removeCell(i)}
+                    {nameCell(i)}
+                    {stockCell(i)}
+                    <td className="admin-summary">{summary(i)}</td>
+                  </tr>
+                ) : (
+                  <tr key={i.id}>
+                    {removeCell(i)}
+                    {nameCell(i)}
+                    <td>
+                      <select className="input" value={i.type} onChange={(e) => update(i.id, { type: e.target.value as Ingredient["type"] })} aria-label="Type">
+                        {TYPES.map((t) => (
+                          <option key={t}>{t}</option>
+                        ))}
+                      </select>
+                    </td>
+                    <td>
+                      <select className="input" value={i.unit} onChange={(e) => update(i.id, { unit: e.target.value as Ingredient["unit"] })} aria-label="Unit">
+                        {UNITS.map((u) => (
+                          <option key={u}>{u}</option>
+                        ))}
+                      </select>
+                    </td>
+                    <NumCell value={i.abv} label="ABV" onChange={(abv) => update(i.id, { abv, alcoholic: (abv ?? 0) > 0 })} />
+                    <NumCell value={i.sugar} label="Sugar" onChange={(sugar) => update(i.id, { sugar })} />
+                    <NumCell value={i.acid} label="Acid" onChange={(acid) => update(i.id, { acid })} />
+                    <NumCell value={i.max} label="Max" onChange={(max) => update(i.id, { max: max || undefined })} />
+                    {stockCell(i)}
+                    <td>
+                      <TextInput
+                        value={i.flavor.join(", ")}
+                        label="Flavours"
+                        onCommit={(t) => update(i.id, { flavor: t.split(",").map((f) => f.trim()).filter(Boolean) })}
+                      />
+                    </td>
+                    <td>
+                      <TextInput value={i.notes ?? ""} label="Notes" onCommit={(t) => update(i.id, { notes: t.trim() || undefined })} />
+                    </td>
+                  </tr>
+                ),
+              )}
             </tbody>
           );
         })}
       </table>
     </div>
   );
+}
+
+/** What the model filled in, in one line: "base · part · 40% · smoky, agave". */
+function summary(i: Ingredient): string {
+  // A row the model couldn't do starts with no flavours: say so rather than show made-up defaults.
+  if (!i.flavor.length) return "needs details";
+  return [i.type, i.unit, i.abv ? `${i.abv}%` : null, i.flavor.join(", ")].filter(Boolean).join(" · ");
 }
 
 function NumCell({ value, label, onChange }: { value: number | undefined; label: string; onChange: (n: number | undefined) => void }) {
