@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { EposPrinter, PrintDocument, parseResponse, printable, spread, wrap } from "./index.ts";
+import { EposPrinter, PrintDocument, isBlack, parseResponse, printable, spread, toBitmap, wrap } from "./index.ts";
 
 const OK = `<?xml version="1.0" encoding="utf-8"?><s:Envelope xmlns:s="http://schemas.xmlsoap.org/soap/envelope/"><s:Body><response success="true" code="" status="251658262" battery="0" xmlns="http://www.epson-pos.com/schemas/2011/03/epos-print"></response></s:Body></s:Envelope>`;
 const PAPER_OUT = `<s:Envelope xmlns:s="http://schemas.xmlsoap.org/soap/envelope/"><s:Body><response success="false" code="EPTR_REC_EMPTY" status="${0x80000 | 0x8}" battery="0"/></s:Body></s:Envelope>`;
@@ -37,7 +37,7 @@ describe("PrintDocument", () => {
   it("lays out lines with their tallest text and the line's alignment", () => {
     const rows = new PrintDocument().text("a").text("B", { height: 2 }).line().feed(1).line("c", { align: "center" }).cut().lines();
     assert.deepEqual(
-      rows.map((r) => (r.kind === "cut" ? "cut" : `${r.align}:${r.height}:${r.spans.map((s) => s.text).join("|")}`)),
+      rows.map((r) => (r.kind === "line" ? `${r.align}:${r.height}:${r.spans.map((s) => s.text).join("|")}` : r.kind)),
       ["left:48:a|B", "left:30:", "center:30:c", "cut"],
     );
   });
@@ -60,6 +60,34 @@ describe("PrintDocument", () => {
 
   it("rejects out-of-range sizes", () => {
     assert.throws(() => new PrintDocument().text("x", { width: 9 }), RangeError);
+  });
+});
+
+describe("images", () => {
+  // 16x2: a black left half on the first row, nothing on the second.
+  const grey = new Uint8Array(32).fill(255).fill(0, 0, 8);
+
+  it("thresholds to packed rows, padding the width to a multiple of 8", () => {
+    const bm = toBitmap(grey.subarray(0, 30), 15, 2, { dither: "threshold" });
+    assert.equal(bm.width, 16);
+    assert.deepEqual([...bm.bits], [0xff, 0x00, 0x00, 0x00]);
+  });
+
+  it("dithers mid-grey to roughly half black", () => {
+    const bm = toBitmap(new Uint8Array(64 * 64).fill(128), 64, 64);
+    let black = 0;
+    for (let y = 0; y < 64; y++) for (let x = 0; x < 64; x++) if (isBlack(bm, x, y)) black++;
+    assert.ok(black > 64 * 64 * 0.35 && black < 64 * 64 * 0.65, String(black));
+  });
+
+  it("emits an aligned <image> with the raster as base64", () => {
+    const bm = toBitmap(grey, 16, 2, { dither: "threshold" });
+    const xml = new PrintDocument().line("x").image(bm).toXml();
+    assert.match(xml, /<text align="center"\/><image width="16" height="2" color="color_1" mode="mono">\/wAAAA==<\/image>/);
+  });
+
+  it("refuses images wider than the paper", () => {
+    assert.throws(() => new PrintDocument().image({ width: 520, height: 1, bits: new Uint8Array(65) }), RangeError);
   });
 });
 

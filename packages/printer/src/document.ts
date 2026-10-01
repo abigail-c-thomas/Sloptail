@@ -1,3 +1,5 @@
+import { bitmapBase64, isBlack, type Bitmap } from "./bitmap.ts";
+
 /**
  * A print job for an Epson ePOS-Print printer. Knows nothing about cocktails:
  * it's a small builder over the subset of ePOS-Print that a receipt needs.
@@ -50,7 +52,11 @@ export const PAPER_80MM: PaperSpec = {
 
 export const DEFAULT_STYLE: ResolvedStyle = { font: "font_a", width: 1, height: 1, em: false, ul: false, reverse: false, align: "left" };
 
-export type Op = { op: "text"; text: string; style: ResolvedStyle } | { op: "feed"; lines: number } | { op: "cut" };
+export type Op =
+  | { op: "text"; text: string; style: ResolvedStyle }
+  | { op: "image"; bitmap: Bitmap; align: Align }
+  | { op: "feed"; lines: number }
+  | { op: "cut" };
 
 export interface Span {
   text: string;
@@ -64,8 +70,8 @@ export interface Line {
   height: number;
 }
 
-/** What `lines()` returns: printed lines, blank feeds, and cuts, top to bottom. */
-export type Row = ({ kind: "line" } & Line) | { kind: "cut" };
+/** What `lines()` returns: printed lines, blank feeds, images and cuts, top to bottom. */
+export type Row = ({ kind: "line" } & Line) | { kind: "image"; bitmap: Bitmap; align: Align } | { kind: "cut" };
 
 export class PrintDocument {
   readonly paper: PaperSpec;
@@ -116,6 +122,14 @@ export class PrintDocument {
     return this.line(" ".repeat(this.cols(style)), { ...style, ul: true });
   }
 
+  /** A 1-bit picture on its own lines. Wider than the printable area is an error. */
+  image(bitmap: Bitmap, align: Align = "center"): this {
+    if (bitmap.width > this.paper.dots) throw new RangeError(`image is ${bitmap.width} dots wide; the paper prints ${this.paper.dots}`);
+    if (bitmap.width % 8) throw new RangeError("image width must be a multiple of 8");
+    this.list.push({ op: "image", bitmap, align });
+    return this;
+  }
+
   feed(lines = 1): this {
     this.list.push({ op: "feed", lines: int(lines, 0, 255) });
     return this;
@@ -147,6 +161,9 @@ export class PrintDocument {
           if (i > 0) endLine();
           if (chunk) spans.push({ text: chunk, style: op.style });
         });
+      } else if (op.op === "image") {
+        if (spans.length) endLine();
+        rows.push({ kind: "image", bitmap: op.bitmap, align: op.align });
       } else if (op.op === "feed") {
         // A feed finishes any partial line, then advances whole blank lines.
         if (spans.length) endLine();
@@ -170,6 +187,7 @@ export class PrintDocument {
     return this.lines()
       .map((row) => {
         if (row.kind === "cut") return "\n" + "- ".repeat(width / 2) + "(cut)";
+        if (row.kind === "image") return imageText(row.bitmap, row.align, this.paper);
         let text = row.spans
           .map(({ text, style }) => {
             if (style.ul && !text.trim()) return "\u2500".repeat(Math.round((text.length * this.paper.cell[style.font].w * style.width) / this.paper.cell.font_a.w));
@@ -195,6 +213,13 @@ export class PrintDocument {
       if (op.op === "text") {
         parts.push(styleTag(op.style, current), `<text>${escapeXml(op.text)}</text>`);
         current = op.style;
+      } else if (op.op === "image") {
+        // Images follow the text alignment setting.
+        const aligned = { ...current, align: op.align };
+        parts.push(styleTag(aligned, current));
+        current = aligned;
+        const { width, height } = op.bitmap;
+        parts.push(`<image width="${width}" height="${height}" color="color_1" mode="mono">${bitmapBase64(op.bitmap)}</image>`);
       } else if (op.op === "feed") {
         parts.push(`<feed line="${op.lines}"/>`);
       } else {
@@ -206,6 +231,28 @@ export class PrintDocument {
 }
 
 export const EPOS_NS = "http://www.epson-pos.com/schemas/2011/03/epos-print";
+
+/** An image as character art: each character covers one font A cell (12x24 dots). */
+function imageText(bm: Bitmap, align: Align, paper: PaperSpec): string {
+  const { w, h } = paper.cell.font_a;
+  const cols = Math.ceil(bm.width / w);
+  const width = Math.floor(paper.dots / w);
+  const indent = align === "center" ? Math.floor((width - cols) / 2) : align === "right" ? width - cols : 0;
+  const out: string[] = [];
+  for (let cy = 0; cy < bm.height; cy += h) {
+    let line = "";
+    for (let cx = 0; cx < bm.width; cx += w) {
+      let black = 0;
+      let total = 0;
+      for (let y = cy; y < Math.min(cy + h, bm.height); y++)
+        for (let x = cx; x < Math.min(cx + w, bm.width); x++, total++) if (isBlack(bm, x, y)) black++;
+      const f = black / total;
+      line += f > 0.6 ? "\u2588" : f > 0.3 ? "\u2593" : f > 0.12 ? "\u2592" : f > 0.03 ? "\u2591" : " ";
+    }
+    out.push(" ".repeat(indent) + line.trimEnd());
+  }
+  return out.join("\n");
+}
 
 /** A `<text .../>` setting only what differs from `prev` (everything if `prev` is null). */
 function styleTag(next: ResolvedStyle, prev: ResolvedStyle | null): string {

@@ -280,3 +280,9 @@ a { color: var(--accent); }
 .paper-span.rev { background: var(--ink); color: var(--paper); }
 .paper-span.ul { box-shadow: inset 0 calc(var(--dot) * -2) 0 var(--ink); }
 .paper-cut { border-top: 1px dashed #aaa; margin: calc(var(--dot) * 30) calc(var(--dot) * var(--margin) * -1); }
+.paper-image {
+  display: block;
+  width: calc(var(--dot) * var(--iw));
+  height: calc(var(--dot) * var(--ih));
+  image-rendering: pixelated;
+}
