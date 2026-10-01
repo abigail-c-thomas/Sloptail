@@ -141,9 +141,9 @@ function reducer(s: State, a: Action): State {
         error: undefined,
       };
     case "reset":
-      // Without a remembered strength (e.g. a classic ordered before a reload) there's nothing to keep.
+      // Back to cocktail/mocktail every time; kept prefs just come pre-selected.
       return {
-        step: a.keepPrefs && s.strength && s.adventurousness ? "prompt" : "kind",
+        step: "kind",
         name: s.name,
         ...(a.keepPrefs ? { kind: s.kind, strength: s.strength, adventurousness: s.adventurousness } : {}),
         prompt: "",
