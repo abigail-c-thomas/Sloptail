@@ -76,7 +76,7 @@ app.post("/propose", body(ProposeBody), async (c) => {
       },
       llm(c.env),
     );
-    return c.json({ proposal: result.proposal, attempts: result.attempts.length });
+    return c.json({ proposal: result.proposal, note: result.note, attempts: result.attempts.length });
   } catch (e) {
     return llmFailure(c, e);
   }
@@ -94,7 +94,7 @@ app.post("/edit", body(EditBody), async (c) => {
       tweak,
       llm(c.env),
     );
-    return c.json({ proposal: result.proposal, attempts: result.attempts.length });
+    return c.json({ proposal: result.proposal, note: result.note, attempts: result.attempts.length });
   } catch (e) {
     return llmFailure(c, e);
   }

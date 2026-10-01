@@ -61,6 +61,8 @@ interface State {
   seen: Proposal[];
   /** The prompt the current proposal was generated from, shown as its subtitle. */
   proposalPrompt?: string;
+  /** "Closest the bar can do: sweeter than you asked for." */
+  proposalNote?: string | undefined;
   error?: string;
   orderId?: string;
   /** Other guests who ordered under the name just typed: "same abi who ordered X?" */
@@ -75,7 +77,7 @@ type Action =
   | { type: "adventure"; adventurousness: Adventurousness }
   | { type: "prompt"; prompt: string }
   | { type: "flavour"; key: "sweetness" | "acidity"; level: Level }
-  | { type: "proposal"; proposal: Proposal; prompt: string; generated?: boolean }
+  | { type: "proposal"; proposal: Proposal; prompt: string; generated?: boolean; note?: string | undefined }
   | { type: "error"; error: string }
   | { type: "submitted"; orderId: string }
   | { type: "sameName"; guests: NamedGuest[] }
@@ -113,6 +115,7 @@ function reducer(s: State, a: Action): State {
         ...s,
         proposal: a.proposal,
         proposalPrompt: a.prompt,
+        proposalNote: a.note,
         seen: a.generated ? [a.proposal, ...s.seen].slice(0, 5) : s.seen,
         step: "proposal",
         error: undefined,
@@ -246,8 +249,8 @@ export function UserApp() {
     saveLastRequest(req);
     dispatch({ type: "go", step: "loading" });
     try {
-      const { proposal } = await api.propose({ userId: user.userId, userName: s.name, request: req, seen: s.seen });
-      dispatch({ type: "proposal", proposal, prompt: req.prompt, generated: true });
+      const { proposal, note } = await api.propose({ userId: user.userId, userName: s.name, request: req, seen: s.seen });
+      dispatch({ type: "proposal", proposal, prompt: req.prompt, generated: true, note });
     } catch (e) {
       dispatch({ type: "error", error: (e as Error).message });
     }
@@ -259,8 +262,8 @@ export function UserApp() {
     if (!req || !s.proposal) return;
     dispatch({ type: "go", step: "loading" });
     try {
-      const { proposal } = await api.edit({ userId: user.userId, request: req, proposal: s.proposal, tweak: text });
-      dispatch({ type: "proposal", proposal, prompt: s.proposalPrompt ?? req.prompt });
+      const { proposal, note } = await api.edit({ userId: user.userId, request: req, proposal: s.proposal, tweak: text });
+      dispatch({ type: "proposal", proposal, prompt: s.proposalPrompt ?? req.prompt, note });
     } catch (e) {
       dispatch({ type: "error", error: (e as Error).message });
     }
@@ -455,6 +458,7 @@ export function UserApp() {
           <ProposalStep
             proposal={s.proposal}
             subtitle={s.proposalPrompt}
+            note={s.proposalNote}
             onTweak={tweak}
             onSubmit={submit}
             onRegenerate={generate}
@@ -590,6 +594,7 @@ function NameStep({ name, onChange, onNext }: { name: string; onChange: (n: stri
 function ProposalStep({
   proposal,
   subtitle,
+  note,
   onTweak,
   onSubmit,
   onRegenerate,
@@ -597,6 +602,7 @@ function ProposalStep({
 }: {
   proposal: Proposal;
   subtitle?: string | undefined;
+  note?: string | undefined;
   onTweak: (t: string) => void;
   onSubmit: () => void;
   onRegenerate: () => void;
@@ -607,6 +613,7 @@ function ProposalStep({
   return (
     <Stack gap={16}>
       <ProposalCard proposal={proposal} subtitle={subtitle} />
+      {note ? <p className="small muted">{note}</p> : null}
       <Button
         size="lg"
         loading={submitting}

@@ -138,6 +138,7 @@ describe("propose", () => {
     const client = new FakeClient([JSON.stringify(sweet), JSON.stringify(sweet), JSON.stringify(good)]);
     const result = await propose(dryCtx, client, { maxRepairs: 2 });
     assert.deepEqual(result.proposal, sweet);
+    assert.equal(result.note, "Closest the bar can do: sweeter than you asked for.");
     assert.equal(client.requests.length, 2);
   });
 

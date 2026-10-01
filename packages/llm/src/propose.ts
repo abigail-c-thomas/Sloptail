@@ -1,4 +1,4 @@
-import { describeIssue, flavourIssues, validateRecipe, type Proposal } from "@sloptail/shared";
+import { describeIssue, flavourIssues, flavourMisses, flavourMissNote, validateRecipe, type Proposal } from "@sloptail/shared";
 import type { LlmClient, Message } from "./client.ts";
 import { ParseError, parseProposal, PROPOSAL_JSON_SCHEMA } from "./parse.ts";
 import { editMessages, proposeMessages, repairMessages, type PromptContext } from "./prompt.ts";
@@ -12,6 +12,8 @@ export interface Attempt {
 
 export interface ProposeResult {
   proposal: Proposal;
+  /** Set when the drink misses the guest's flavour dials because the bar can't get there. */
+  note?: string | undefined;
   /** Every model round-trip, including failed ones. Useful for evals. */
   attempts: Attempt[];
 }
@@ -60,6 +62,12 @@ function hardProblems(proposal: Proposal, ctx: PromptContext): string[] {
   return validateRecipe(proposal.recipe, ctx.request.strength, ctx.catalog, ctx.unavailable).map(describeIssue);
 }
 
+/** A drink that's only off on flavour, with a fixed note saying so (the model is told not to apologise). */
+function served(proposal: Proposal, ctx: PromptContext, attempts: Attempt[]): ProposeResult {
+  const note = flavourMissNote(flavourMisses(proposal.recipe, proposal.glass, ctx.request, ctx.catalog));
+  return { proposal, note, attempts };
+}
+
 async function runWithRepairs(
   messages: Message[],
   ctx: PromptContext,
@@ -96,12 +104,12 @@ async function runWithRepairs(
     if (proposal && problems.length === 0) return { proposal, attempts };
     if (proposal && hardProblems(proposal, ctx).length === 0) {
       // Missed the dials twice: the bar probably can't do it. Don't keep the guest waiting.
-      if (closest) return { proposal, attempts };
+      if (closest) return served(proposal, ctx, attempts);
       closest = proposal;
     }
     current = repairMessages(current, completion.text, problems);
   }
 
-  if (closest) return { proposal: closest, attempts };
+  if (closest) return served(closest, ctx, attempts);
   throw new ProposeError(`Model could not produce a valid recipe after ${attempts.length} attempts`, attempts);
 }

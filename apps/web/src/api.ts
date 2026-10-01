@@ -27,6 +27,8 @@ const post = (body: unknown) => ({ method: "POST", body: JSON.stringify(body) })
 
 export interface ProposeResponse {
   proposal: Proposal;
+  /** Set when the bar couldn't hit the flavour dials and this is the closest. */
+  note?: string;
   attempts: number;
 }
 

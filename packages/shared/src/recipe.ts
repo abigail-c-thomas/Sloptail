@@ -247,30 +247,57 @@ export function levelOf(value: number, bands: { low: number; high: number }): Le
   return value < bands.low ? "low" : value > bands.high ? "high" : "medium";
 }
 
+export interface FlavourMiss {
+  dial: "sweetness" | "sourness";
+  asked: Level;
+  got: Level;
+  pct: number;
+}
+
 /**
  * Only flags a drink that's the opposite of what was asked (low vs high).
  * One band off is within the noise of these estimates and not worth a repair
  * round-trip.
  */
+export function flavourMisses(
+  recipe: Recipe,
+  glass: Glass,
+  want: { sweetness?: Level | undefined; acidity?: Level | undefined },
+  catalog: Catalog,
+): FlavourMiss[] {
+  const b = estimateBalance(recipe, glass, catalog);
+  const misses: FlavourMiss[] = [];
+  const check = (dial: FlavourMiss["dial"], asked: Level | undefined, pct: number, bands: { low: number; high: number }) => {
+    const got = levelOf(pct, bands);
+    if (asked && Math.abs(RANK[asked] - RANK[got]) >= 2) misses.push({ dial, asked, got, pct });
+  };
+  check("sweetness", want.sweetness, b.sugarPct, SWEETNESS_BANDS);
+  check("sourness", want.acidity, b.acidPct, ACIDITY_BANDS);
+  return misses;
+}
+
+/** The same, worded as repair feedback for the model. */
 export function flavourIssues(
   recipe: Recipe,
   glass: Glass,
   want: { sweetness?: Level | undefined; acidity?: Level | undefined },
   catalog: Catalog,
 ): string[] {
-  const b = estimateBalance(recipe, glass, catalog);
-  const issues: string[] = [];
-  const check = (name: string, asked: Level | undefined, got: Level, pct: number, bands: { low: number; high: number }) => {
-    if (!asked || Math.abs(RANK[asked] - RANK[got]) < 2) return;
-    issues.push(
-      `The guest asked for ${asked} ${name}, but this comes out ${got} (~${pct.toFixed(1)}g per 100ml; ${asked} is ${
-        asked === "low" ? `under ${bands.low}` : `over ${bands.high}`
-      }). Rebalance it, or get as close as this bar allows.`,
-    );
-  };
-  check("sweetness", want.sweetness, levelOf(b.sugarPct, SWEETNESS_BANDS), b.sugarPct, SWEETNESS_BANDS);
-  check("sourness", want.acidity, levelOf(b.acidPct, ACIDITY_BANDS), b.acidPct, ACIDITY_BANDS);
-  return issues;
+  return flavourMisses(recipe, glass, want, catalog).map((m) => {
+    const bands = m.dial === "sweetness" ? SWEETNESS_BANDS : ACIDITY_BANDS;
+    return `The guest asked for ${m.asked} ${m.dial}, but this comes out ${m.got} (~${m.pct.toFixed(1)}g per 100ml; ${m.asked} is ${
+      m.asked === "low" ? `under ${bands.low}` : `over ${bands.high}`
+    }). Rebalance it, or get as close as this bar allows.`;
+  });
+}
+
+/** What to tell the guest when the bar can't hit their dials: "Closest the bar can do: sweeter than you asked for." */
+export function flavourMissNote(misses: FlavourMiss[]): string | undefined {
+  if (!misses.length) return undefined;
+  const words = misses.map((m) =>
+    m.dial === "sweetness" ? (m.got === "high" ? "sweeter" : "less sweet") : m.got === "high" ? "more sour" : "less sour",
+  );
+  return `Closest the bar can do: ${words.join(" and ")} than you asked for.`;
 }
 
 const RANK: Record<Level, number> = { low: 0, medium: 1, high: 2 };
