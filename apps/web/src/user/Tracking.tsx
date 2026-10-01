@@ -8,7 +8,7 @@ const POLL_MS = 3000;
 /**
  * After submitting: poll the order until it's ready, then make a fuss.
  * Polling rather than push: phones lock, iOS web push needs a PWA install,
- * and the bartender is going to shout the name anyway.
+ * and the bar screen shows who's ready anyway.
  */
 export function Tracking({
   orderId,
@@ -132,9 +132,6 @@ export function Tracking({
           <h2>{name}</h2>
           <Badge tone={order.status === "making" ? "accent" : undefined}>{order.status === "making" ? "being made" : "queued"}</Badge>
         </div>
-        <p>
-          We'll shout <b>{order.userName}</b> when it's on the bar.
-        </p>
         {error ? <p className="small muted">Connection wobble, retrying…</p> : null}
       </Card>
       <details>
