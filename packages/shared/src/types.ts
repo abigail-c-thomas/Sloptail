@@ -36,6 +36,8 @@ export const Ingredient = z.object({
   acid: z.number().nonnegative().optional(),
   /** How much the bar starts with: ml, or pieces for garnishes. Drives the running-out estimate. */
   stock: z.number().nonnegative().optional(),
+  /** Size of one bottle/jar/carton in ml, for entering stock as a count. Unset: defaultContainer(). */
+  container: z.number().positive().optional(),
 });
 export type Ingredient = z.infer<typeof Ingredient>;
 

@@ -127,3 +127,26 @@ export function findKnownIngredient(name: string): Ingredient | undefined {
   const id = ALIASES[slug] ?? slug;
   return known.find((i) => i.id === id || slugify(i.name) === slug);
 }
+
+/**
+ * What one container of an ingredient usually holds, in ml, so stock can be
+ * entered as "2 bottles". Garnishes are counted one by one (1). Override per
+ * ingredient with `container` when a bottle isn't the usual size.
+ */
+export function defaultContainer(ing: Pick<Ingredient, "type" | "unit" | "flavor">): number {
+  if (ing.unit === "piece") return 1;
+  if (ing.type === "base") return ing.flavor.includes("wine") || ing.flavor.includes("sparkling") ? 750 : 700;
+  if (ing.type === "mixer") return 1000;
+  switch (ing.unit) {
+    case "pump":
+      return 750;
+    case "dash":
+      return 200;
+    case "drop":
+      return 100;
+    case "barspoon":
+      return 250;
+    default:
+      return 1000;
+  }
+}

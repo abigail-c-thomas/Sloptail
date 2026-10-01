@@ -105,9 +105,9 @@
 .admin-table .admin-remove { width: 1%; padding-right: 8px; }
 .admin-table .admin-remove .btn { padding: 0 4px; text-decoration: none; }
 .admin-group td { padding-top: 14px; font-weight: 700; text-transform: capitalize; }
-.admin-stock { white-space: nowrap; }
-.admin-stock .input { width: 90px; }
-.admin-stock .badge { margin-left: 4px; }
+.admin-stock { white-space: nowrap; display: flex; align-items: center; gap: 6px; }
+.admin-table .admin-stock .input { width: 64px; min-width: 0; text-align: right; }
+.admin-stock .badge { margin-left: 6px; }
 .admin-save {
   position: fixed; left: 0; right: 0; bottom: 0; padding: 12px 16px;
   display: flex; justify-content: flex-end; gap: 8px;

@@ -3,7 +3,7 @@ import { z } from "zod";
 import type { LlmClient, Message } from "./client.ts";
 import { extractJson } from "./parse.ts";
 
-const Described = z.object({ ingredients: z.array(Ingredient.omit({ stock: true })) });
+const Described = z.object({ ingredients: z.array(Ingredient.omit({ stock: true, container: true })) });
 const DESCRIBED_JSON_SCHEMA = z.toJSONSchema(Described) as Record<string, unknown>;
 
 export interface DescribeResult {
@@ -46,7 +46,7 @@ export async function describeIngredients(names: readonly string[], client: LlmC
     const slug = slugify(name);
     const raw = described.find((i) => slugify(String(i.name ?? "")) === slug || i.id === slug);
     // The typed name wins over whatever the model called it. One bad entry doesn't sink the rest.
-    const parsed = raw ? Ingredient.safeParse({ ...raw, id: slug, name: name.trim(), stock: undefined }) : null;
+    const parsed = raw ? Ingredient.safeParse({ ...raw, id: slug, name: name.trim(), stock: undefined, container: undefined }) : null;
     if (parsed?.success) filled.push(parsed.data);
     else failed.push(name);
   }

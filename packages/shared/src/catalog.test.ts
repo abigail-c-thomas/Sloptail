@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { CATALOG, KNOWN_EXTRAS, findKnownIngredient } from "./catalog.ts";
+import { CATALOG, KNOWN_EXTRAS, defaultContainer, findKnownIngredient } from "./catalog.ts";
 import { Ingredient } from "./types.ts";
 
 // The real list for the event, pasted as written.
@@ -58,5 +58,15 @@ describe("known ingredients", () => {
     const all = [...CATALOG, ...KNOWN_EXTRAS];
     for (const i of all) Ingredient.parse(i);
     assert.equal(new Set(all.map((i) => i.id)).size, all.length);
+  });
+});
+
+describe("defaultContainer", () => {
+  const size = (name: string) => defaultContainer(findKnownIngredient(name)!);
+  it("guesses the usual bottle for each kind of thing", () => {
+    assert.deepEqual(
+      ["Rum", "Sparkling wine", "Sweet vermouth", "Tonic", "Lime juice", "Agave syrup", "Angostura", "Rose water", "Vegemite", "Mint"].map(size),
+      [700, 750, 750, 1000, 1000, 750, 200, 100, 250, 1],
+    );
   });
 });

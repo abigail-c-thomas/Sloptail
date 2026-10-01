@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { slugify, TYPE_LABEL, type Ingredient, type Profile, type ProfileName } from "@sloptail/shared";
+import { defaultContainer, slugify, TYPE_LABEL, type Ingredient, type Profile, type ProfileName } from "@sloptail/shared";
 import { Badge, Banner, Button, Card, Choice, Stack, TextArea, TextField } from "@sloptail/ui";
 import { ApiError } from "../api.ts";
 import { makeAdminApi, type AdminView } from "./adminApi.ts";
@@ -284,13 +284,10 @@ function AddIngredients({ busy, onAdd }: { busy: boolean; onAdd: (names: string[
   );
 }
 
-/** "700", "2x700", "2*750" -> ml. Empty -> undefined. */
-function parseStock(text: string): number | undefined {
-  const t = text.replace(/\s|ml/gi, "");
-  if (!t) return undefined;
-  const m = /^(\d+(?:\.\d+)?)(?:[x*×](\d+(?:\.\d+)?))?$/i.exec(t);
-  if (!m) return undefined;
-  return m[2] ? Number(m[1]) * Number(m[2]) : Number(m[1]);
+/** "2", "1.5", "" -> number or undefined. */
+function num(text: string): number | undefined {
+  const t = text.trim();
+  return t === "" || Number.isNaN(Number(t)) ? undefined : Number(t);
 }
 
 /** Name and stock only: type, ABV, flavours and the rest come from the catalog or the model. */
@@ -314,7 +311,7 @@ function IngredientTable({
           <tr>
             <th />
             <th>Name</th>
-            <th title="ml (e.g. 2x700), or pieces for garnishes">Stock</th>
+            <th title="How many bottles (or pieces, for garnishes), and how big a bottle is">Stock</th>
           </tr>
         </thead>
         {TYPES.map((type) => {
@@ -335,15 +332,7 @@ function IngredientTable({
                   <td>
                     <input className="input" value={i.name} onChange={(e) => update(i.id, { name: e.target.value })} aria-label="Name" />
                   </td>
-                  <td className="admin-stock">
-                    <StockInput value={i.stock} onChange={(stock) => update(i.id, { stock })} />
-                    {used && i.stock !== undefined ? (
-                      <Badge tone={used.get(i.id)! >= i.stock ? "danger" : used.get(i.id)! > i.stock * 0.8 ? "warn" : undefined}>
-                        {Math.max(0, Math.round(i.stock - (used.get(i.id) ?? 0)))}
-                        {i.unit === "piece" ? "" : "ml"} left
-                      </Badge>
-                    ) : null}
-                  </td>
+                  <StockCell ingredient={i} used={used?.get(i.id)} onChange={(patch) => update(i.id, patch)} />
                 </tr>
               ))}
             </tbody>
@@ -354,8 +343,59 @@ function IngredientTable({
   );
 }
 
-function StockInput({ value, onChange }: { value: number | undefined; onChange: (n: number | undefined) => void }) {
-  return <TextInput value={value === undefined ? "" : String(value)} label="Stock" onCommit={(t) => onChange(parseStock(t))} />;
+/**
+ * Stock as "[2] × [700] ml" (or "[12] pieces"): a count of containers and the
+ * container's size. Stored as total ml in `stock`, which is what the
+ * running-out estimate uses; `container` is kept only when it isn't the default.
+ */
+function StockCell({
+  ingredient: i,
+  used,
+  onChange,
+}: {
+  ingredient: Ingredient;
+  used: number | undefined;
+  onChange: (patch: Partial<Ingredient>) => void;
+}) {
+  const usual = defaultContainer(i);
+  const size = i.container ?? usual;
+  const count = i.stock === undefined ? undefined : i.stock / size;
+  const left = used !== undefined && i.stock !== undefined ? Math.max(0, i.stock - used) / size : undefined;
+  const shown = (n: number) => String(Math.round(n * 100) / 100);
+  return (
+    <td>
+      <div className="admin-stock">
+        <TextInput
+          value={count === undefined ? "" : shown(count)}
+          label="How many"
+          onCommit={(t) => {
+            const n = num(t);
+            onChange({ stock: n === undefined ? undefined : n * size });
+          }}
+        />
+        {i.unit === "piece" ? (
+          <span className="muted">pieces</span>
+        ) : (
+          <>
+            <span className="muted">×</span>
+            <TextInput
+              value={String(size)}
+              label="Bottle size, ml"
+              onCommit={(t) => {
+                const ml = num(t);
+                if (!ml || ml <= 0) return;
+                onChange({ container: ml === usual ? undefined : ml, stock: count === undefined ? undefined : count * ml });
+              }}
+            />
+            <span className="muted">ml</span>
+          </>
+        )}
+        {left !== undefined ? (
+          <Badge tone={left <= 0 ? "danger" : left < count! * 0.2 ? "warn" : undefined}>{shown(left)} left</Badge>
+        ) : null}
+      </div>
+    </td>
+  );
 }
 
 /** Edits locally, commits on blur or Enter, so "2x7" isn't parsed halfway through typing "2x700". */
