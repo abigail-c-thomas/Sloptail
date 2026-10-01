@@ -96,7 +96,7 @@ a { color: var(--accent); }
 .btn:disabled { opacity: 0.4; cursor: not-allowed; }
 .btn-primary { background: var(--text); color: var(--bg); }
 /* Inline text, not flex, so the brackets wrap with the words. */
-.btn-secondary, .btn-danger { display: inline-block; text-align: center; line-height: 1.5; text-wrap: balance; }
+.btn-secondary, .btn-danger { display: inline-block; text-align: center; line-height: 1.5; text-wrap: balance; padding-inline: 0; }
 .btn-secondary::before { content: "[ "; white-space: pre; }
 .btn-secondary::after { content: " ]"; white-space: pre; }
 .btn-secondary:hover { color: var(--accent); }

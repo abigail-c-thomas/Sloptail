@@ -419,7 +419,7 @@ export function UserApp() {
               ))}
             </Stack>
             <Button variant="secondary" onClick={() => dispatch({ type: "adventure", adventurousness: 2 })}>
-              Ok, maybe I'm more adventurous than that
+              Ok, more adventurous than that
             </Button>
           </Stack>
         )}
