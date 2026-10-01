@@ -11,8 +11,11 @@ packages/shared   types, zod schemas, ingredient catalog, classics, recipe valid
 packages/state    pure order state machine + selectors (no I/O)
 packages/llm      prompts, propose/edit loop, OpenRouter client, evals
 packages/ui       React components + stylesheet
+packages/printer  Epson ePOS-Print XML: document builder, 1-bit images, rate-limited client
+packages/ticket   the drink ticket layout, shared by paper and the web UI
+apps/print-bridge Node process next to the printer: prints unprinted orders
 apps/server       Cloudflare Worker (Hono) + one Durable Object holding bar state
-apps/web          Vite + React SPA: `/` guests, `/bar` bartenders
+apps/web          Vite + React SPA: `/` guests, `/bar`, `/screen`, `/admin`, `/tickets`
 scripts/load.ts   load test against a running server
 ```
 
@@ -43,6 +46,50 @@ Non-secret config (model ids, reasoning effort) is in `apps/server/wrangler.json
 Local dev reads `apps/server/.dev.vars` (gitignored; copy from `.dev.vars.example`).
 Secret values and the live URLs are in `CLAUDE.local.md` (gitignored). Never put
 them in this file, the README, or anything committed: the repo is public.
+
+## Receipt printer
+
+Epson TM-T88VI, 80mm paper, Ethernet only (no wifi dongle). It's driven over
+HTTP with ePOS-Print XML (`POST /cgi-bin/epos/service.cgi?devid=local_printer`),
+so whatever runs the bridge must be on the same network as the printer. The
+Worker can't reach it, and the https site can't call its plain-http endpoint.
+
+Getting an address. The printer is set to DHCP and prints its IP on a status
+sheet a few seconds after power-on. If the sheet doesn't come out, press the
+small recessed button next to the Ethernet port briefly (holding it for ~10s
+resets the network settings).
+
+- **On a router with DHCP** (home): plug it into the router, it gets an address
+  like any other device.
+- **Cable straight into the Mac** (what we use at the venue, where there's only
+  guest wifi: guest networks have sign-in pages and stop devices seeing each
+  other). The Mac needs a USB-C Ethernet adapter. Either:
+  - *Internet Sharing* (preferred, no manual addresses): System Settings →
+    General → Sharing → Internet Sharing, share Wi-Fi to the adapter, then
+    power-cycle the printer. It prints a 192.168.2.x address.
+  - *No DHCP at all*: after a while the printer falls back to Epson's default,
+    `192.168.192.168`. Give the Mac an address on that network, on the adapter
+    only (needs the user's password; gone on unplug/restart):
+
+    ```bash
+    sudo ifconfig en5 alias 192.168.192.10 255.255.255.0    # en5: check with ifconfig
+    sudo ifconfig en5 -alias 192.168.192.10                 # undo
+    ```
+
+Checks, in order: the port's link light is on; `ifconfig` shows the adapter
+`status: active`; `ping <ip>` answers; `curl 'http://<ip>/cgi-bin/epos/service.cgi?devid=local_printer'`
+returns 200. Then:
+
+```bash
+npm run print -- --printer <ip> --test     # one sample ticket
+npm run print -- --token <BAR_TOKEN>       # the bridge; address from /admin unless --printer
+```
+
+What we know prints well: the thin underlined-space rule (not `<hline>`, which
+the printer ignores outside page mode); bold text. Reverse (white on black)
+text came out smudgy, so we don't use it. Text is reduced to ASCII ("1½" →
+"1 1/2"). Images are 1-bit at 180 dpi, up to 512 dots wide; an SVG logo with
+Atkinson dithering for greys printed cleanly at both 256 and 384 dots wide.
 
 ## Conventions
 
