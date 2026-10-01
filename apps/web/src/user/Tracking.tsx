@@ -130,7 +130,7 @@ export function Tracking({
       <Card className="stack">
         <div className="row between">
           <h2>{name}</h2>
-          <Badge tone={order.status === "making" ? "accent" : undefined}>{order.status === "making" ? "being made" : "queued"}</Badge>
+          <Badge tone={order.status === "making" ? "accent" : undefined}>{order.status === "making" ? "in progress" : "queued"}</Badge>
         </div>
         {error ? <p className="small muted">Connection wobble, retrying…</p> : null}
       </Card>
