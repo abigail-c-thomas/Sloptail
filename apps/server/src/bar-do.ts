@@ -333,8 +333,8 @@ export class BarDO extends DurableObject<Env> {
     await this.mutate((s) => ({ state: setArt(s, order.id, art), value: null }));
   }
 
-  claim(id: string, bartender: string): Promise<Result<Order>> {
-    return this.mutateOrder((s) => claimOrder(s, id, bartender, Date.now()), id);
+  claim(id: string): Promise<Result<Order>> {
+    return this.mutateOrder((s) => claimOrder(s, id, Date.now()), id);
   }
 
   unclaim(id: string): Promise<Result<Order>> {

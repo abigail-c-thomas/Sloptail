@@ -82,15 +82,15 @@ export function submitOrder(state: BarState, input: SubmitInput): { state: BarSt
   };
 }
 
-/** A bartender picks an order up. */
-export function claimOrder(state: BarState, id: string, bartender: string, now: number): BarState {
-  return transition(state, id, "making", { claimedBy: bartender, claimedAt: now });
+/** The bar starts making an order. */
+export function claimOrder(state: BarState, id: string, now: number): BarState {
+  return transition(state, id, "making", { claimedAt: now });
 }
 
 /** Put a claimed order back in the queue (e.g. bartender got pulled away). */
 export function unclaimOrder(state: BarState, id: string): BarState {
   const order = getOrder(state, id);
-  const { claimedBy: _b, claimedAt: _a, ...rest } = order;
+  const { claimedAt: _a, ...rest } = order;
   return {
     ...state,
     orders: { ...state.orders, [id]: { ...rest, status: "queued" } },

@@ -3,7 +3,6 @@ import { cors } from "hono/cors";
 import { validator } from "hono/validator";
 import { z } from "zod";
 import {
-  ClaimBody,
   CollectBody,
   DescribeBody,
   EditBody,
@@ -138,9 +137,7 @@ barApi.use("*", async (c, next) => {
 
 barApi.get("/", async (c) => c.json(await bar(c.env).getBarView()));
 
-barApi.post("/orders/:id/claim", body(ClaimBody), async (c) =>
-  unwrap(c, await bar(c.env).claim(c.req.param("id"), c.req.valid("json").bartender)),
-);
+barApi.post("/orders/:id/claim", async (c) => unwrap(c, await bar(c.env).claim(c.req.param("id"))));
 barApi.post("/orders/:id/unclaim", async (c) => unwrap(c, await bar(c.env).unclaim(c.req.param("id"))));
 barApi.post("/orders/:id/ready", async (c) => unwrap(c, await bar(c.env).ready(c.req.param("id"))));
 barApi.post("/orders/:id/cancel", body(z.object({ reason: z.string().max(200).default("cancelled by bar") })), async (c) =>

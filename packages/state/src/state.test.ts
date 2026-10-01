@@ -76,9 +76,8 @@ describe("orders", () => {
 
   it("walks the happy path", () => {
     let { state } = submit(createState(), gt);
-    state = claimOrder(state, "1", "Sam", 1100);
+    state = claimOrder(state, "1", 1100);
     assert.equal(state.orders["1"]?.status, "making");
-    assert.equal(state.orders["1"]?.claimedBy, "Sam");
     state = markReady(state, "1", 1200);
     assert.equal(state.orders["1"]?.status, "ready");
     state = markCollected(state, "1", 1300);
@@ -105,10 +104,10 @@ describe("orders", () => {
 
   it("unclaims back to queued and clears the bartender", () => {
     let { state } = submit(createState(), gt);
-    state = claimOrder(state, "1", "Sam", 1);
+    state = claimOrder(state, "1", 1);
     state = unclaimOrder(state, "1");
     assert.equal(state.orders["1"]?.status, "queued");
-    assert.equal(state.orders["1"]?.claimedBy, undefined);
+    assert.equal(state.orders["1"]?.claimedAt, undefined);
   });
 
   it("lets only the guest who ordered mark it collected", () => {
@@ -145,7 +144,7 @@ describe("board", () => {
     state = submit(state, mule, "u2", 2).state;
     state = submit(state, gt, "u3", 3).state;
     state = submit(state, mule, "u4", 4).state;
-    state = claimOrder(state, "1", "Sam", 10);
+    state = claimOrder(state, "1", 10);
     state = markReady(state, "2", 20);
     state = markReady(state, "3", 30);
     const b = board(state, 100);
@@ -218,7 +217,7 @@ describe("batches", () => {
   it("excludes orders already being made", () => {
     let s = submit(createState(), gt, "a", 1).state;
     s = submit(s, gt, "b", 2).state;
-    s = claimOrder(s, "1", "Sam", 3);
+    s = claimOrder(s, "1", 3);
     assert.deepEqual(batches(s, DEFAULT_CATALOG).flatMap((x) => x.orders.map((o) => o.id)), ["2"]);
   });
 });

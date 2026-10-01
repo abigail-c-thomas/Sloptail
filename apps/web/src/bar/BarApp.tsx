@@ -114,7 +114,7 @@ export function BarApp() {
               variant="ghost"
               onClick={() => {
                 setLastReady(null);
-                void act(() => api.claim(undo.id, undo.claimedBy ?? "bar"));
+                void act(() => api.claim(undo.id));
               }}
             >
               Undo
@@ -132,7 +132,7 @@ export function BarApp() {
                 {b.orders.length > 1 ? <div className="batch-label">×{b.orders.length} {b.label}</div> : null}
                 {b.orders.map((o) => (
                   <OrderCard key={o.id} order={o} now={now}>
-                    <Button size="sm" onClick={() => act(() => api.claim(o.id, "bar"))}>
+                    <Button size="sm" onClick={() => act(() => api.claim(o.id))}>
                       Start
                     </Button>
                     <ReprintButton order={o} onReprint={() => act(() => api.reprint(o.id))} />

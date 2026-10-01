@@ -117,7 +117,6 @@ export const Order = z.object({
   proposal: Proposal,
   status: OrderStatus,
   createdAt: z.number(),
-  claimedBy: z.string().optional(),
   claimedAt: z.number().optional(),
   readyAt: z.number().optional(),
   collectedAt: z.number().optional(),
@@ -217,10 +216,6 @@ export const OutOfBody = z.object({
 });
 export type OutOfBody = z.infer<typeof OutOfBody>;
 
-export const ClaimBody = z.object({
-  bartender: z.string().min(1).max(40),
-});
-export type ClaimBody = z.infer<typeof ClaimBody>;
 
 /** Heartbeat from the print bridge, shown on the bar screen. */
 export const PrinterReport = z.object({

@@ -43,7 +43,7 @@ export function makeBarApi(token: string) {
   }
   return {
     view: () => call<BarView>(""),
-    claim: (id: string, bartender: string) => call<Order>(`/orders/${id}/claim`, { bartender }),
+    claim: (id: string) => call<Order>(`/orders/${id}/claim`, {}),
     unclaim: (id: string) => call<Order>(`/orders/${id}/unclaim`, {}),
     ready: (id: string) => call<Order>(`/orders/${id}/ready`, {}),
     cancel: (id: string, reason: string) => call<Order>(`/orders/${id}/cancel`, { reason }),
