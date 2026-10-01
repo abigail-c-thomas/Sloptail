@@ -42,12 +42,13 @@
 .bar-header { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
 .bar-columns {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 12px;
   align-items: start;
 }
 @media (max-width: 700px) { .bar-columns { grid-template-columns: 1fr; } }
 .bar-col { display: flex; flex-direction: column; gap: 10px; }
+.ready-row { padding: 6px 0; border-bottom: 1px dotted var(--line); gap: 8px; }
 .bar-col > h2 { display: flex; justify-content: space-between; align-items: baseline; padding: 0 4px; }
 .bar-col > h2 .count { font-size: 0.9rem; color: var(--text-muted); font-weight: 500; }
 .batch { border-left: 2px solid var(--line); padding-left: 10px; display: flex; flex-direction: column; gap: 8px; }

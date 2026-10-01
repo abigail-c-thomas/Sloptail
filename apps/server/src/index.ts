@@ -140,6 +140,7 @@ barApi.get("/", async (c) => c.json(await bar(c.env).getBarView()));
 barApi.post("/orders/:id/claim", async (c) => unwrap(c, await bar(c.env).claim(c.req.param("id"))));
 barApi.post("/orders/:id/unclaim", async (c) => unwrap(c, await bar(c.env).unclaim(c.req.param("id"))));
 barApi.post("/orders/:id/ready", async (c) => unwrap(c, await bar(c.env).ready(c.req.param("id"))));
+barApi.post("/orders/:id/collected", async (c) => unwrap(c, await bar(c.env).collected(c.req.param("id"))));
 barApi.post("/orders/:id/cancel", body(z.object({ reason: z.string().max(200).default("cancelled by bar") })), async (c) =>
   unwrap(c, await bar(c.env).cancel(c.req.param("id"), c.req.valid("json").reason)),
 );

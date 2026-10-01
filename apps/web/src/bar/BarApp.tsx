@@ -10,9 +10,9 @@ const UNDO_MS = 8000;
 const PRINTER_SILENT_MS = 20 * 1000;
 
 /**
- * Bar screen. Two columns: what to make next (batched) and what's being made.
- * Once a drink is marked ready the bar is done with it; the guest taps "Got it"
- * on their phone and the room screen (/screen) shows who's waiting.
+ * Bar screen. Three columns: what to make next (batched), what's being made,
+ * and what's on the bar waiting to be picked up. The guest normally taps
+ * "Got it" on their phone; "Picked up" here is the bar's override.
  */
 export function BarApp() {
   const [token, setToken] = useState(() => new URLSearchParams(window.location.search).get("token") ?? localStorage.getItem("sloptail:barToken") ?? "");
@@ -184,6 +184,22 @@ export function BarApp() {
                 </Button>
                 <ReprintButton order={o} onReprint={() => act(() => api.reprint(o.id))} />
               </OrderCard>
+            ))}
+          </section>
+
+          <section className="bar-col">
+            <h2>
+              Ready <span className="count">{view?.ready.length ?? 0}</span>
+            </h2>
+            {view?.ready.map((o) => (
+              <div key={o.id} className="row between ready-row">
+                <span>
+                  <b>{o.userName}</b> <span className="muted">{o.proposal.name}</span>
+                </span>
+                <Button size="sm" variant="secondary" onClick={() => act(() => api.collected(o.id))}>
+                  Picked up
+                </Button>
+              </div>
             ))}
           </section>
         </div>

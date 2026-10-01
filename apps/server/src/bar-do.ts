@@ -24,6 +24,7 @@ import {
   guestsNamed,
   createState,
   estimatedOut,
+  markCollected,
   markPrinted,
   markReady,
   needsArt,
@@ -344,6 +345,11 @@ export class BarDO extends DurableObject<Env> {
 
   ready(id: string): Promise<Result<Order>> {
     return this.mutateOrder((s) => markReady(s, id, Date.now()), id);
+  }
+
+  /** The bar saw them take it (or the guest never tapped "Got it"). */
+  collected(id: string): Promise<Result<Order>> {
+    return this.mutateOrder((s) => markCollected(s, id, Date.now()), id);
   }
 
   collectedByGuest(id: string, userId: string): Promise<Result<Order>> {
