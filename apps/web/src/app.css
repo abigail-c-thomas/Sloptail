@@ -16,6 +16,10 @@
 .name-step { margin: auto 0; padding-bottom: 20vh; }
 /* Centred field: once focused, the caret would sit in the middle of "Name". */
 .name-step input:focus::placeholder { color: transparent; }
+/* The first thing a guest sees, and it's autofocused (so no placeholder): make it an obvious box. */
+.name-step .field > label { text-align: center; font-size: 1.1rem; text-transform: none; }
+.name-step .input { border: 2px solid var(--text); padding: 10px 12px; }
+.name-step .input:focus { border-color: var(--accent); }
 
 /* Optional sweet/sour pickers: secondary to the free text, so small and quiet. */
 .flavour-dials { display: flex; flex-direction: column; gap: 6px; }

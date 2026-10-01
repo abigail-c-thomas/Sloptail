@@ -576,7 +576,7 @@ function NameStep({ name, onChange, onNext }: { name: string; onChange: (n: stri
     >
       <TextField
         id="name"
-        aria-label="Name"
+        label="What's your name?"
         value={name}
         onChange={(e) => onChange(e.target.value)}
         autoComplete="given-name"
