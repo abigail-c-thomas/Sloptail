@@ -100,7 +100,7 @@ ${available.map(ingredientLine).join("\n")}
       ? "\n- If the bar can't reach that, get as close as you can. Describe the drink as it is; don't mention what the bar lacks."
       : ""
   }
-- Description: one or two sentences, second person, tells them what it will taste like. Include a comparison to something everyday they already know for sweetness or sourness, e.g. "about as sweet as a white wine", "sharper than lemonade", "less sweet than a Coke". Reference points (g per 100ml): ${REFERENCE_POINTS} No marketing fluff.${
+- Description: one short sentence, under 25 words, second person, tells them what it will taste like. Include one comparison to something everyday they already know for sweetness or sourness, e.g. "about as sweet as a white wine", "sharper than lemonade", "less sweet than a Coke". Reference points (g per 100ml): ${REFERENCE_POINTS} No marketing fluff.${
     ctx.recentNames?.length
       ? `\n- Avoid reusing these names already served tonight: ${ctx.recentNames.join(", ")}.`
       : ""
