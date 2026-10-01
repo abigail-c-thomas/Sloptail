@@ -38,5 +38,10 @@ export function parseProposal(text: string): Proposal {
   if (!result.success) {
     throw new ParseError(`Proposal failed schema: ${z.prettifyError(result.error)}`, text);
   }
-  return result.data;
+  return { ...result.data, description: firstSentence(result.data.description) };
+}
+
+/** Descriptions are one sentence; models drift into a second, so keep only the first. */
+export function firstSentence(text: string): string {
+  return text.trim().split(/(?<=[.!?])\s+(?=[A-Z"“])/)[0]!;
 }

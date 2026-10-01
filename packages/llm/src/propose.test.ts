@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import { DEFAULT_CATALOG, type Proposal } from "@sloptail/shared";
 import { FakeClient } from "./client.ts";
-import { extractJson } from "./parse.ts";
+import { extractJson, firstSentence } from "./parse.ts";
 import { edit, propose, ProposeError } from "./propose.ts";
 import type { PromptContext } from "./prompt.ts";
 
@@ -192,5 +192,13 @@ describe("extractJson", () => {
     assert.deepEqual(extractJson('```json\n{"a":1}\n```'), { a: 1 });
     assert.deepEqual(extractJson('Sure: {"a":1} hope you like it'), { a: 1 });
     assert.throws(() => extractJson("nothing here"), /No JSON/);
+  });
+});
+
+describe("firstSentence", () => {
+  it("keeps only the first sentence of a description", () => {
+    assert.equal(firstSentence("You get gin and ginger. It is about as sweet as a Coke."), "You get gin and ginger.");
+    assert.equal(firstSentence("  Tart, about 1.5x sharper than tonic; dry finish. "), "Tart, about 1.5x sharper than tonic; dry finish.");
+    assert.equal(firstSentence("Bright! Then bitter."), "Bright!");
   });
 });
