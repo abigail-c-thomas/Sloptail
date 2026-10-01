@@ -199,7 +199,7 @@ export const EventConfig = z.object({
 export type EventConfig = z.infer<typeof EventConfig>;
 
 export const DescribeBody = z.object({
-  names: z.array(z.string().trim().min(1).max(60)).min(1).max(30),
+  names: z.array(z.string().trim().min(1).max(100)).min(1).max(80),
 });
 export type DescribeBody = z.infer<typeof DescribeBody>;
 
