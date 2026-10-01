@@ -9,11 +9,12 @@ export function queue(state: BarState): Order[] {
 }
 
 /**
- * Orders that still need a ticket, oldest first. Only orders nobody has
- * finished yet: a ticket for a drink already on the bar is waste.
+ * Orders that still need a ticket, oldest first. Only once a bartender has
+ * claimed it (a pile of tickets for drinks nobody has started gets muddled),
+ * and not once it's done: a ticket for a drink already on the bar is waste.
  */
 export function toPrint(state: BarState): Order[] {
-  return queue(state).filter((o) => o.printedAt === undefined);
+  return queue(state).filter((o) => o.status === "making" && o.printedAt === undefined);
 }
 
 /**

@@ -228,11 +228,15 @@ describe("printing", () => {
     const a = submitOrder(s, { userId: "u1", userName: "Ada", request, proposal: gt, now: 1 });
     const b = submitOrder(a.state, { userId: "u2", userName: "Bo", request, proposal: gt, now: 2 });
     s = b.state;
+    // Nothing prints until the bar starts making it.
+    assert.deepEqual(toPrint(s), []);
+    s = claimOrder(s, "2", 3);
+    s = claimOrder(s, "1", 4);
     assert.deepEqual(toPrint(s).map((o) => o.id), ["1", "2"]);
 
     s = markPrinted(s, "1", 10);
     assert.equal(s.orders["1"]!.printedAt, 10);
-    assert.equal(s.orders["1"]!.status, "queued");
+    assert.equal(s.orders["1"]!.status, "making");
     assert.deepEqual(toPrint(s).map((o) => o.id), ["2"]);
 
     s = requestReprint(s, "1");
@@ -248,6 +252,7 @@ describe("ticket art", () => {
   it("holds a ticket back until its drawing is in, or until the wait runs out", () => {
     let s = submitOrder(createState(), { userId: "u1", userName: "Ada", request, proposal: gt, now: 1000 }).state;
     s = submitOrder(s, { userId: "u2", userName: "Bo", request, proposal: gt, now: 2000 }).state;
+    s = claimOrder(claimOrder(s, "1", 2500), "2", 2500);
     assert.deepEqual(needsArt(s).map((o) => o.id), ["1", "2"]);
     assert.deepEqual(readyToPrint(s, 3000, 30_000), []);
 
