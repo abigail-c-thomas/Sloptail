@@ -97,7 +97,7 @@ export const CLASSICS: Classic[] = [
       glass: "highball",
       recipe: [
         { ingredient: "whiskey", amount: 1.5 },
-        { ingredient: "honey-syrup", amount: 0.5 },
+        { ingredient: "honey-syrup", amount: 2 },
         { ingredient: "lime-juice", amount: 0.75 },
         { ingredient: "soda", amount: "fill" },
       ],
@@ -127,7 +127,7 @@ export const CLASSICS: Classic[] = [
       glass: "highball",
       recipe: [
         { ingredient: "black-tea", amount: 3 },
-        { ingredient: "honey-syrup", amount: 0.25 },
+        { ingredient: "honey-syrup", amount: 1 },
         { ingredient: "lime-juice", amount: 0.25 },
         { ingredient: "soda", amount: "fill" },
         { ingredient: "citrus-peel", amount: 1 },

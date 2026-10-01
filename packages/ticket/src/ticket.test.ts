@@ -19,7 +19,7 @@ const order: Order = {
       { ingredient: "mint-sprig", amount: 1 },
       { ingredient: "soda", amount: "fill" },
       { ingredient: "black-tea", amount: 2 },
-      { ingredient: "honey-syrup", amount: 0.5 },
+      { ingredient: "honey-syrup", amount: 2 },
       { ingredient: "angostura", amount: 2 },
     ],
   },
@@ -41,7 +41,7 @@ describe("orderTicket", () => {
       items.map((l) => l.replace(/ \.+ .*$/, "")),
       ["Black tea (cold)", "Buckwheat honey syrup", "Angostura bitters", "Soda water", "Mint sprig"],
     );
-    assert.match(items[1]!, / \.5 part$/);
+    assert.match(items[1]!, / 2 pumps$/);
     assert.match(items[3]!, /top up$/);
     for (const l of items) assert.equal(l.length, 40);
   });

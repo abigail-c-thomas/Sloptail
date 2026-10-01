@@ -63,10 +63,10 @@ Fields:
 - id: the name in lowercase with dashes ("Lime juice" -> "lime-juice").
 - name: the name exactly as given.
 - type: "base" (spirits, fortified wine, liqueurs), "mixer" (sodas, juices, teas used to lengthen), "flavoring" (syrups, citrus, bitters, tinctures, acids, anything used in small amounts), or "garnish" (herbs, peels, spices placed in the glass).
-- unit: "part" (1 part = 30ml) for anything poured with a jigger; "barspoon" for thick things used by the spoon; "dash" for bitters; "drop" for tinctures, extracts and solutions; "piece" for garnishes.
+- unit: "part" (1 part = 30ml) for anything poured with a jigger; "pump" (7.5ml a press) for syrups, which are thinned to coffee-syrup consistency and served from pumps; "barspoon" for thick things used by the spoon; "dash" for bitters; "drop" for tinctures, extracts and solutions; "piece" for garnishes.
 - flavor: 2-4 short tags.
 - alcoholic: true if it contains any alcohol (bitters and tinctures do). abv: percentage, only if alcoholic.
-- max: a sensible per-drink cap in that unit for anything potent (syrups ~0.75 part, citrus ~1 part, bitters ~4 dashes, tinctures and extracts 2-4 drops, garnishes 1-2). Omit for spirits and mixers.
+- max: a sensible per-drink cap in that unit for anything potent (syrups ~3 pumps, citrus ~1 part, bitters ~4 dashes, tinctures and extracts 2-4 drops, garnishes 1-2). Omit for spirits and mixers.
 - sugar and acid: rough grams per 100ml, only if meaningfully above zero (e.g. cola sugar 10.6 acid 0.1; lime juice sugar 1.5 acid 6; 1:1 simple syrup sugar 60).
 - notes: optional, a short bar-side tip only if it matters (e.g. "overpowering, 1 drop is plenty").
 

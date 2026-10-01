@@ -95,7 +95,7 @@ describe("propose", () => {
       glass: "highball",
       recipe: [
         { ingredient: "rum", amount: 1.5 },
-        { ingredient: "agave-syrup", amount: 0.5 },
+        { ingredient: "agave-syrup", amount: 2 },
         { ingredient: "cola", amount: "fill" },
       ],
     };
@@ -141,7 +141,7 @@ describe("edit", () => {
       glass: "highball",
       recipe: [
         { ingredient: "rum", amount: 1.5 },
-        { ingredient: "agave-syrup", amount: 0.5 },
+        { ingredient: "agave-syrup", amount: 2 },
         { ingredient: "cola", amount: "fill" },
       ],
     };

@@ -112,7 +112,7 @@ export type RecipeIssue =
   | { kind: "too-weak"; alcoholMl: number; min: number }
   | { kind: "not-offered"; ingredient: string }
   | { kind: "silly-amount"; ingredient: string; amount: number; max: number }
-  | { kind: "odd-measure"; ingredient: string; amount: number };
+  | { kind: "odd-measure"; ingredient: string; amount: number; unit: Ingredient["unit"] };
 
 /**
  * Pure validation of a recipe against the pantry the model was shown and the
@@ -140,9 +140,9 @@ export function validateRecipe(
       const fallback = ing.unit === "part" ? 6 : ing.unit === "drop" ? 6 : ing.unit === "dash" ? 6 : 4;
       const max = ing.max ?? fallback;
       if (item.amount > max) issues.push({ kind: "silly-amount", ingredient: ing.id, amount: item.amount, max });
-      // A jigger has quarter marks at best.
-      if (ing.unit === "part" && !Number.isInteger(item.amount * 4)) {
-        issues.push({ kind: "odd-measure", ingredient: ing.id, amount: item.amount });
+      // A jigger has quarter marks at best; everything else is counted (pumps, dashes, drops, pieces).
+      if (ing.unit === "part" ? !Number.isInteger(item.amount * 4) : ing.unit !== "barspoon" && !Number.isInteger(item.amount)) {
+        issues.push({ kind: "odd-measure", ingredient: ing.id, amount: item.amount, unit: ing.unit });
       }
     }
   }
@@ -171,7 +171,9 @@ export function describeIssue(issue: RecipeIssue): string {
     case "silly-amount":
       return `${issue.amount} of "${issue.ingredient}" is too much; the maximum is ${issue.max}.`;
     case "odd-measure":
-      return `${issue.amount} parts of "${issue.ingredient}" can't be measured with a jigger. Use quarter-part steps (0.25, 0.5, 0.75, 1, ...).`;
+      return issue.unit === "part"
+        ? `${issue.amount} parts of "${issue.ingredient}" can't be measured with a jigger. Use quarter-part steps (0.25, 0.5, 0.75, 1, ...).`
+        : `${issue.amount} ${issue.unit}s of "${issue.ingredient}" isn't possible. Use a whole number of ${issue.unit}s.`;
   }
 }
 
