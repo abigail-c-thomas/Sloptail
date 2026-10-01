@@ -8,3 +8,4 @@ dist/
 .DS_Store
 .obsidian/
 packages/llm/evals/results/
+CLAUDE.local.md
