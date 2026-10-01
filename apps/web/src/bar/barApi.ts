@@ -49,6 +49,7 @@ export function makeBarApi(token: string) {
     cancel: (id: string, reason: string) => call<Order>(`/orders/${id}/cancel`, { reason }),
     availability: (ingredient: Ingredient["id"], available: boolean) =>
       call<{ unavailable: string[]; affected: Order[] }>("/availability", { ingredient, available }),
+    art: (id: string) => call<{ svg: string }>(`/orders/${id}/art`),
     reprint: (id: string) => call<Order>(`/orders/${id}/reprint`, {}),
   };
 }

@@ -16,6 +16,9 @@ import {
   markCollected,
   markPrinted,
   markReady,
+  needsArt,
+  readyToPrint,
+  setArt,
   ordersForUser,
   ordersUsing,
   queue,
@@ -239,5 +242,24 @@ describe("printing", () => {
     s = markReady(s, "2", 20);
     assert.deepEqual(toPrint(s).map((o) => o.id), ["1"]);
     assert.throws(() => markPrinted(s, "nope", 1), StateError);
+  });
+});
+
+describe("ticket art", () => {
+  it("holds a ticket back until its drawing is in, or until the wait runs out", () => {
+    let s = submitOrder(createState(), { userId: "u1", userName: "Ada", request, proposal: gt, now: 1000 }).state;
+    s = submitOrder(s, { userId: "u2", userName: "Bo", request, proposal: gt, now: 2000 }).state;
+    assert.deepEqual(needsArt(s).map((o) => o.id), ["1", "2"]);
+    assert.deepEqual(readyToPrint(s, 3000, 30_000), []);
+
+    s = setArt(s, "2", "done");
+    assert.deepEqual(needsArt(s).map((o) => o.id), ["1"]);
+    assert.deepEqual(readyToPrint(s, 3000, 30_000).map((o) => o.id), ["2"]);
+    // Order 1's drawing is slow: print without it once the wait is up.
+    assert.deepEqual(readyToPrint(s, 31_000, 30_000).map((o) => o.id), ["1", "2"]);
+
+    s = setArt(s, "1", "failed");
+    assert.deepEqual(needsArt(s), []);
+    assert.deepEqual(readyToPrint(s, 3000, 30_000).map((o) => o.id), ["1", "2"]);
   });
 });

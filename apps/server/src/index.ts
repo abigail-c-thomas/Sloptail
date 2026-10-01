@@ -16,9 +16,10 @@ import {
   StartBody,
   SubmitBody,
 } from "@sloptail/shared";
-import { OpenRouterClient, ProposeError, describeIngredients, edit, propose } from "@sloptail/llm";
+import { ProposeError, describeIngredients, edit, propose } from "@sloptail/llm";
 import type { Env } from "./env.ts";
 import type { Result } from "./bar-do.ts";
+import { llm } from "./models.ts";
 
 export { BarDO } from "./bar-do.ts";
 
@@ -32,16 +33,6 @@ app.use("*", cors());
 
 function bar(env: Env) {
   return env.BAR.get(env.BAR.idFromName("main"));
-}
-
-function llm(env: Env) {
-  return new OpenRouterClient({
-    apiKey: env.OPENROUTER_API_KEY,
-    model: env.OPENROUTER_MODEL ?? "openai/gpt-5.6-luna",
-    fallbackModels: env.OPENROUTER_FALLBACK_MODELS?.split(",").map((s) => s.trim()).filter(Boolean),
-    appName: "sloptail",
-    reasoning: env.OPENROUTER_REASONING as "none" | "low" | "medium" | "high" | undefined,
-  });
 }
 
 /** Parse the JSON body with a zod schema; 400 with details on failure. */
@@ -160,6 +151,10 @@ barApi.post("/orders/:id/cancel", body(z.object({ reason: z.string().max(200).de
 
 barApi.get("/print-queue", async (c) => c.json(await bar(c.env).getPrintQueue()));
 barApi.post("/orders/:id/printed", async (c) => unwrap(c, await bar(c.env).printed(c.req.param("id"))));
+barApi.get("/orders/:id/art", async (c) => {
+  const svg = await bar(c.env).getArt(c.req.param("id"));
+  return svg ? c.json({ svg }) : c.json({ error: "no drawing" }, 404);
+});
 barApi.post("/orders/:id/reprint", async (c) => unwrap(c, await bar(c.env).reprint(c.req.param("id"))));
 barApi.post("/printer", body(PrinterReport), async (c) => {
   await bar(c.env).reportPrinter(c.req.valid("json"));

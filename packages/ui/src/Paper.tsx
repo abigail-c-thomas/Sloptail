@@ -11,10 +11,11 @@ export function Paper({ doc, className }: { doc: PrintDocument; className?: stri
   const rows = doc.lines();
   // A trailing cut is just the end of the ticket.
   if (rows.at(-1)?.kind === "cut") rows.pop();
-  const margin = (paper.paperDots - paper.dots) / 2;
+  const left = (paper.paperDots - paper.printable) / 2 + paper.left;
+  const right = paper.paperDots - left - paper.dots;
   return (
     <div className={`paper ${className ?? ""}`}>
-      <div className="paper-sheet" style={{ "--paper-dots": paper.paperDots, "--margin": margin } as CSSProperties}>
+      <div className="paper-sheet" style={{ "--paper-dots": paper.paperDots, "--margin-l": left, "--margin-r": right } as CSSProperties}>
         {rows.map((row, i) =>
           row.kind === "cut" ? (
             <div key={i} className="paper-cut" />

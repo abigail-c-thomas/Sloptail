@@ -1,7 +1,9 @@
 import { DurableObject } from "cloudflare:workers";
+import { drawArt } from "@sloptail/llm";
 import {
   CATALOG,
   EventConfig,
+  artKey,
   makeCatalog,
   type Catalog,
   type Ingredient,
@@ -23,6 +25,9 @@ import {
   estimatedOut,
   markPrinted,
   markReady,
+  needsArt,
+  readyToPrint,
+  setArt,
   ordersForUser,
   ordersUsing,
   queue,
@@ -32,7 +37,6 @@ import {
   stats,
   stockLevels,
   submitOrder,
-  toPrint,
   unclaimOrder,
   type BarState,
   type NamedGuest,
@@ -43,6 +47,12 @@ import {
   type SubmitInput,
 } from "@sloptail/state";
 import type { Env } from "./env.ts";
+import { artLlm } from "./models.ts";
+
+/** Print a ticket without its drawing if the drawing takes longer than this. */
+const ART_WAIT_MS = 30_000;
+/** Drawings in progress at once. */
+const ART_CONCURRENCY = 6;
 
 /** Result shape for RPC methods: StateError doesn't survive the RPC boundary intact. */
 export type Result<T> = { ok: true; value: T } | { ok: false; code: StateError["code"]; message: string };
@@ -64,8 +74,15 @@ export interface BarView {
   printer: PrinterStatus | null;
 }
 
+export interface PrintJob {
+  order: Order;
+  /** The ticket drawing, if it's done. */
+  art?: string;
+}
+
 export interface PrintQueue {
-  orders: Order[];
+  /** Orders whose ticket can print now (drawing in, failed, or waited long enough), oldest first. */
+  jobs: PrintJob[];
   catalog: Ingredient[];
   /** From the admin screen; the bridge uses it unless told otherwise. */
   printerIp: string;
@@ -228,9 +245,15 @@ export class BarDO extends DurableObject<Env> {
   }
 
   /** Everything the print bridge needs in one call: what to print, and how to name the ingredients. */
-  getPrintQueue(): PrintQueue {
+  async getPrintQueue(): Promise<PrintQueue> {
+    const orders = readyToPrint(this.state, Date.now(), ART_WAIT_MS);
+    const keys = orders.filter((o) => o.art === "done").map(artKey);
+    const art = keys.length ? await this.ctx.storage.get<string>(keys) : new Map<string, string>();
     return {
-      orders: toPrint(this.state),
+      jobs: orders.map((order) => {
+        const svg = art.get(artKey(order));
+        return svg ? { order, art: svg } : { order };
+      }),
       catalog: [...this.catalog.list],
       printerIp: this.config.profiles[this.config.active].printerIp,
     };
@@ -246,15 +269,68 @@ export class BarDO extends DurableObject<Env> {
 
   // --- writes ------------------------------------------------------------
 
-  submit(input: Omit<SubmitInput, "now">): Promise<Result<Order>> {
+  async submit(input: Omit<SubmitInput, "now">): Promise<Result<Order>> {
     const unknown = input.proposal.recipe.find((r) => !this.catalog.byId.has(r.ingredient));
     if (unknown) {
-      return Promise.resolve({ ok: false, code: "unavailable-ingredient", message: `This bar doesn't have ${unknown.ingredient}` });
+      return { ok: false, code: "unavailable-ingredient", message: `This bar doesn't have ${unknown.ingredient}` };
     }
-    return this.mutate((s) => {
+    const result = await this.mutate((s) => {
       const { state, order } = submitOrder(s, { ...input, now: Date.now() });
       return { state, value: order };
     });
+    // Start (or keep going with) the ticket drawings.
+    if (result.ok) await this.ctx.storage.setAlarm(Date.now());
+    return result;
+  }
+
+  /** The drawing for an order, if there is one. */
+  async getArt(id: string): Promise<string | null> {
+    const order = this.state.orders[id];
+    if (order?.art !== "done") return null;
+    return (await this.ctx.storage.get<string>(artKey(order))) ?? null;
+  }
+
+  // --- ticket drawings ---------------------------------------------------
+
+  /**
+   * Draws pictures for orders that need one. An alarm rather than a request
+   * because a drawing takes ~10s and a request's work can be cut short once
+   * the response is sent. Keeps going while orders keep arriving, a few at a
+   * time; if the object restarts mid-way, the next order's alarm picks the
+   * leftovers up (needsArt is derived from state).
+   */
+  async alarm(): Promise<void> {
+    const until = Date.now() + 10 * 60_000;
+    const running = new Map<string, Promise<void>>();
+    while (Date.now() < until) {
+      for (const order of needsArt(this.state)) {
+        if (running.size >= ART_CONCURRENCY) break;
+        if (!running.has(order.id)) running.set(order.id, this.draw(order).finally(() => running.delete(order.id)));
+      }
+      if (!running.size) return;
+      await Promise.race([...running.values(), new Promise((r) => setTimeout(r, 1000))]);
+    }
+    await this.ctx.storage.setAlarm(Date.now());
+  }
+
+  private async draw(order: Order): Promise<void> {
+    const ctx = {
+      catalog: this.catalog,
+      userName: order.userName,
+      request: order.request,
+      unavailable: new Set(this.effectiveUnavailable()),
+    };
+    let art: "done" | "failed" = "failed";
+    try {
+      const { svg } = await drawArt(ctx, order.proposal, artLlm(this.env));
+      await this.ctx.storage.put(artKey(order), svg);
+      art = "done";
+    } catch (e) {
+      console.error("drawing failed", order.id, (e as Error).message);
+    }
+    // Skip if the bar was reset while we were drawing.
+    if (this.state.orders[order.id]?.createdAt !== order.createdAt) return;
+    await this.mutate((s) => ({ state: setArt(s, order.id, art), value: null }));
   }
 
   claim(id: string, bartender: string): Promise<Result<Order>> {

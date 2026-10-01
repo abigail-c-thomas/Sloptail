@@ -44,7 +44,7 @@ describe("PrintDocument", () => {
 
   it("draws rules as underlined spaces", () => {
     const [row] = new PrintDocument().rule().lines();
-    assert.ok(row?.kind === "line" && row.spans[0]!.style.ul && row.spans[0]!.text === " ".repeat(42));
+    assert.ok(row?.kind === "line" && row.spans[0]!.style.ul && row.spans[0]!.text === " ".repeat(40));
   });
 
   it("escapes markup", () => {
@@ -53,9 +53,14 @@ describe("PrintDocument", () => {
 
   it("knows its line width", () => {
     const d = new PrintDocument();
-    assert.equal(d.cols(), 42);
-    assert.equal(d.cols({ width: 2 }), 21);
-    assert.equal(d.cols({ font: "font_b" }), 56);
+    assert.equal(d.cols(), 40);
+    assert.equal(d.cols({ width: 2 }), 20);
+    assert.equal(d.cols({ font: "font_b" }), 53);
+  });
+
+  it("sets the left margin and print width at the start of every job", () => {
+    // GS L 24 (0x18), GS W 480 (0x1e0)
+    assert.match(new PrintDocument().toXml(), /<command>1d4c18001d57e001<\/command>/);
   });
 
   it("rejects out-of-range sizes", () => {

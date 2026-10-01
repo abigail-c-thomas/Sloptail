@@ -258,7 +258,7 @@ a { color: var(--accent); }
   --paper: #fbfaf5;
   background: var(--paper);
   color: var(--ink);
-  padding: calc(var(--dot) * 36) calc(var(--dot) * var(--margin)) calc(var(--dot) * 48);
+  padding: calc(var(--dot) * 36) calc(var(--dot) * var(--margin-r)) calc(var(--dot) * 48) calc(var(--dot) * var(--margin-l));
   /* Torn-off bottom edge. */
   --tear: calc(var(--dot) * 10);
   mask: conic-gradient(from -45deg at bottom, #0000, #000 1deg 89deg, #0000 90deg) 50% / calc(var(--tear) * 2) 100%;
@@ -292,7 +292,7 @@ a { color: var(--accent); }
 .paper-span.em { font-weight: 700; }
 .paper-span.rev { background: var(--ink); color: var(--paper); }
 .paper-span.ul { box-shadow: inset 0 calc(var(--dot) * -2) 0 var(--ink); }
-.paper-cut { border-top: 1px dashed #aaa; margin: calc(var(--dot) * 30) calc(var(--dot) * var(--margin) * -1); }
+.paper-cut { border-top: 1px dashed #aaa; margin: calc(var(--dot) * 30) calc(var(--dot) * var(--margin-r) * -1) calc(var(--dot) * 30) calc(var(--dot) * var(--margin-l) * -1); }
 .paper-image {
   display: block;
   width: calc(var(--dot) * var(--iw));

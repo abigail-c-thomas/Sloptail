@@ -1,54 +1,45 @@
-import { buildOrder, formatAmount, type Catalog, type Order, type Strength } from "@sloptail/shared";
-import { PrintDocument, printable, type TextStyle } from "@sloptail/printer";
+import { buildOrder, formatAmount, type Catalog, type Order } from "@sloptail/shared";
+import { PrintDocument, printable, wrap, type Bitmap, type TextStyle } from "@sloptail/printer";
 
 /**
- * The ticket for one order. Two readers: the bartender (top half: who, what
- * glass, what goes in, in build order) and then the guest, because the ticket
- * stays with the drink (bottom half: what it is and what they asked for).
+ * The ticket for one order. Two readers: the bartender (who, what goes in,
+ * in build order) and then the guest, because the ticket stays with the
+ * drink (the drawing, what it is, what they asked for).
  */
 
-const STRENGTH_LABEL: Record<Strength, string> = {
-  zero: "NO ALCOHOL",
-  trace: "LOW ALCOHOL",
-  half: "HALF STRENGTH",
-  full: "FULL STRENGTH",
-};
+/** How wide the drawing prints, in dots (about 40mm). */
+export const ART_DOTS = 288;
+
+/** Lines of the guest's prompt to print, so nobody prints the Bee Movie script. */
+const PROMPT_LINES = 3;
 
 /** An order, or a proposal the guest hasn't ordered yet (no id or time). */
 export type TicketInput = Pick<Order, "userName" | "request" | "proposal"> & Partial<Pick<Order, "id" | "createdAt">>;
 
-export function orderTicket(order: TicketInput, catalog: Catalog, opts: { timeZone?: string } = {}): PrintDocument {
+export function orderTicket(order: TicketInput, catalog: Catalog, opts: { art?: Bitmap | undefined } = {}): PrintDocument {
   const doc = new PrintDocument();
   const small: TextStyle = { font: "font_b" };
   const { proposal, request } = order;
 
   // --- who: big enough to read from across the bar ----------------------
-  doc.feed(1);
-  doc.line(order.userName.toUpperCase(), { ...nameSize(doc, order.userName), align: "center", em: true });
-  if (order.id !== undefined && order.createdAt !== undefined) {
-    const time = new Date(order.createdAt).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit", timeZone: opts.timeZone });
-    doc.line(`order ${order.id}  -  ${time}`, { ...small, align: "center" });
-  }
+  // No feed first: the printer already leaves a gap above the cut.
+  doc.line(order.userName.toUpperCase(), { ...fit(doc, order.userName, 3), align: "center", em: true });
   doc.rule();
   doc.feed(1);
 
   // --- what ------------------------------------------------------------
-  doc.paragraph(proposal.name, { height: 2, em: true });
-  // Glass on the left, strength in bold on the right: a mocktail mustn't be
-  // mistaken for the real thing. (Reverse-video came out smudgy on paper.)
-  const glass = `${capitalise(proposal.glass)} glass, ice`;
-  const tag = STRENGTH_LABEL[request.strength];
-  doc.text(glass + " ".repeat(Math.max(1, doc.cols() - glass.length - tag.length)));
-  doc.line(tag, { em: true });
+  doc.paragraph(proposal.name, { ...fit(doc, proposal.name, 2), align: "center", em: true });
+  if (opts.art) {
+    doc.feed(1);
+    doc.image(opts.art, "center");
+  }
   doc.feed(1);
 
-  // --- build steps -----------------------------------------------------
-  let step = 0;
+  // --- what goes in, in build order --------------------------------------
   for (const item of buildOrder(proposal.recipe, catalog)) {
     const ing = catalog.byId.get(item.ingredient);
-    const garnish = ing?.type === "garnish";
     // Measure what will actually print ("½" becomes "1/2").
-    const label = printable(`${garnish ? " +" : String(++step).padStart(2)}  ${ing?.name ?? item.ingredient}`);
+    const label = printable(ing?.name ?? item.ingredient);
     const amount = printable(formatAmount(item, ing));
     const width = doc.cols();
     const room = width - amount.length - 1;
@@ -56,9 +47,8 @@ export function orderTicket(order: TicketInput, catalog: Catalog, opts: { timeZo
     const gap = width - left.length - amount.length;
     doc.text(left + (gap >= 3 ? " " + ".".repeat(gap - 2) + " " : " ".repeat(gap)));
     doc.line(amount, { em: true });
-    if (ing?.notes && (garnish || ing.type === "flavoring")) doc.line(`      ${ing.notes}`, small);
+    if (ing?.notes && (ing.type === "garnish" || ing.type === "flavoring")) doc.line(`  ${ing.notes}`, small);
   }
-  doc.rule();
 
   // --- for the guest ---------------------------------------------------
   doc.feed(1);
@@ -66,20 +56,20 @@ export function orderTicket(order: TicketInput, catalog: Catalog, opts: { timeZo
   const asked = request.prompt.trim();
   if (asked) {
     doc.feed(1);
-    doc.paragraph(`You asked for: "${asked}"`, small);
+    const lines = wrap(printable(`"${asked}"`), doc.cols(small));
+    if (lines.length > PROMPT_LINES) {
+      lines.length = PROMPT_LINES;
+      lines[PROMPT_LINES - 1] = lines[PROMPT_LINES - 1]!.slice(0, doc.cols(small) - 4).trimEnd() + '..."';
+    }
+    doc.line(lines.join("\n"), small);
   }
   doc.feed(1);
-  doc.line("sloptail  -  ai happy hour", { ...small, align: "center" });
   doc.cut();
   return doc;
 }
 
-/** Biggest name that still fits on one line: 3x for short names, down to 1x. */
-function nameSize(doc: PrintDocument, name: string): TextStyle {
-  for (const size of [3, 2]) if (name.length <= doc.cols({ width: size })) return { width: size, height: size };
+/** Biggest magnification (up to `max`) at which `text` fits on one line; else 1x wide, 2x tall. */
+function fit(doc: PrintDocument, text: string, max: number): TextStyle {
+  for (let size = max; size >= 2; size--) if (printable(text).length <= doc.cols({ width: size })) return { width: size, height: size };
   return { width: 1, height: 2 };
-}
-
-function capitalise(s: string): string {
-  return s.charAt(0).toUpperCase() + s.slice(1);
 }

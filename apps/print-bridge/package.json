@@ -8,6 +8,7 @@
     "start": "node src/main.ts"
   },
   "dependencies": {
+    "@resvg/resvg-wasm": "^2.6.2",
     "@sloptail/printer": "*",
     "@sloptail/shared": "*",
     "@sloptail/ticket": "*"

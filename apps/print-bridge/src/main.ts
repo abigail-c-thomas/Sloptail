@@ -5,7 +5,7 @@
  * and reports printer health so the bar screen can say "out of paper".
  *
  *   node apps/print-bridge/src/main.ts --token BAR_TOKEN [--printer 192.168.0.50] [--url https://…] [--gap 3]
- *   node apps/print-bridge/src/main.ts --printer 192.168.0.50 --test      # one sample ticket, then exit
+ *   node apps/print-bridge/src/main.ts --printer 192.168.0.50 --test [--art pic.svg]  # one sample ticket, then exit
  *   node apps/print-bridge/src/main.ts --preview --token BAR_TOKEN        # show tickets in the terminal; prints nothing
  *
  * The printer address comes from the active profile on /admin unless
@@ -18,7 +18,9 @@
 import { parseArgs } from "node:util";
 import { DEFAULT_CATALOG, makeCatalog, type Catalog, type Ingredient, type Order } from "@sloptail/shared";
 import { EposPrinter, type PrintResult } from "@sloptail/printer";
-import { orderTicket } from "@sloptail/ticket";
+import { readFile } from "node:fs/promises";
+import { ART_DOTS, orderTicket } from "@sloptail/ticket";
+import { svgToBitmap } from "./art.ts";
 
 const { values: args } = parseArgs({
   options: {
@@ -28,14 +30,13 @@ const { values: args } = parseArgs({
     https: { type: "boolean", default: false },
     gap: { type: "string", default: "3" },
     poll: { type: "string", default: "2" },
-    tz: { type: "string" },
+    art: { type: "string" },
     test: { type: "boolean", default: false },
     preview: { type: "boolean", default: false },
   },
 });
 
 const base = args.url.replace(/\/$/, "");
-const timeZone = args.tz;
 
 function log(...parts: unknown[]) {
   console.log(new Date().toLocaleTimeString("en-GB"), ...parts);
@@ -63,7 +64,8 @@ async function api<T>(path: string, body?: unknown): Promise<T> {
 if (args.test) {
   if (!args.printer) fail("--test needs --printer <ip>");
   const printer = new EposPrinter({ host: args.printer, https: args.https });
-  const doc = orderTicket(sampleOrder(), DEFAULT_CATALOG, { timeZone });
+  const art = args.art ? await svgToBitmap(await readFile(args.art, "utf8"), ART_DOTS) : undefined;
+  const doc = orderTicket(sampleOrder(), DEFAULT_CATALOG, { art });
   console.log(doc.toText());
   const r = await printer.print(doc, "test");
   log(r.success ? "✓" : "✗", r.message, r.code ? `(${r.code}, status 0x${r.raw.toString(16)})` : "", r.detail ?? "");
@@ -75,8 +77,13 @@ if (!args.token) fail("Needs --token (the BAR_TOKEN) or BAR_TOKEN in the environ
 // --- the loop ----------------------------------------------------------------
 
 /** Mirrors PrintQueue in apps/server/src/bar-do.ts. */
+interface PrintJob {
+  order: Order;
+  art?: string;
+}
+
 interface PrintQueue {
-  orders: Order[];
+  jobs: PrintJob[];
   catalog: Ingredient[];
   printerIp: string;
 }
@@ -117,13 +124,26 @@ function usePrinter(serverIp: string): EposPrinter | null {
 }
 let warnedNoPrinter = false;
 
-async function handle(order: Order, catalog: Catalog, to: EposPrinter | null) {
+/** The drawing as printer dots, or nothing if there isn't one or it won't render. */
+async function artFor(job: PrintJob) {
+  if (!job.art) return undefined;
+  try {
+    return await svgToBitmap(job.art, ART_DOTS);
+  } catch (e) {
+    log(`  #${job.order.id}: couldn't render the drawing (${(e as Error).message}); printing without it`);
+    return undefined;
+  }
+}
+
+async function handle(job: PrintJob, catalog: Catalog, to: EposPrinter | null) {
+  const { order } = job;
+  const ticket = orderTicket(order, catalog, { art: await artFor(job) });
   if (args.preview || !to) {
-    console.log(`\n${orderTicket(order, catalog, { timeZone }).toText()}\n`);
+    console.log(`\n${ticket.toText()}\n`);
     justPrinted.set(order.id, Date.now() + 24 * 3600_000); // preview once per run
     return;
   }
-  const r = await to.print(orderTicket(order, catalog, { timeZone }), `order-${order.id}`);
+  const r = await to.print(ticket, `order-${order.id}`);
   last = r;
   if (!r.success) {
     log(`✗ #${order.id} ${order.userName}: ${r.message} ${r.code ? `(${r.code}${r.detail ? `: ${r.detail}` : ""})` : ""} Will retry.`);
@@ -160,10 +180,11 @@ async function tick() {
     return;
   }
   const catalog = makeCatalog(queue.catalog);
-  for (const order of queue.orders) {
-    if (inFlight.has(order.id) || justPrinted.has(order.id)) continue;
-    inFlight.add(order.id);
-    void handle(order, catalog, to).finally(() => inFlight.delete(order.id));
+  for (const job of queue.jobs) {
+    const { id } = job.order;
+    if (inFlight.has(id) || justPrinted.has(id)) continue;
+    inFlight.add(id);
+    void handle(job, catalog, to).finally(() => inFlight.delete(id));
   }
 
   if (!printer) return;

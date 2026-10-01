@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import { DEFAULT_CATALOG, type Order } from "@sloptail/shared";
+import { toBitmap } from "@sloptail/printer";
 import { orderTicket } from "./ticket.ts";
 
 const order: Order = {
@@ -25,29 +26,44 @@ const order: Order = {
 };
 
 describe("orderTicket", () => {
-  const text = orderTicket(order, DEFAULT_CATALOG, { timeZone: "UTC" }).toText();
+  const text = orderTicket(order, DEFAULT_CATALOG).toText();
+  const lines = text.split("\n");
 
-  it("leads with the name, big", () => {
-    assert.match(text.split("\n")[1]!, /A {2}D {2}A/);
-    assert.match(text, /order 7 {2}- {2}18:42/);
+  it("leads with the name, big, then a rule and the drink name", () => {
+    assert.match(lines[0]!, /A {2}D {2}A/);
+    assert.match(lines[1]!, /^─+$/);
+    assert.match(text, /T e a {3}P a r t y/);
   });
 
-  it("numbers the build steps in build order, garnish last and unnumbered", () => {
-    const steps = text.split("\n").filter((l) => /^( \d| \+) {2}/.test(l));
+  it("lists ingredients in build order without step numbers, each line full width", () => {
+    const items = lines.filter((l) => / \.+ /.test(l));
     assert.deepEqual(
-      steps.map((l) => l.replace(/ \.+ .*$/, "").trim()),
-      ["1  Black tea (cold)", "2  Buckwheat honey syrup", "3  Angostura bitters", "4  Soda water", "+  Mint sprig"],
+      items.map((l) => l.replace(/ \.+ .*$/, "")),
+      ["Black tea (cold)", "Buckwheat honey syrup", "Angostura bitters", "Soda water", "Mint sprig"],
     );
-    assert.match(steps[3]!, /top up$/);
-    for (const l of steps) assert.equal(l.length, 42);
+    assert.match(items[1]!, /1\/2 part$/);
+    assert.match(items[3]!, /top up$/);
+    for (const l of items) assert.equal(l.length, 40);
   });
 
-  it("flags the strength so a mocktail isn't mistaken for a cocktail", () => {
-    assert.match(text, /Rocks glass, ice +LOW ALCOHOL$/m);
+  it("skips the prompt when the guest didn't type one", () => {
+    assert.doesNotMatch(text, /"/);
   });
 
-  it("skips the prompt line when the guest didn't type one", () => {
-    assert.doesNotMatch(text, /You asked for/);
+  it("cuts a long prompt to three lines", () => {
+    const long = { ...order, request: { ...order.request, prompt: "according to all known laws of aviation ".repeat(20) } };
+    const t = orderTicket(long, DEFAULT_CATALOG).toText().split("\n");
+    const quoted = t.slice(t.findIndex((l) => l.startsWith('"')));
+    assert.equal(quoted.filter((l) => l.trim() && !l.includes("(cut)")).length, 3);
+    assert.match(quoted[2]!, /\.\.\."$/);
+  });
+
+  it("puts the drawing under the drink name when there is one", () => {
+    const art = toBitmap(new Uint8Array(64 * 32).fill(0), 64, 32, { dither: "threshold" });
+    const rows = orderTicket(order, DEFAULT_CATALOG, { art }).lines();
+    const at = rows.findIndex((r) => r.kind === "image");
+    const nameRow = rows.findIndex((r) => r.kind === "line" && r.spans.some((s) => s.text.includes("Tea Party")));
+    assert.ok(nameRow > 0 && at > nameRow, `${nameRow} ${at}`);
   });
 
   it("ends with a cut", () => {

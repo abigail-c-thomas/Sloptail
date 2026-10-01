@@ -9,6 +9,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@sloptail/printer": "*",
     "@sloptail/shared": "*",
     "@sloptail/ticket": "*",
     "@sloptail/ui": "*",

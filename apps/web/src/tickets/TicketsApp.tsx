@@ -1,8 +1,11 @@
 import { useEffect, useState } from "react";
-import { CLASSICS, DEFAULT_CATALOG, makeCatalog, type Catalog, type Order } from "@sloptail/shared";
+import { CLASSICS, DEFAULT_CATALOG, artKey, makeCatalog, type Catalog, type Order } from "@sloptail/shared";
+import type { Bitmap } from "@sloptail/printer";
 import { Paper } from "@sloptail/ui";
-import { orderTicket, type TicketInput } from "@sloptail/ticket";
+import { ART_DOTS, orderTicket, type TicketInput } from "@sloptail/ticket";
 import { makeBarApi } from "../bar/barApi.ts";
+import { SAMPLE_ART } from "./sampleArt.ts";
+import { svgToBitmap } from "./svgBitmap.ts";
 
 /**
  * Design bench for the printed ticket: sample tickets drawn exactly as the
@@ -12,9 +15,10 @@ import { makeBarApi } from "../bar/barApi.ts";
 
 const NOW = Date.now();
 
-const SAMPLES: { label: string; ticket: TicketInput }[] = [
+const SAMPLES: { label: string; ticket: TicketInput; art?: string }[] = [
   {
-    label: "Adventurous, with a prompt",
+    label: "Adventurous, with a prompt and its drawing",
+    art: SAMPLE_ART,
     ticket: {
       id: "12",
       createdAt: NOW,
@@ -70,7 +74,28 @@ const SAMPLES: { label: string; ticket: TicketInput }[] = [
 export function TicketsApp() {
   const [live, setLive] = useState<Order[] | null>(null);
   const [catalog, setCatalog] = useState<Catalog>(DEFAULT_CATALOG);
+  /** Drawings as printer dots, by artKey for live orders and by label for samples. */
+  const [art, setArt] = useState<Record<string, Bitmap>>({});
   const token = localStorage.getItem("sloptail:barToken");
+
+  const addArt = (key: string, svg: string) =>
+    svgToBitmap(svg, ART_DOTS)
+      .then((bm) => setArt((a) => ({ ...a, [key]: bm })))
+      .catch(() => {});
+
+  useEffect(() => {
+    for (const s of SAMPLES) if (s.art) void addArt(s.label, s.art);
+  }, []);
+
+  // Fetch each live drawing once it's done.
+  useEffect(() => {
+    if (!token || !live) return;
+    const api = makeBarApi(token);
+    for (const o of live) {
+      if (o.art !== "done" || art[artKey(o)]) continue;
+      void api.art(o.id).then((r) => addArt(artKey(o), r.svg), () => {});
+    }
+  }, [live, token]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     if (!token) return;
@@ -100,15 +125,16 @@ export function TicketsApp() {
       <div className="tickets-grid">
         {live?.map((o) => (
           <figure key={o.id} className="ticket-figure">
-            <Paper doc={orderTicket(o, catalog)} />
+            <Paper doc={orderTicket(o, catalog, { art: art[artKey(o)] })} />
             <figcaption className="small muted">
               Live #{o.id} · {o.status}
+              {o.art === undefined ? " · drawing…" : o.art === "failed" ? " · no drawing" : ""}
             </figcaption>
           </figure>
         ))}
         {SAMPLES.map((s) => (
           <figure key={s.label} className="ticket-figure">
-            <Paper doc={orderTicket(s.ticket, catalog)} />
+            <Paper doc={orderTicket(s.ticket, catalog, { art: art[s.label] })} />
             <figcaption className="small muted">{s.label}</figcaption>
           </figure>
         ))}

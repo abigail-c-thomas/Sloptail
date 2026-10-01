@@ -4,3 +4,4 @@ export * from "./prompt.ts";
 export * from "./propose.ts";
 export * from "./parse.ts";
 export * from "./ingredients.ts";
+export * from "./art.ts";

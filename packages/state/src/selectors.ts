@@ -16,6 +16,19 @@ export function toPrint(state: BarState): Order[] {
   return queue(state).filter((o) => o.printedAt === undefined);
 }
 
+/**
+ * Of those, the ones to print now: the drawing is in (or failed), or it's
+ * taken longer than `waitMs` and the bar shouldn't be kept waiting for it.
+ */
+export function readyToPrint(state: BarState, now: number, waitMs: number): Order[] {
+  return toPrint(state).filter((o) => o.art !== undefined || now - o.createdAt >= waitMs);
+}
+
+/** Live orders still waiting for their drawing, oldest first. */
+export function needsArt(state: BarState): Order[] {
+  return queue(state).filter((o) => o.art === undefined);
+}
+
 /** Orders on the bar waiting to be picked up, oldest first. */
 export function readyOrders(state: BarState): Order[] {
   return Object.values(state.orders)

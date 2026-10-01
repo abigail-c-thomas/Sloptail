@@ -125,8 +125,18 @@ export const Order = z.object({
   cancelReason: z.string().optional(),
   /** When the bar's printer produced a ticket for it. Cleared to ask for a reprint. */
   printedAt: z.number().optional(),
+  /**
+   * The ticket drawing: unset while it's being drawn, then done or failed.
+   * The SVG itself is stored separately (it's big), keyed by artKey(order).
+   */
+  art: z.enum(["done", "failed"]).optional(),
 });
 export type Order = z.infer<typeof Order>;
+
+/** Storage key for an order's drawing. Includes createdAt because ids restart when the bar is reset. */
+export function artKey(order: Pick<Order, "id" | "createdAt">): string {
+  return `art:${order.id}:${order.createdAt}`;
+}
 
 // ---------------------------------------------------------------------------
 // API payloads (user-facing)

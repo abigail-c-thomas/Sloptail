@@ -11,5 +11,5 @@
     "types": ["vite/client"]
   },
   "include": ["src"],
-  "references": [{ "path": "../../packages/shared" }, { "path": "../../packages/ui" }, { "path": "../../packages/ticket" }]
+  "references": [{ "path": "../../packages/shared" }, { "path": "../../packages/ui" }, { "path": "../../packages/ticket" }, { "path": "../../packages/printer" }]
 }

@@ -119,6 +119,12 @@ export function requestReprint(state: BarState, id: string): BarState {
   return { ...state, orders: { ...state.orders, [id]: rest } };
 }
 
+/** The ticket drawing finished (or gave up). Not a status change. */
+export function setArt(state: BarState, id: string, art: "done" | "failed"): BarState {
+  const order = getOrder(state, id);
+  return { ...state, orders: { ...state.orders, [id]: { ...order, art } } };
+}
+
 /** The guest taps "Got it" on their phone. Only the guest who ordered can do this. */
 export function collectOwnOrder(state: BarState, id: string, userId: string, now: number): BarState {
   if (getOrder(state, id).userId !== userId) throw new StateError("not-found", `No order ${id}`);

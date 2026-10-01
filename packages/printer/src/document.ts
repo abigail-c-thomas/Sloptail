@@ -33,19 +33,30 @@ export type ResolvedStyle = Required<TextStyle>;
 
 /**
  * Printer geometry in dots. TM-T88 on 80mm paper: 576 dots across, 512 of
- * them printable; font A cells are 12x24 (42 per line), font B 9x17 (56).
- * Default line spacing is 1/6" = 30 dots.
+ * them printable. We print inside that: `left` dots in from the printable
+ * edge, `dots` wide (set on the printer with GS L / GS W at the start of
+ * every job). Font A cells are 12x24, font B 9x17. Default line spacing is
+ * 1/6" = 30 dots.
  */
 export interface PaperSpec {
   paperDots: number;
+  printable: number;
+  left: number;
   dots: number;
   cell: Record<Font, { w: number; h: number }>;
   lineSpacing: number;
 }
 
+/**
+ * Our TM-T88VI clips a little on the left at the full 512, so text sits 24
+ * dots (3.4mm) further in and the area is 480 wide: 40 font A characters a
+ * line, 53 font B.
+ */
 export const PAPER_80MM: PaperSpec = {
   paperDots: 576,
-  dots: 512,
+  printable: 512,
+  left: 24,
+  dots: 480,
   cell: { font_a: { w: 12, h: 24 }, font_b: { w: 9, h: 17 } },
   lineSpacing: 30,
 };
@@ -207,7 +218,12 @@ export class PrintDocument {
   /** The `<epos-print>` element: what goes inside the SOAP body. */
   toXml(): string {
     // Printers keep state between jobs; start every job from a known place.
-    const parts = [`<text lang="en" smooth="true"/>`, styleTag(DEFAULT_STYLE, null)];
+    const parts = [
+      `<text lang="en" smooth="true"/>`,
+      // GS L (left margin) and GS W (print area width), both in dots, little-endian.
+      `<command>${hex(0x1d, 0x4c, ...le16(this.paper.left), 0x1d, 0x57, ...le16(this.paper.dots))}</command>`,
+      styleTag(DEFAULT_STYLE, null),
+    ];
     let current = DEFAULT_STYLE;
     for (const op of this.list) {
       if (op.op === "text") {
@@ -265,6 +281,14 @@ function styleTag(next: ResolvedStyle, prev: ResolvedStyle | null): string {
   if (!prev || next.reverse !== prev.reverse) attrs.push(`reverse="${next.reverse}"`);
   if (!prev || next.align !== prev.align) attrs.push(`align="${next.align}"`);
   return attrs.length ? `<text ${attrs.join(" ")}/>` : "";
+}
+
+function le16(n: number): [number, number] {
+  return [n & 0xff, (n >> 8) & 0xff];
+}
+
+function hex(...bytes: number[]): string {
+  return bytes.map((b) => b.toString(16).padStart(2, "0")).join("");
 }
 
 function int(n: number, min: number, max: number): number {
