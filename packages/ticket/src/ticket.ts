@@ -1,5 +1,5 @@
 import { buildOrder, formatAmount, type Catalog, type Order } from "@sloptail/shared";
-import { PrintDocument, printable, wrap, type Bitmap, type TextStyle } from "@sloptail/printer";
+import { PrintDocument, printable, trimRows, wrap, type Bitmap, type TextStyle } from "@sloptail/printer";
 
 /**
  * The ticket for one order. Two readers: the bartender (who, what goes in,
@@ -9,6 +9,9 @@ import { PrintDocument, printable, wrap, type Bitmap, type TextStyle } from "@sl
 
 /** How wide the drawing prints, in dots (about 40mm). */
 export const ART_DOTS = 288;
+
+/** White rows kept above and below the drawing once its own empty space is trimmed. */
+const ART_PAD_DOTS = 14;
 
 /** Lines of the guest's prompt to print, so nobody prints the Bee Movie script. */
 const PROMPT_LINES = 3;
@@ -30,10 +33,10 @@ export function orderTicket(order: TicketInput, catalog: Catalog, opts: { art?: 
   // --- what ------------------------------------------------------------
   doc.paragraph(proposal.name, { ...fit(doc, proposal.name, 2), align: "center", em: true });
   if (opts.art) {
+    doc.image(trimRows(opts.art, ART_PAD_DOTS), "center");
+  } else {
     doc.feed(1);
-    doc.image(opts.art, "center");
   }
-  doc.feed(1);
 
   // --- what goes in, in build order --------------------------------------
   for (const item of buildOrder(proposal.recipe, catalog)) {

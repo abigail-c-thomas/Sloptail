@@ -64,3 +64,21 @@ export function bitmapBase64(bm: Bitmap): string {
   for (let i = 0; i < bm.bits.length; i += 0x8000) s += String.fromCharCode(...bm.bits.subarray(i, i + 0x8000));
   return btoa(s);
 }
+
+/**
+ * Drop blank rows from the top and bottom, then add back exactly `pad` white
+ * rows each side, so spacing around a picture doesn't depend on how much
+ * empty space was drawn into it. An all-white image becomes just the padding.
+ */
+export function trimRows(bm: Bitmap, pad = 0): Bitmap {
+  const stride = bm.width / 8;
+  const blank = (y: number) => bm.bits.subarray(y * stride, (y + 1) * stride).every((b) => b === 0);
+  let top = 0;
+  while (top < bm.height && blank(top)) top++;
+  let bottom = bm.height;
+  while (bottom > top && blank(bottom - 1)) bottom--;
+  const height = bottom - top + pad * 2;
+  const bits = new Uint8Array(stride * height);
+  bits.set(bm.bits.subarray(top * stride, bottom * stride), pad * stride);
+  return { width: bm.width, height, bits };
+}

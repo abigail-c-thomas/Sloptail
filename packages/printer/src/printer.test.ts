@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { EposPrinter, PrintDocument, isBlack, parseResponse, printable, spread, toBitmap, wrap } from "./index.ts";
+import { EposPrinter, PrintDocument, isBlack, parseResponse, printable, spread, toBitmap, trimRows, wrap } from "./index.ts";
 
 const OK = `<?xml version="1.0" encoding="utf-8"?><s:Envelope xmlns:s="http://schemas.xmlsoap.org/soap/envelope/"><s:Body><response success="true" code="" status="251658262" battery="0" xmlns="http://www.epson-pos.com/schemas/2011/03/epos-print"></response></s:Body></s:Envelope>`;
 const PAPER_OUT = `<s:Envelope xmlns:s="http://schemas.xmlsoap.org/soap/envelope/"><s:Body><response success="false" code="EPTR_REC_EMPTY" status="${0x80000 | 0x8}" battery="0"/></s:Body></s:Envelope>`;
@@ -89,6 +89,14 @@ describe("images", () => {
     const bm = toBitmap(grey, 16, 2, { dither: "threshold" });
     const xml = new PrintDocument().line("x").image(bm).toXml();
     assert.match(xml, /<text align="center"\/><image width="16" height="2" color="color_1" mode="mono">\/wAAAA==<\/image>/);
+  });
+
+  it("trims blank rows top and bottom, keeping a fixed pad", () => {
+    // 8 wide, 6 tall: blank, blank, black, blank, black, blank
+    const bm = { width: 8, height: 6, bits: Uint8Array.from([0, 0, 0xff, 0, 0x0f, 0]) };
+    assert.deepEqual([...trimRows(bm).bits], [0xff, 0, 0x0f]);
+    assert.deepEqual([...trimRows(bm, 1).bits], [0, 0xff, 0, 0x0f, 0]);
+    assert.equal(trimRows({ width: 8, height: 3, bits: new Uint8Array(3) }, 2).height, 4);
   });
 
   it("refuses images wider than the paper", () => {
