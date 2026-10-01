@@ -88,6 +88,8 @@ export const UserRequest = z.object({
   prompt: z.string().max(500),
   sweetness: Level.optional(),
   acidity: Level.optional(),
+  /** Heat (ginger, chilli, peppercorn). No numbers behind it: judged from ingredient flavour tags. */
+  spice: Level.optional(),
 });
 export type UserRequest = z.infer<typeof UserRequest>;
 

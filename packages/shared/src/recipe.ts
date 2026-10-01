@@ -248,23 +248,29 @@ export function levelOf(value: number, bands: { low: number; high: number }): Le
 }
 
 export interface FlavourMiss {
-  dial: "sweetness" | "sourness";
+  dial: "sweetness" | "sourness" | "spice";
   asked: Level;
   got: Level;
-  pct: number;
+  /** g per 100ml, for sweetness and sourness. */
+  pct?: number;
 }
+
+/** Flavour tags that mean heat. Angostura's "spice" is clove, not heat, so it isn't here. */
+const HEAT_TAGS = new Set(["spicy", "hot", "heat", "numbing", "chilli", "chili", "peppery"]);
+
+export function isHot(ing: Pick<Ingredient, "flavor">): boolean {
+  return ing.flavor.some((f) => HEAT_TAGS.has(f));
+}
+
+type Want = { sweetness?: Level | undefined; acidity?: Level | undefined; spice?: Level | undefined };
 
 /**
  * Only flags a drink that's the opposite of what was asked (low vs high).
  * One band off is within the noise of these estimates and not worth a repair
- * round-trip.
+ * round-trip. Spice has no estimate: high means something hot is in it, low
+ * means nothing is.
  */
-export function flavourMisses(
-  recipe: Recipe,
-  glass: Glass,
-  want: { sweetness?: Level | undefined; acidity?: Level | undefined },
-  catalog: Catalog,
-): FlavourMiss[] {
+export function flavourMisses(recipe: Recipe, glass: Glass, want: Want, catalog: Catalog): FlavourMiss[] {
   const b = estimateBalance(recipe, glass, catalog);
   const misses: FlavourMiss[] = [];
   const check = (dial: FlavourMiss["dial"], asked: Level | undefined, pct: number, bands: { low: number; high: number }) => {
@@ -273,30 +279,42 @@ export function flavourMisses(
   };
   check("sweetness", want.sweetness, b.sugarPct, SWEETNESS_BANDS);
   check("sourness", want.acidity, b.acidPct, ACIDITY_BANDS);
+  if (want.spice === "high" || want.spice === "low") {
+    const hot = recipe.some((r) => {
+      const ing = catalog.byId.get(r.ingredient);
+      return ing ? isHot(ing) : false;
+    });
+    if (want.spice === "high" && !hot) misses.push({ dial: "spice", asked: "high", got: "low" });
+    if (want.spice === "low" && hot) misses.push({ dial: "spice", asked: "low", got: "high" });
+  }
   return misses;
 }
 
 /** The same, worded as repair feedback for the model. */
-export function flavourIssues(
-  recipe: Recipe,
-  glass: Glass,
-  want: { sweetness?: Level | undefined; acidity?: Level | undefined },
-  catalog: Catalog,
-): string[] {
+export function flavourIssues(recipe: Recipe, glass: Glass, want: Want, catalog: Catalog): string[] {
   return flavourMisses(recipe, glass, want, catalog).map((m) => {
+    if (m.dial === "spice") {
+      return m.asked === "high"
+        ? "The guest asked for high spice, but nothing in this is hot. Use a hot ingredient (ginger, chilli, peppercorn), or get as close as this bar allows."
+        : "The guest asked for low spice, but this has a hot ingredient in it. Leave it out, or get as close as this bar allows.";
+    }
     const bands = m.dial === "sweetness" ? SWEETNESS_BANDS : ACIDITY_BANDS;
-    return `The guest asked for ${m.asked} ${m.dial}, but this comes out ${m.got} (~${m.pct.toFixed(1)}g per 100ml; ${m.asked} is ${
+    return `The guest asked for ${m.asked} ${m.dial}, but this comes out ${m.got} (~${(m.pct ?? 0).toFixed(1)}g per 100ml; ${m.asked} is ${
       m.asked === "low" ? `under ${bands.low}` : `over ${bands.high}`
     }). Rebalance it, or get as close as this bar allows.`;
   });
 }
 
+const MISS_WORDS: Record<FlavourMiss["dial"], { high: string; low: string }> = {
+  sweetness: { high: "sweeter", low: "less sweet" },
+  sourness: { high: "more sour", low: "less sour" },
+  spice: { high: "spicier", low: "less spicy" },
+};
+
 /** What to tell the guest when the bar can't hit their dials: "Closest the bar can do: sweeter than you asked for." */
 export function flavourMissNote(misses: FlavourMiss[]): string | undefined {
   if (!misses.length) return undefined;
-  const words = misses.map((m) =>
-    m.dial === "sweetness" ? (m.got === "high" ? "sweeter" : "less sweet") : m.got === "high" ? "more sour" : "less sour",
-  );
+  const words = misses.map((m) => MISS_WORDS[m.dial][m.got === "high" ? "high" : "low"]);
   return `Closest the bar can do: ${words.join(" and ")} than you asked for.`;
 }
 

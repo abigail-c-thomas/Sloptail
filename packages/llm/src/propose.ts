@@ -48,7 +48,7 @@ export function edit(
   opts: ProposeOptions = {},
 ): Promise<ProposeResult> {
   // The tweak ("sweeter please") outranks the original flavour dials, so don't hold the edit to them.
-  const loose = { ...ctx, request: { ...ctx.request, sweetness: undefined, acidity: undefined } };
+  const loose = { ...ctx, request: { ...ctx.request, sweetness: undefined, acidity: undefined, spice: undefined } };
   return runWithRepairs(editMessages(ctx, previous, tweak), loose, client, opts);
 }
 

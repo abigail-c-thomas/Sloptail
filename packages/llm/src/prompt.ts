@@ -62,6 +62,13 @@ const LEVEL_TEXT: Record<"sweetness" | "acidity", Record<Level, string>> = {
   },
 };
 
+/** Heat comes from ingredients whose flavours include spicy, hot or numbing (see isHot). */
+const SPICE_TEXT: Record<Level, string> = {
+  low: "low: nothing hot in it",
+  medium: "medium: a little heat is fine",
+  high: "high: properly hot, use something spicy, hot or numbing",
+};
+
 /** Familiar drinks to compare against, in g per 100ml. Rough, but in the right order. */
 const REFERENCE_POINTS =
   "Sugar: dry white wine 0.2, prosecco 1, iced tea 7, tonic 8.5, orange juice 9, Coke 10.6. " +
@@ -96,7 +103,9 @@ ${available.map(ingredientLine).join("\n")}
 - Balance: sugar and acid figures above are grams per 100ml of that ingredient. Work out roughly how sweet and sour the finished drink is (including the fill). Bands for the finished drink: sweetness ${Object.values(LEVEL_TEXT.sweetness).join("; ")}. Sourness ${Object.values(LEVEL_TEXT.acidity).join("; ")}.${
     ctx.request.sweetness ? `\n- The guest wants sweetness ${LEVEL_TEXT.sweetness[ctx.request.sweetness]}.` : ""
   }${ctx.request.acidity ? `\n- The guest wants sourness ${LEVEL_TEXT.acidity[ctx.request.acidity]}.` : ""}${
-    ctx.request.sweetness || ctx.request.acidity
+    ctx.request.spice ? `\n- The guest wants spice ${SPICE_TEXT[ctx.request.spice]}.` : ""
+  }${
+    ctx.request.sweetness || ctx.request.acidity || ctx.request.spice
       ? "\n- If the bar can't reach that, get as close as you can. Describe the drink as it is; don't mention what the bar lacks."
       : ""
   }
@@ -117,6 +126,7 @@ export function proposeMessages(ctx: PromptContext): Message[] {
   const flavour = [
     r.sweetness ? `Sweetness: ${r.sweetness}` : "",
     r.acidity ? `Sourness: ${r.acidity}` : "",
+    r.spice ? `Spice: ${r.spice}` : "",
   ].filter(Boolean);
   const history = ctx.history?.length
     ? `\n\nThey've already had or been offered:\n${ctx.history.map((p) => historyLine(p, ctx.catalog)).join("\n")}\nMake this one clearly different from those (a different base or mixer, and a different flavour direction), unless they ask for one of them again.`

@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import { DEFAULT_CATALOG as C } from "./catalog.ts";
-import { buildOrder, estimateAlcoholMl, estimateBalance, formatAmount, validateRecipe } from "./recipe.ts";
+import { buildOrder, estimateAlcoholMl, estimateBalance, flavourMisses, flavourMissNote, formatAmount, validateRecipe } from "./recipe.ts";
 
 describe("parts", () => {
   it("formats parts as jigger fractions", () => {
@@ -74,5 +74,28 @@ describe("buildOrder", () => {
       ordered.map((r) => r.ingredient),
       ["rum", "lime-juice", "angostura", "ginger-beer", "soda", "pineapple-juice", "mint-sprig"],
     );
+  });
+});
+
+describe("spice", () => {
+  const mule = [
+    { ingredient: "vodka", amount: 1.5 },
+    { ingredient: "ginger-beer", amount: "fill" as const },
+  ];
+  const vodkaSoda = [
+    { ingredient: "vodka", amount: 1.5 },
+    { ingredient: "soda", amount: "fill" as const },
+  ];
+  const bitters = [...vodkaSoda, { ingredient: "angostura", amount: 2 }];
+
+  it("high wants something hot in it; low wants nothing hot", () => {
+    assert.deepEqual(flavourMisses(mule, "highball", { spice: "high" }, C), []);
+    assert.equal(flavourMissNote(flavourMisses(vodkaSoda, "highball", { spice: "high" }, C)), "Closest the bar can do: less spicy than you asked for.");
+    assert.equal(flavourMissNote(flavourMisses(mule, "highball", { spice: "low" }, C)), "Closest the bar can do: spicier than you asked for.");
+    assert.deepEqual(flavourMisses(mule, "highball", { spice: "medium" }, C), []);
+  });
+
+  it("doesn't count clove-ish bitters as heat", () => {
+    assert.equal(flavourMisses(bitters, "highball", { spice: "high" }, C).length, 1);
   });
 });
