@@ -91,7 +91,7 @@ export function BarApp() {
     <CatalogProvider value={catalog}>
       <div className="bar">
         <header className="bar-header">
-          <span className="brand">Sloptail{view?.profile === "practice" ? <Badge tone="warn">practice</Badge> : null}</span>
+          <span className="brand">Sloptail{view && view.profile !== "real" ? <Badge tone="warn">{view.profile}</Badge> : null}</span>
           <div className="row">
             <PrinterBadge printer={view?.printer ?? null} now={now} />
             <Button variant="secondary" size="sm" onClick={() => setDrawer(true)}>

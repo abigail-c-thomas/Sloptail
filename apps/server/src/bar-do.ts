@@ -3,6 +3,7 @@ import { drawArt } from "@sloptail/llm";
 import {
   CATALOG,
   EventConfig,
+  migrateConfig,
   artKey,
   makeCatalog,
   type Catalog,
@@ -111,10 +112,10 @@ export interface PromptInputs {
 const STORAGE_KEY = "state";
 const CONFIG_KEY = "config";
 
-/** Before anything's set up: both profiles get the default bar, and the real one is running. */
+/** Before anything's set up: dev and real get the default bar, practice starts empty, and real is running. */
 function defaultConfig(): EventConfig {
   const profile = (): Profile => ({ ingredients: CATALOG.map((i) => ({ ...i })), printerIp: "" });
-  return { active: "real", profiles: { practice: profile(), real: profile() } };
+  return { active: "real", profiles: { dev: profile(), practice: { ingredients: [], printerIp: "" }, real: profile() } };
 }
 
 /** Model calls per user per minute, and for the whole bar per minute. In-memory; resets if the DO restarts, which is fine. */
@@ -138,7 +139,7 @@ export class BarDO extends DurableObject<Env> {
     ctx.blockConcurrencyWhile(async () => {
       const saved = await ctx.storage.get<BarState>(STORAGE_KEY);
       if (saved) this.state = saved;
-      const config = EventConfig.safeParse(await ctx.storage.get(CONFIG_KEY));
+      const config = EventConfig.safeParse(migrateConfig(await ctx.storage.get(CONFIG_KEY)));
       if (config.success) this.setConfig(config.data);
     });
   }

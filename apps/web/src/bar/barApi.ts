@@ -1,4 +1,4 @@
-import type { Ingredient, Order } from "@sloptail/shared";
+import type { Ingredient, Order, ProfileName } from "@sloptail/shared";
 
 /** Mirrors BarView in apps/server/src/bar-do.ts. */
 export interface BarView {
@@ -10,7 +10,7 @@ export interface BarView {
   printer: { ok: boolean; warning: boolean; message: string; pending: number; at: number } | null;
   catalog: Ingredient[];
   stock: StockLevel[];
-  profile: "practice" | "real";
+  profile: ProfileName;
   printerIp: string;
 }
 

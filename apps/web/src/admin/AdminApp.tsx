@@ -7,11 +7,12 @@ import { makeAdminApi, type AdminView } from "./adminApi.ts";
 const TOKEN_KEY = "sloptail:adminToken";
 const TYPES = ["base", "mixer", "flavoring", "garnish"] as const;
 const UNITS = ["part", "dash", "drop", "barspoon", "pump", "piece"] as const;
-const LABEL: Record<ProfileName, string> = { practice: "Practice", real: "Real" };
+const PROFILES = ["dev", "practice", "real"] as const;
+const LABEL: Record<ProfileName, string> = { dev: "Dev", practice: "Practice", real: "Real" };
 
 /**
- * Event setup, before the doors open: what's behind the bar for the practice
- * run and for the real thing, how much of each, and where the receipt printer
+ * Event setup, before the doors open: what's behind the bar for dev, the
+ * practice run and the real thing, how much of each, and where the receipt printer
  * is. Starting a profile makes it live and clears every order.
  */
 export function AdminApp() {
@@ -85,7 +86,6 @@ export function AdminApp() {
   const { queued, making, ready, collected, cancelled } = view.stats;
   const orders = queued + making + ready + collected + cancelled;
   const setDraft = (p: Profile) => setDrafts({ ...drafts, [tab]: p });
-  const other: ProfileName = tab === "real" ? "practice" : "real";
 
   return (
     <div className="admin">
@@ -103,7 +103,7 @@ export function AdminApp() {
         name="Profile"
         value={tab}
         onChange={setTab}
-        options={(["practice", "real"] as const).map((p) => ({
+        options={PROFILES.map((p) => ({
           value: p,
           label: LABEL[p],
           hint: view.config.active === p ? "running" : `${drafts[p].ingredients.length} ingredients`,
@@ -116,7 +116,7 @@ export function AdminApp() {
           <Button
             variant={live ? "secondary" : "primary"}
             loading={busy === "start"}
-            disabled={dirty}
+            disabled={dirty || !draft.ingredients.length}
             onClick={() =>
               confirm(`${live ? "Restart" : "Start"} ${LABEL[tab].toLowerCase()}? This clears all ${orders} orders and out-of-stock marks.`) &&
               run("start", async () => accept(await api.start(tab), false))
@@ -125,7 +125,7 @@ export function AdminApp() {
             {live ? "Restart" : `Start ${LABEL[tab].toLowerCase()}`}
           </Button>
         </div>
-        {dirty ? <p className="small muted">Save first.</p> : null}
+        {dirty ? <p className="small muted">Save first.</p> : !draft.ingredients.length ? <p className="small muted">Add ingredients first.</p> : null}
       </Card>
 
       <Card className="stack">
@@ -141,16 +141,22 @@ export function AdminApp() {
       <Card className="stack">
         <div className="row between">
           <h2>Ingredients ({draft.ingredients.length})</h2>
-          <Button
-            size="sm"
-            variant="ghost"
-            onClick={() =>
-              confirm(`Replace ${LABEL[tab]}'s list with ${LABEL[other]}'s?`) &&
-              setDraft({ ...draft, ingredients: structuredClone(drafts[other].ingredients) })
-            }
-          >
-            Copy from {LABEL[other]}
-          </Button>
+          <span className="row">
+            {PROFILES.filter((p) => p !== tab).map((other) => (
+              <Button
+                key={other}
+                size="sm"
+                variant="ghost"
+                disabled={!drafts[other].ingredients.length}
+                onClick={() =>
+                  (!draft.ingredients.length || confirm(`Replace ${LABEL[tab]}'s list with ${LABEL[other]}'s?`)) &&
+                  setDraft({ ...draft, ingredients: structuredClone(drafts[other].ingredients) })
+                }
+              >
+                Copy from {LABEL[other]}
+              </Button>
+            ))}
+          </span>
         </div>
         <AddIngredients
           busy={busy === "describe"}

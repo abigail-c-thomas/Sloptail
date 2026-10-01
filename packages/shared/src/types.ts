@@ -176,14 +176,14 @@ export type CollectBody = z.infer<typeof CollectBody>;
 // Event setup (admin)
 // ---------------------------------------------------------------------------
 
-/** Two setups: a practice run with a smaller bar, then the real thing. */
-export const ProfileName = z.enum(["practice", "real"]);
+/** Setups: one to play with while building, a practice run with a smaller bar, then the real thing. */
+export const ProfileName = z.enum(["dev", "practice", "real"]);
 export type ProfileName = z.infer<typeof ProfileName>;
 
 export const Profile = z.object({
   ingredients: z
     .array(Ingredient)
-    .min(1)
+    // Empty is fine to save (a profile still being set up); it just can't be started.
     .max(80)
     .refine((list) => new Set(list.map((i) => i.id)).size === list.length, "ingredient ids must be unique"),
   /** Receipt printer on the bar's network, e.g. "192.168.1.50" or "192.168.1.50:9100". */

@@ -197,7 +197,12 @@ adminApi.put("/profiles/:name", body(Profile), async (c) => {
 /** Typed-in names -> catalog entries for the admin to review. Doesn't save anything; names the model couldn't do come back in `failed`. */
 adminApi.post("/describe", body(DescribeBody), async (c) => c.json(await describeIngredients(c.req.valid("json").names, llm(c.env))));
 
-adminApi.post("/start", body(StartBody), async (c) => c.json(await bar(c.env).start(c.req.valid("json").profile)));
+adminApi.post("/start", body(StartBody), async (c) => {
+  const name = c.req.valid("json").profile;
+  const { config } = await bar(c.env).getAdminView();
+  if (!config.profiles[name].ingredients.length) return c.json({ error: "Add some ingredients before starting this profile" }, 409);
+  return c.json(await bar(c.env).start(name));
+});
 
 app.route("/admin", adminApi);
 
