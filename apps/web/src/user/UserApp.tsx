@@ -59,7 +59,6 @@ interface State {
   prompt: string;
   sweetness?: Level;
   acidity?: Level;
-  spice?: Level;
   proposal?: Proposal;
   /** Drinks the model has offered this visit, newest first, so the next one can be different. */
   seen: Proposal[];
@@ -82,7 +81,7 @@ type Action =
   | { type: "strength"; strength: Strength }
   | { type: "adventure"; adventurousness: Adventurousness }
   | { type: "prompt"; prompt: string }
-  | { type: "flavour"; key: "sweetness" | "acidity" | "spice"; level: Level }
+  | { type: "flavour"; key: "sweetness" | "acidity"; level: Level }
   | { type: "proposal"; proposal: Proposal; prompt: string; generated?: boolean; note?: string | undefined }
   | { type: "error"; error: string }
   | { type: "submitted"; orderId: string }
@@ -141,7 +140,6 @@ function reducer(s: State, a: Action): State {
         prompt: a.order.request.prompt,
         sweetness: a.order.request.sweetness,
         acidity: a.order.request.acidity,
-        spice: a.order.request.spice,
         proposal: a.order.proposal,
         proposalPrompt: a.order.request.prompt,
         step: "proposal",
@@ -301,7 +299,7 @@ export function UserApp() {
 
   const request = (): UserRequest | null =>
     s.strength && s.adventurousness
-      ? { strength: s.strength, adventurousness: s.adventurousness, prompt: s.prompt, sweetness: s.sweetness, acidity: s.acidity, spice: s.spice }
+      ? { strength: s.strength, adventurousness: s.adventurousness, prompt: s.prompt, sweetness: s.sweetness, acidity: s.acidity }
       : null;
 
   const generate = useCallback(async () => {
@@ -316,7 +314,7 @@ export function UserApp() {
       dispatch({ type: "error", error: (e as Error).message });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [s.strength, s.adventurousness, s.prompt, s.sweetness, s.acidity, s.spice, s.seen, s.name, user.userId]);
+  }, [s.strength, s.adventurousness, s.prompt, s.sweetness, s.acidity, s.seen, s.name, user.userId]);
 
   const tweak = async (text: string) => {
     const req = request();
@@ -494,7 +492,6 @@ export function UserApp() {
             <div className="flavour-dials">
               <FlavourDial label="Sweet" value={s.sweetness} onChange={(level) => dispatch({ type: "flavour", key: "sweetness", level })} />
               <FlavourDial label="Sour" value={s.acidity} onChange={(level) => dispatch({ type: "flavour", key: "acidity", level })} />
-              <FlavourDial label="Spicy" value={s.spice} onChange={(level) => dispatch({ type: "flavour", key: "spice", level })} />
             </div>
             <TextArea
               id="prompt"
