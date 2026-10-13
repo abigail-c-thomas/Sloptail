@@ -3,11 +3,12 @@
  * reports validity, repair rate, latency, and the heuristic expectations.
  *
  *   OPENROUTER_API_KEY=... npm run eval -- [--model x] [--reps 2] [--only id,id] [--reasoning none|low|medium|high]
- *                                          [--catalog file.json] [--profile real]
+ *                                          [--catalog file.json] [--profile real] [--cases cases.json]
  *
  * --catalog takes a JSON ingredient list, or a saved `GET /api/admin` response
  * (uses --profile, default "real"), so evals can run against what the bar will
- * actually stock. Without it, the built-in catalog.
+ * actually stock. Without it, the built-in catalog. --cases swaps the built-in
+ * cases for a JSON array of the same shape.
  *
  * Cases run in order with the names served so far passed as recentNames, the
  * way the bar does, so name repetition shows up as it would on the night.
@@ -48,7 +49,8 @@ if (!apiKey) {
 }
 const model = args.model ?? process.env.OPENROUTER_MODEL ?? "openai/gpt-5.6-luna";
 const reps = Number(args.reps ?? 1);
-const cases = args.only ? CASES.filter((c) => args.only!.split(",").includes(c.id)) : CASES;
+const allCases: EvalCase[] = args.cases ? JSON.parse(readFileSync(args.cases, "utf8")) : CASES;
+const cases = args.only ? allCases.filter((c) => args.only!.split(",").includes(c.id)) : allCases;
 const catalog = args.catalog ? loadCatalog(args.catalog, args.profile ?? "real") : DEFAULT_CATALOG;
 
 const reasoning = (args.reasoning ?? process.env.OPENROUTER_REASONING) as "none" | "low" | "medium" | "high" | undefined;

@@ -91,7 +91,7 @@ function historyLine(p: Proposal, catalog: Catalog): string {
 export function systemPrompt(ctx: PromptContext): string {
   const available = offeredIngredients(ctx.catalog, ctx.request.strength, ctx.unavailable);
   const budget = ALCOHOL_BUDGET[ctx.request.strength];
-  return `You are the bartender at a tech company's "AI happy hour". Guests order from their phones and you invent a drink for each of them. Drinks must be genuinely good, interesting, and quick to make behind a small pop-up bar with unusual flavourings (tinctures, teas, acids, smoke) and no shaker.
+  return `You are the bartender at a work happy hour. Guests order from their phones and you invent a drink for each of them. Drinks must be genuinely good, interesting, and quick to make behind a small pop-up bar with a few unusual flavourings and no shaker.
 
 ## Available ingredients (use ONLY these ids)
 ${available.map(ingredientLine).join("\n")}
