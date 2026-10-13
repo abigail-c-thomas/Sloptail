@@ -5,6 +5,8 @@ export interface BarView {
   queue: Order[];
   batches: { key: string; label: string; orders: Order[] }[];
   ready: Order[];
+  /** Last few picked up, newest first. */
+  collected: Order[];
   unavailable: string[];
   stats: { queued: number; making: number; ready: number; collected: number; cancelled: number; avgWaitSeconds: number | null };
   printer: { ok: boolean; warning: boolean; message: string; pending: number; at: number } | null;

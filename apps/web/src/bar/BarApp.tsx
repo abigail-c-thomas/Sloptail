@@ -6,7 +6,6 @@ import { FeedbackList } from "./FeedbackList.tsx";
 
 const POLL_MS = 2000;
 const STALE_AFTER_MS = 5 * 60 * 1000;
-const UNDO_MS = 15000;
 /** The print bridge reports every couple of seconds; this long without one means it's gone. */
 const PRINTER_SILENT_MS = 20 * 1000;
 
@@ -22,8 +21,6 @@ export function BarApp() {
   const [drawer, setDrawer] = useState(false);
   const [feedbackOpen, setFeedbackOpen] = useState(false);
   const [now, setNow] = useState(Date.now());
-  /** Last order marked ready or picked up, so a mis-tap can be taken back. */
-  const [last, setLast] = useState<{ order: Order; did: "ready" | "picked up"; at: number } | null>(null);
   /** Order whose ✕ was tapped, waiting for "yes, cancel". In-page, not confirm(): some browsers block dialogs. */
   const [cancelling, setCancelling] = useState<string | null>(null);
   /** After marking something out: who's still queued with it. */
@@ -71,17 +68,6 @@ export function BarApp() {
     await refresh();
   };
 
-  const ready = (o: Order) =>
-    act(async () => {
-      await api.ready(o.id);
-      setLast({ order: o, did: "ready", at: Date.now() });
-    });
-
-  const pickedUp = (o: Order) =>
-    act(async () => {
-      await api.collected(o.id);
-      setLast({ order: o, did: "picked up", at: Date.now() });
-    });
 
   if (!token || (error && !view)) {
     return (
@@ -98,7 +84,6 @@ export function BarApp() {
   const catalog = view ? makeCatalog(view.catalog) : DEFAULT_CATALOG;
   const left = new Map(view?.stock.map((l) => [l.ingredient, Math.max(0, 1 - l.used / (l.stock || 1))]));
   const newFeedback = view?.feedback.filter((f) => f.status === "new").length ?? 0;
-  const undo = last && now - last.at < UNDO_MS ? last : null;
 
   return (
     <CatalogProvider value={catalog}>
@@ -119,24 +104,6 @@ export function BarApp() {
         {error ? <Banner tone="danger">{error}</Banner> : null}
         {view?.printer && !view.printer.ok && now - view.printer.at < PRINTER_SILENT_MS ? (
           <Banner tone="danger">{view.printer.message}</Banner>
-        ) : null}
-        {undo ? (
-          <div className="undo row between">
-            <span>
-              <b>{undo.order.userName}</b> {undo.did}
-            </span>
-            <Button
-              size="sm"
-              variant="ghost"
-              onClick={() => {
-                setLast(null);
-                const id = undo.order.id;
-                void act(() => (undo.did === "ready" ? api.claim(id) : api.uncollected(id)));
-              }}
-            >
-              Undo
-            </Button>
-          </div>
         ) : null}
 
         <div className="bar-columns">
@@ -189,7 +156,7 @@ export function BarApp() {
             </h2>
             {making.map((o) => (
               <OrderCard key={o.id} order={o} now={now}>
-                <Button size="sm" variant="ok" onClick={() => ready(o)}>
+                <Button size="sm" variant="ok" onClick={() => act(() => api.ready(o.id))}>
                   Ready
                 </Button>
                 <Button size="sm" variant="ghost" aria-label="Back to queue" onClick={() => act(() => api.unclaim(o.id))}>
@@ -209,11 +176,31 @@ export function BarApp() {
                 <span>
                   <b>{o.userName}</b> <span className="muted">{o.proposal.name}</span>
                 </span>
-                <Button size="sm" variant="secondary" onClick={() => pickedUp(o)}>
-                  Picked up
-                </Button>
+                <span className="row">
+                  <Button size="sm" variant="ghost" onClick={() => act(() => api.claim(o.id))}>
+                    Nope
+                  </Button>
+                  <Button size="sm" variant="secondary" onClick={() => act(() => api.collected(o.id))}>
+                    Picked up
+                  </Button>
+                </span>
               </div>
             ))}
+            {view?.collected.length ? (
+              <>
+                <h3 className="muted small">Picked up</h3>
+                {view.collected.map((o) => (
+                  <div key={o.id} className="row between ready-row muted">
+                    <span>
+                      {o.userName} <span className="small">{o.proposal.name}</span>
+                    </span>
+                    <Button size="sm" variant="ghost" onClick={() => act(() => api.uncollected(o.id))}>
+                      Undo
+                    </Button>
+                  </div>
+                ))}
+              </>
+            ) : null}
           </section>
         </div>
 

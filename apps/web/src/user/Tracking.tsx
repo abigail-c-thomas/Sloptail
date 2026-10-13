@@ -4,6 +4,8 @@ import { Badge, Banner, Button, Card, ProposalCard, Spinner, Stack } from "@slop
 import { api } from "../api.ts";
 
 const POLL_MS = 3000;
+/** After pickup, still check now and then: the bar may undo a mis-tapped "Picked up". */
+const COLLECTED_POLL_MS = 10000;
 
 /**
  * After submitting: poll the order until it's ready, then make a fuss. Keep
@@ -38,6 +40,7 @@ export function Tracking({
         setOrder(o);
         setError(null);
         if (o.status === "queued" || o.status === "making" || o.status === "ready") timer = setTimeout(tick, POLL_MS);
+        else if (o.status === "collected") timer = setTimeout(tick, COLLECTED_POLL_MS);
       } catch (e) {
         if (cancelled) return;
         setError((e as Error).message);

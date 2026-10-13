@@ -43,6 +43,7 @@ import {
   ordersUsing,
   queue,
   readyOrders,
+  recentlyCollected,
   requestReprint,
   setAvailability,
   stats,
@@ -72,6 +73,8 @@ export interface BarView {
   queue: Order[];
   batches: Batch[];
   ready: Order[];
+  /** Last few picked up, newest first. */
+  collected: Order[];
   /** Marked out by the bar. */
   unavailable: string[];
   stats: Stats;
@@ -257,6 +260,7 @@ export class BarDO extends DurableObject<Env> {
       queue: queue(this.state),
       batches: batches(this.state, this.catalog),
       ready: readyOrders(this.state),
+      collected: recentlyCollected(this.state),
       unavailable: [...this.state.unavailable],
       stats: stats(this.state),
       catalog: [...this.catalog.list],

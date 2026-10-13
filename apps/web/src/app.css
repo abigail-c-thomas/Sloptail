@@ -57,7 +57,6 @@
 .order-card .who { font-size: 1.15rem; font-weight: 700; text-transform: uppercase; }
 .order-card .age { font-size: 0.8rem; color: var(--text-muted); }
 .order-card.stale { border-color: var(--warn); }
-.undo { padding: 6px 0; color: var(--ok); border-top: 1px dashed var(--ok); border-bottom: 1px dashed var(--ok); }
 
 /* Stock: a checklist, one row per ingredient, estimate on the right. */
 .ingredients { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); column-gap: 16px; }

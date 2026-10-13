@@ -37,6 +37,14 @@ export function readyOrders(state: BarState): Order[] {
     .sort((a, b) => (a.readyAt ?? 0) - (b.readyAt ?? 0));
 }
 
+/** The last few picked up, newest first, so the bar can take one back. */
+export function recentlyCollected(state: BarState, n = 5): Order[] {
+  return Object.values(state.orders)
+    .filter((o) => o.status === "collected")
+    .sort((a, b) => (b.collectedAt ?? 0) - (a.collectedAt ?? 0))
+    .slice(0, n);
+}
+
 export function ordersForUser(state: BarState, userId: string): Order[] {
   return Object.values(state.orders)
     .filter((o) => o.userId === userId)

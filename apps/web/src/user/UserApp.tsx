@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useReducer, useState } from "react";
+import { useCallback, useEffect, useReducer, useRef, useState } from "react";
 import type { Adventurousness, Level, Order, Proposal, Strength, UserRequest } from "@sloptail/shared";
 import { classicsFor, DEFAULT_CATALOG, makeCatalog, nextLine, type Sequels } from "@sloptail/shared";
 import {
@@ -27,6 +27,7 @@ import {
   saveLastTechIdea,
   saveUser,
 } from "../storage.ts";
+import { reloadOnDeploy } from "../reloadOnDeploy.ts";
 import { FeedbackForm } from "./FeedbackForm.tsx";
 import { PastOrders } from "./PastOrders.tsx";
 import { Tracking } from "./Tracking.tsx";
@@ -285,6 +286,11 @@ function LoadingLine() {
 
 export function UserApp() {
   const [s, dispatch] = useReducer(reducer, undefined, initialState);
+  // Pick up deploys too, but only where a reload loses nothing: waiting on a
+  // drink (the active order is saved) or before choosing anything.
+  const step = useRef(s.step);
+  step.current = s.step;
+  useEffect(() => reloadOnDeploy(() => step.current === "tracking" || step.current === "name" || step.current === "kind"), []);
   const [drawer, setDrawer] = useState(false);
   // Picked when the prompt step is first shown for each drink, so a guest who never sees them doesn't use up the roll.
   const [ideas, setIdeas] = useState<{ drink: number; list: string[] } | null>(null);
