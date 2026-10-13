@@ -76,13 +76,12 @@ export const CLASSICS: Classic[] = [
     strengths: ["half", "full"],
     proposal: {
       name: "Vodka Soda",
-      description: "Vodka and soda with a squeeze of lime and a sprig of mint.",
+      description: "Vodka and soda with a squeeze of lime.",
       glass: "highball",
       recipe: [
         { ingredient: "vodka", amount: 1.5 },
         { ingredient: "lime-juice", amount: 0.25 },
         { ingredient: "soda", amount: "fill" },
-        { ingredient: "mint-sprig", amount: 1 },
       ],
     },
   },
@@ -161,13 +160,12 @@ export const CLASSICS: Classic[] = [
     strengths: ["zero", "trace"],
     proposal: {
       name: "Zero Vodka Soda",
-      description: "Non-alcoholic vodka and soda with a squeeze of lime and a sprig of mint.",
+      description: "Non-alcoholic vodka and soda with a squeeze of lime.",
       glass: "highball",
       recipe: [
         { ingredient: "na-vodka", amount: 1.5 },
         { ingredient: "lime-juice", amount: 0.25 },
         { ingredient: "soda", amount: "fill" },
-        { ingredient: "mint-sprig", amount: 1 },
       ],
     },
   },
@@ -190,11 +188,11 @@ export const CLASSICS: Classic[] = [
     strengths: ["trace"],
     proposal: {
       name: "Lime, Soda & Bitters",
-      description: "Soda, lime, a little sweetness and a few dashes of bitters.",
+      description: "Sweetened lime and soda with a few dashes of bitters. The Australian pub classic.",
       glass: "highball",
       recipe: [
         { ingredient: "angostura", amount: 3 },
-        { ingredient: "agave-syrup", amount: 1 },
+        { ingredient: "agave-syrup", amount: 3 },
         { ingredient: "lime-juice", amount: 0.5 },
         { ingredient: "soda", amount: "fill" },
       ],
@@ -232,13 +230,12 @@ export const CLASSICS: Classic[] = [
     strengths: ["zero", "trace"],
     proposal: {
       name: "Iced Tea",
-      description: "Cold black tea with honey and lime.",
+      description: "Cold black tea with honey and a squeeze of lime.",
       glass: "highball",
       recipe: [
-        { ingredient: "black-tea", amount: 4 },
-        { ingredient: "honey-syrup", amount: 1 },
+        { ingredient: "honey-syrup", amount: 2 },
         { ingredient: "lime-juice", amount: 0.25 },
-        { ingredient: "soda", amount: "fill" },
+        { ingredient: "black-tea", amount: "fill" },
       ],
     },
   },
