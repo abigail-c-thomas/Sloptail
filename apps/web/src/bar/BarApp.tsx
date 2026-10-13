@@ -6,7 +6,7 @@ import { FeedbackList } from "./FeedbackList.tsx";
 
 const POLL_MS = 2000;
 const STALE_AFTER_MS = 5 * 60 * 1000;
-const UNDO_MS = 8000;
+const UNDO_MS = 15000;
 /** The print bridge reports every couple of seconds; this long without one means it's gone. */
 const PRINTER_SILENT_MS = 20 * 1000;
 
@@ -22,8 +22,8 @@ export function BarApp() {
   const [drawer, setDrawer] = useState(false);
   const [feedbackOpen, setFeedbackOpen] = useState(false);
   const [now, setNow] = useState(Date.now());
-  /** Last order marked ready, so a mis-tap can be taken back. */
-  const [lastReady, setLastReady] = useState<{ order: Order; at: number } | null>(null);
+  /** Last order marked ready or picked up, so a mis-tap can be taken back. */
+  const [last, setLast] = useState<{ order: Order; did: "ready" | "picked up"; at: number } | null>(null);
   /** Order whose ✕ was tapped, waiting for "yes, cancel". In-page, not confirm(): some browsers block dialogs. */
   const [cancelling, setCancelling] = useState<string | null>(null);
   /** After marking something out: who's still queued with it. */
@@ -74,7 +74,13 @@ export function BarApp() {
   const ready = (o: Order) =>
     act(async () => {
       await api.ready(o.id);
-      setLastReady({ order: o, at: Date.now() });
+      setLast({ order: o, did: "ready", at: Date.now() });
+    });
+
+  const pickedUp = (o: Order) =>
+    act(async () => {
+      await api.collected(o.id);
+      setLast({ order: o, did: "picked up", at: Date.now() });
     });
 
   if (!token || (error && !view)) {
@@ -92,7 +98,7 @@ export function BarApp() {
   const catalog = view ? makeCatalog(view.catalog) : DEFAULT_CATALOG;
   const left = new Map(view?.stock.map((l) => [l.ingredient, Math.max(0, 1 - l.used / (l.stock || 1))]));
   const newFeedback = view?.feedback.filter((f) => f.status === "new").length ?? 0;
-  const undo = lastReady && now - lastReady.at < UNDO_MS ? lastReady.order : null;
+  const undo = last && now - last.at < UNDO_MS ? last : null;
 
   return (
     <CatalogProvider value={catalog}>
@@ -117,14 +123,15 @@ export function BarApp() {
         {undo ? (
           <div className="undo row between">
             <span>
-              <b>{undo.userName}</b> ready
+              <b>{undo.order.userName}</b> {undo.did}
             </span>
             <Button
               size="sm"
               variant="ghost"
               onClick={() => {
-                setLastReady(null);
-                void act(() => api.claim(undo.id));
+                setLast(null);
+                const id = undo.order.id;
+                void act(() => (undo.did === "ready" ? api.claim(id) : api.uncollected(id)));
               }}
             >
               Undo
@@ -202,7 +209,7 @@ export function BarApp() {
                 <span>
                   <b>{o.userName}</b> <span className="muted">{o.proposal.name}</span>
                 </span>
-                <Button size="sm" variant="secondary" onClick={() => act(() => api.collected(o.id))}>
+                <Button size="sm" variant="secondary" onClick={() => pickedUp(o)}>
                   Picked up
                 </Button>
               </div>

@@ -49,6 +49,7 @@ export function makeBarApi(token: string) {
     unclaim: (id: string) => call<Order>(`/orders/${id}/unclaim`, {}),
     ready: (id: string) => call<Order>(`/orders/${id}/ready`, {}),
     collected: (id: string) => call<Order>(`/orders/${id}/collected`, {}),
+    uncollected: (id: string) => call<Order>(`/orders/${id}/uncollected`, {}),
     cancel: (id: string, reason: string) => call<Order>(`/orders/${id}/cancel`, { reason }),
     availability: (ingredient: Ingredient["id"], available: boolean) =>
       call<{ unavailable: string[]; affected: Order[] }>("/availability", { ingredient, available }),

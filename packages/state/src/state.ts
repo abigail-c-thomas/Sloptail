@@ -107,6 +107,14 @@ export function markCollected(state: BarState, id: string, now: number): BarStat
   return transition(state, id, "collected", { collectedAt: now });
 }
 
+/** Take back a "Picked up" tapped by mistake: back on the bar, ready. */
+export function undoCollected(state: BarState, id: string): BarState {
+  const order = getOrder(state, id);
+  if (order.status !== "collected") throw new StateError("bad-transition", `Order ${id} is ${order.status}, not picked up`);
+  const { collectedAt: _c, ...rest } = order;
+  return { ...state, orders: { ...state.orders, [id]: { ...rest, status: "ready" } } };
+}
+
 /** The printer has produced a ticket for this order. Not a status change. */
 export function markPrinted(state: BarState, id: string, now: number): BarState {
   const order = getOrder(state, id);

@@ -25,6 +25,7 @@ import {
   cancelOrder,
   claimOrder,
   collectOwnOrder,
+  undoCollected,
   decideFeedback,
   finishFeedback,
   newFeedback,
@@ -370,6 +371,10 @@ export class BarDO extends DurableObject<Env> {
   /** The bar saw them take it (or the guest never tapped "Got it"). */
   collected(id: string): Promise<Result<Order>> {
     return this.mutateOrder((s) => markCollected(s, id, Date.now()), id);
+  }
+
+  uncollected(id: string): Promise<Result<Order>> {
+    return this.mutateOrder((s) => undoCollected(s, id), id);
   }
 
   collectedByGuest(id: string, userId: string): Promise<Result<Order>> {

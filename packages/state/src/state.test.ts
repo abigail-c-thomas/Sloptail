@@ -23,6 +23,7 @@ import {
   ordersUsing,
   queue,
   requestReprint,
+  undoCollected,
   toPrint,
   setAvailability,
   submitOrder,
@@ -115,6 +116,15 @@ describe("orders", () => {
     state = markReady(state, "1", 1);
     assert.throws(() => collectOwnOrder(state, "1", "u2", 2), /No order/);
     assert.equal(collectOwnOrder(state, "1", "u1", 2).orders["1"]?.status, "collected");
+  });
+
+  it("takes back a pickup, and only a pickup", () => {
+    let { state } = submit(createState(), gt);
+    state = markReady(state, "1", 1);
+    assert.throws(() => undoCollected(state, "1"), /not picked up/);
+    state = undoCollected(markCollected(state, "1", 2), "1");
+    assert.equal(state.orders["1"]?.status, "ready");
+    assert.equal(state.orders["1"]?.collectedAt, undefined);
   });
 
   it("lists a user's orders newest first", () => {
