@@ -75,6 +75,23 @@ describe("buildOrder", () => {
       ["rum", "lime-juice", "angostura", "ginger-beer", "soda", "pineapple-juice", "mint-sprig"],
     );
   });
+
+  it("puts vegemite after the other still ingredients, where it sits on the bar", () => {
+    const ordered = buildOrder(
+      [
+        { ingredient: "mint-sprig", amount: 1 },
+        { ingredient: "vegemite", amount: 0.25 },
+        { ingredient: "whiskey", amount: 1.5 },
+        { ingredient: "soda", amount: "fill" },
+        { ingredient: "lime-juice", amount: 0.5 },
+      ],
+      C,
+    );
+    assert.deepEqual(
+      ordered.map((r) => r.ingredient),
+      ["whiskey", "lime-juice", "vegemite", "soda", "mint-sprig"],
+    );
+  });
 });
 
 describe("spice", () => {

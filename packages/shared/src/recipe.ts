@@ -65,13 +65,16 @@ export function formatAmount(item: RecipeItem, ingredient?: Ingredient, { decima
  * The recipe in the order to build it. The model is asked for build order and
  * mostly gets it right; this guarantees the parts that matter behind the bar:
  * top-ups and anything sparkling go in after the still ingredients (so they
- * keep their fizz), and garnishes come last. Otherwise the model's order stands.
+ * keep their fizz), and garnishes come last. Vegemite goes after the other
+ * still ingredients: it sits between the flavourings and the garnishes on the
+ * bar. Otherwise the model's order stands.
  */
 export function buildOrder(recipe: Recipe, catalog: Catalog): Recipe {
   const rank = (item: RecipeItem): number => {
     const ing = catalog.byId.get(item.ingredient);
-    if (ing?.type === "garnish") return 2;
-    if (item.amount === "fill" || ing?.flavor.includes("sparkling")) return 1;
+    if (ing?.type === "garnish") return 3;
+    if (item.amount === "fill" || ing?.flavor.includes("sparkling")) return 2;
+    if (item.ingredient === "vegemite") return 1;
     return 0;
   };
   return recipe.map((item, i) => ({ item, i, r: rank(item) })).sort((a, b) => a.r - b.r || a.i - b.i).map((x) => x.item);
