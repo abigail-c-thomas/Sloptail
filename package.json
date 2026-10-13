@@ -18,7 +18,8 @@
     "typecheck": "tsc -b",
     "eval": "npm run eval --workspace=packages/llm",
     "test:watch": "node --test --watch \"packages/*/src/**/*.test.ts\"",
-    "load": "node scripts/load.ts"
+    "load": "node scripts/load.ts",
+    "feedback": "node scripts/feedback.ts"
   },
   "devDependencies": {
     "typescript": "^5"

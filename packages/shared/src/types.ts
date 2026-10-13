@@ -231,3 +231,45 @@ export const PrinterReport = z.object({
   pending: z.number().int().min(0).default(0),
 });
 export type PrinterReport = z.infer<typeof PrinterReport>;
+
+// ---------------------------------------------------------------------------
+// Feedback: guests write it, the bar reads and copies it
+// ---------------------------------------------------------------------------
+
+export const FeedbackBody = z.object({
+  userId: z.string().max(100),
+  /** Blank if they haven't given a name yet. */
+  userName: z.string().max(40).default(""),
+  text: z.string().trim().min(1).max(2000),
+  /** Where they were in the app, e.g. "proposal" or "tracking". */
+  context: z.string().max(100).default(""),
+});
+export type FeedbackBody = z.infer<typeof FeedbackBody>;
+
+/**
+ * new: waiting for the bar to triage. todo: "Do", waiting for Claude Code.
+ * working: a Claude Code session has picked it up. done / wont: closed.
+ */
+export const FeedbackStatus = z.enum(["new", "todo", "working", "done", "wont"]);
+export type FeedbackStatus = z.infer<typeof FeedbackStatus>;
+
+export interface Feedback extends FeedbackBody {
+  id: string;
+  createdAt: number;
+  status: FeedbackStatus;
+  /** Last status change. */
+  updatedAt?: number;
+  /** From whoever closed it: what was done (commit, deployed?) or why not. */
+  note?: string;
+}
+
+/** The bar's triage. "new" takes a decision back. */
+export const FeedbackDecision = z.object({ decision: z.enum(["todo", "wont", "new"]) });
+export type FeedbackDecision = z.infer<typeof FeedbackDecision>;
+
+/** Claude Code closing an item it worked on. */
+export const FeedbackFinish = z.object({
+  outcome: z.enum(["done", "wont"]),
+  note: z.string().trim().max(1000).default(""),
+});
+export type FeedbackFinish = z.infer<typeof FeedbackFinish>;

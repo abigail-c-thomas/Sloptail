@@ -119,3 +119,8 @@
   background: var(--surface); border-top: 1px solid var(--line);
 }
 .brand .badge { margin-left: 8px; vertical-align: middle; }
+
+/* Guest feedback: the form under "My drinks", the list in the bar's drawer. */
+.feedback-form { margin-top: 12px; padding-top: 16px; border-top: 1px solid var(--line); }
+.feedback-text { white-space: pre-wrap; overflow-wrap: anywhere; margin: 0; }
+.feedback-tabs { flex-wrap: wrap; gap: 4px; }

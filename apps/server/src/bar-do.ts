@@ -7,6 +7,10 @@ import {
   artKey,
   makeCatalog,
   type Catalog,
+  type Feedback,
+  type FeedbackBody,
+  type FeedbackDecision,
+  type FeedbackFinish,
   type Ingredient,
   type Order,
   type PrinterReport,
@@ -21,6 +25,10 @@ import {
   cancelOrder,
   claimOrder,
   collectOwnOrder,
+  decideFeedback,
+  finishFeedback,
+  newFeedback,
+  startFeedback,
   guestsNamed,
   createState,
   estimatedOut,
@@ -74,6 +82,8 @@ export interface BarView {
   printerIp: string;
   /** Last report from the print bridge, or null if none has ever checked in. */
   printer: PrinterStatus | null;
+  /** Guest feedback, newest first, whatever its status. */
+  feedback: Feedback[];
 }
 
 export interface PrintJob {
@@ -112,6 +122,11 @@ export interface PromptInputs {
 
 const STORAGE_KEY = "state";
 const CONFIG_KEY = "config";
+/** One key per item, separate from the bar state so a reset doesn't lose it. Ids sort by time. */
+const FEEDBACK_PREFIX = "feedback:";
+/** How many the bar screen gets; older ones stay in storage. */
+const FEEDBACK_SHOWN = 100;
+const FEEDBACK_RATE = { perUser: 5, global: 60, windowMs: 60_000 };
 
 /** Before anything's set up: dev and real get the default bar, practice starts empty, and real is running. */
 function defaultConfig(): EventConfig {
@@ -132,6 +147,9 @@ export class BarDO extends DurableObject<Env> {
   private config: EventConfig = defaultConfig();
   private catalog: Catalog = makeCatalog(this.config.profiles.real.ingredients);
   private llmCalls = new Map<string, number[]>();
+  private feedbackCalls = new Map<string, number[]>();
+  /** Newest first, at most FEEDBACK_SHOWN. */
+  private feedback: Feedback[] = [];
   /** In memory only: a heartbeat, not state worth persisting. */
   private printer: PrinterStatus | null = null;
 
@@ -142,6 +160,8 @@ export class BarDO extends DurableObject<Env> {
       if (saved) this.state = saved;
       const config = EventConfig.safeParse(migrateConfig(await ctx.storage.get(CONFIG_KEY)));
       if (config.success) this.setConfig(config.data);
+      const feedback = await ctx.storage.list<Feedback>({ prefix: FEEDBACK_PREFIX, reverse: true, limit: FEEDBACK_SHOWN });
+      this.feedback = [...feedback.values()];
     });
   }
 
@@ -243,6 +263,7 @@ export class BarDO extends DurableObject<Env> {
       profile: this.config.active,
       printerIp: this.config.profiles[this.config.active].printerIp,
       printer: this.printer,
+      feedback: this.feedback,
     };
   }
 
@@ -387,16 +408,56 @@ export class BarDO extends DurableObject<Env> {
    * shouldn't be able to burn OpenRouter credit. Returns false when over limit.
    */
   allowLlmCall(userId: string): boolean {
+    return allow(this.llmCalls, RATE, userId);
+  }
+
+  // --- feedback ----------------------------------------------------------
+
+  /** Stores and logs it. False when over the rate limit. */
+  async addFeedback(input: FeedbackBody): Promise<boolean> {
+    if (!allow(this.feedbackCalls, FEEDBACK_RATE, input.userId)) return false;
     const now = Date.now();
-    const prune = (arr: number[]) => arr.filter((t) => now - t < RATE.windowMs);
-    const mine = prune(this.llmCalls.get(userId) ?? []);
-    const all = prune(this.llmCalls.get("*") ?? []);
-    if (mine.length >= RATE.perUser || all.length >= RATE.global) return false;
-    mine.push(now);
-    all.push(now);
-    this.llmCalls.set(userId, mine);
-    this.llmCalls.set("*", all);
+    const item = newFeedback(input, `${now}-${crypto.randomUUID().slice(0, 8)}`, now);
+    await this.ctx.storage.put(FEEDBACK_PREFIX + item.id, item);
+    console.log("feedback", JSON.stringify(item));
+    this.feedback = [item, ...this.feedback].slice(0, FEEDBACK_SHOWN);
     return true;
+  }
+
+  /** Newest first; optionally only some statuses. */
+  getFeedback(statuses?: Feedback["status"][]): Feedback[] {
+    return statuses ? this.feedback.filter((f) => statuses.includes(f.status)) : this.feedback;
+  }
+
+  decideFeedback(id: string, decision: FeedbackDecision["decision"]): Promise<Result<Feedback>> {
+    return this.updateFeedback(id, (f, now) => decideFeedback(f, decision, now));
+  }
+
+  startFeedback(id: string): Promise<Result<Feedback>> {
+    return this.updateFeedback(id, (f, now) => startFeedback(f, now));
+  }
+
+  finishFeedback(id: string, finish: FeedbackFinish): Promise<Result<Feedback>> {
+    return this.updateFeedback(id, (f, now) => finishFeedback(f, finish, now));
+  }
+
+  /** Load, apply a transition, store, log. Every version is in the log; storage has the latest. */
+  private async updateFeedback(id: string, fn: (f: Feedback, now: number) => Feedback): Promise<Result<Feedback>> {
+    const item = await this.ctx.storage.get<Feedback>(FEEDBACK_PREFIX + id);
+    if (!item) return { ok: false, code: "not-found", message: "No such feedback" };
+    let next: Feedback;
+    try {
+      next = fn(item, Date.now());
+    } catch (e) {
+      if (e instanceof StateError) return { ok: false, code: e.code, message: e.message };
+      throw e;
+    }
+    if (next !== item) {
+      await this.ctx.storage.put(FEEDBACK_PREFIX + id, next);
+      console.log("feedback", JSON.stringify(next));
+      this.feedback = this.feedback.map((f) => (f.id === id ? next : f));
+    }
+    return { ok: true, value: next };
   }
 
   /** Wipe every order and out-of-stock mark. Config is kept. */
@@ -417,4 +478,18 @@ export class BarDO extends DurableObject<Env> {
     await this.reset();
     return this.getAdminView();
   }
+}
+
+/** Sliding-window limit per user and overall. Records the call when it's allowed. */
+function allow(calls: Map<string, number[]>, rate: { perUser: number; global: number; windowMs: number }, userId: string): boolean {
+  const now = Date.now();
+  const prune = (arr: number[]) => arr.filter((t) => now - t < rate.windowMs);
+  const mine = prune(calls.get(userId) ?? []);
+  const all = prune(calls.get("*") ?? []);
+  if (mine.length >= rate.perUser || all.length >= rate.global) return false;
+  mine.push(now);
+  all.push(now);
+  calls.set(userId, mine);
+  calls.set("*", all);
+  return true;
 }

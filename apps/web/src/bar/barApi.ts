@@ -1,4 +1,4 @@
-import type { Ingredient, Order, ProfileName } from "@sloptail/shared";
+import type { Feedback, FeedbackDecision, Ingredient, Order, ProfileName } from "@sloptail/shared";
 
 /** Mirrors BarView in apps/server/src/bar-do.ts. */
 export interface BarView {
@@ -12,6 +12,8 @@ export interface BarView {
   stock: StockLevel[];
   profile: ProfileName;
   printerIp: string;
+  /** Newest first, whatever its status. */
+  feedback: Feedback[];
 }
 
 /** Mirrors StockLevel in packages/state/src/selectors.ts. */
@@ -52,6 +54,7 @@ export function makeBarApi(token: string) {
       call<{ unavailable: string[]; affected: Order[] }>("/availability", { ingredient, available }),
     art: (id: string) => call<{ svg: string }>(`/orders/${id}/art`),
     reprint: (id: string) => call<Order>(`/orders/${id}/reprint`, {}),
+    decideFeedback: (id: string, decision: FeedbackDecision["decision"]) => call<Feedback>(`/feedback/${id}/decide`, { decision }),
   };
 }
 

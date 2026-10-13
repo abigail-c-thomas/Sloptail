@@ -93,6 +93,25 @@ text came out smudgy, so we don't use it. Text is reduced to ASCII ("1½" →
 Images are 1-bit at 180 dpi; Atkinson dithering makes greys look good, and
 drawings print 288 dots wide with their own blank rows trimmed.
 
+## Guest feedback loop (during the event)
+
+Guests send feedback from the "My drinks" drawer. The bar screen's Feedback
+drawer triages it: **Do** (status `todo`) or **Won't do**. A Claude Code
+session does the rest, live:
+
+```bash
+export SLOPTAIL_BAR_TOKEN=...          # production token, from CLAUDE.local.md
+npm run feedback -- watch              # background (Monitor): one block per new todo item
+npm run feedback -- start <id>         # bar shows "Claude's on it"
+npm run feedback -- done <id> --note "What changed, commit hash, deployed"
+npm run feedback -- wont <id> --note "Why not"   # e.g. needs a shaker
+```
+
+For each item: `start` it, make the fix, `npm test` + `npm run typecheck`,
+commit, `npm run deploy` (prod can roll mid-event), then `done` with a note
+the bartenders can read. Feedback is stored apart from bar state, so Reset
+doesn't clear it, and every change is also logged (`feedback {...}` lines).
+
 ## Conventions
 
 - **Minimal dependencies.** Runtime: react, react-dom, hono, zod. Tooling:

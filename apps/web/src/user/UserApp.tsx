@@ -25,6 +25,7 @@ import {
   saveLastRequest,
   saveUser,
 } from "../storage.ts";
+import { FeedbackForm } from "./FeedbackForm.tsx";
 import { PastOrders } from "./PastOrders.tsx";
 import { Tracking } from "./Tracking.tsx";
 
@@ -499,6 +500,7 @@ export function UserApp() {
               dispatch({ type: "reset", keepPrefs: true });
             }}
           />
+          <FeedbackForm userId={user.userId} userName={s.name || user.name} context={s.step} />
         </Drawer>
       </div>
     </CatalogProvider>

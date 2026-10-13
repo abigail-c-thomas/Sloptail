@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { DEFAULT_CATALOG, makeCatalog, TYPE_LABEL, type Order } from "@sloptail/shared";
 import { Badge, Banner, Button, Card, CatalogProvider, Drawer, RecipeList, Stack, TextField } from "@sloptail/ui";
 import { BarApiError, makeBarApi, type BarView } from "./barApi.ts";
+import { FeedbackList } from "./FeedbackList.tsx";
 
 const POLL_MS = 2000;
 const STALE_AFTER_MS = 5 * 60 * 1000;
@@ -19,6 +20,7 @@ export function BarApp() {
   const [view, setView] = useState<BarView | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [drawer, setDrawer] = useState(false);
+  const [feedbackOpen, setFeedbackOpen] = useState(false);
   const [now, setNow] = useState(Date.now());
   /** Last order marked ready, so a mis-tap can be taken back. */
   const [lastReady, setLastReady] = useState<{ order: Order; at: number } | null>(null);
@@ -89,6 +91,7 @@ export function BarApp() {
   const making = view?.queue.filter((o) => o.status === "making") ?? [];
   const catalog = view ? makeCatalog(view.catalog) : DEFAULT_CATALOG;
   const left = new Map(view?.stock.map((l) => [l.ingredient, Math.max(0, 1 - l.used / (l.stock || 1))]));
+  const newFeedback = view?.feedback.filter((f) => f.status === "new").length ?? 0;
   const undo = lastReady && now - lastReady.at < UNDO_MS ? lastReady.order : null;
 
   return (
@@ -98,6 +101,9 @@ export function BarApp() {
           <span className="brand">Sloptail{view && view.profile !== "real" ? <Badge tone="warn">{view.profile}</Badge> : null}</span>
           <div className="row">
             <PrinterBadge printer={view?.printer ?? null} now={now} />
+            <Button variant="secondary" size="sm" onClick={() => setFeedbackOpen(true)}>
+              Feedback{newFeedback ? ` (${newFeedback})` : ""}
+            </Button>
             <Button variant="secondary" size="sm" onClick={() => setDrawer(true)}>
               Stock{view?.unavailable.length ? ` (${view.unavailable.length} out)` : ""}
             </Button>
@@ -246,6 +252,10 @@ export function BarApp() {
               </div>
             </Stack>
           ))}
+        </Drawer>
+
+        <Drawer open={feedbackOpen} onClose={() => setFeedbackOpen(false)} title="Feedback">
+          <FeedbackList feedback={view?.feedback ?? []} onDecide={(id, decision) => act(() => api.decideFeedback(id, decision))} />
         </Drawer>
       </div>
     </CatalogProvider>

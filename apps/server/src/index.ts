@@ -6,6 +6,10 @@ import {
   CollectBody,
   DescribeBody,
   EditBody,
+  FeedbackBody,
+  FeedbackDecision,
+  FeedbackFinish,
+  FeedbackStatus,
   makeCatalog,
   OutOfBody,
   PrinterReport,
@@ -124,6 +128,11 @@ app.get("/users/:userId/orders", async (c) => {
 /** "Same abi who ordered X?": guests who already ordered under a name. Public; names and drink names only, like the board. */
 app.get("/guests", async (c) => c.json(await bar(c.env).getGuestsNamed((c.req.query("name") ?? "").slice(0, 40))));
 
+app.post("/feedback", body(FeedbackBody), async (c) => {
+  const r = await bar(c.env).addFeedback(c.req.valid("json"));
+  return r ? c.json({ ok: true }) : c.json({ error: "That's a lot of feedback. Give it a minute." }, 429);
+});
+
 // --- bar (token-protected) -------------------------------------------------
 
 const barApi = new Hono<App>();
@@ -167,6 +176,19 @@ barApi.post("/availability", body(OutOfBody), async (c) => {
   const affected = available ? [] : await b.getOrdersUsing(ingredient);
   return c.json({ unavailable: r.value, affected });
 });
+
+// Feedback. The bar decides; a Claude Code session (scripts/feedback.ts) starts and finishes.
+barApi.get("/feedback", async (c) => {
+  const wanted = c.req.query("status")?.split(",").filter(Boolean);
+  const statuses = wanted ? z.array(FeedbackStatus).safeParse(wanted) : undefined;
+  if (statuses && !statuses.success) return c.json({ error: `status is one of ${FeedbackStatus.options.join(", ")}` }, 400);
+  return c.json(await bar(c.env).getFeedback(statuses?.data));
+});
+barApi.post("/feedback/:id/decide", body(FeedbackDecision), async (c) =>
+  unwrap(c, await bar(c.env).decideFeedback(c.req.param("id"), c.req.valid("json").decision)),
+);
+barApi.post("/feedback/:id/start", async (c) => unwrap(c, await bar(c.env).startFeedback(c.req.param("id"))));
+barApi.post("/feedback/:id/finish", body(FeedbackFinish), async (c) => unwrap(c, await bar(c.env).finishFeedback(c.req.param("id"), c.req.valid("json"))));
 
 barApi.post("/reset", async (c) => {
   await bar(c.env).reset();

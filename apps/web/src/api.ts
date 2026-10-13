@@ -1,4 +1,4 @@
-import type { EditBody, Ingredient, Order, Proposal, ProposeBody, SubmitBody } from "@sloptail/shared";
+import type { EditBody, FeedbackBody, Ingredient, Order, Proposal, ProposeBody, SubmitBody } from "@sloptail/shared";
 
 export class ApiError extends Error {
   constructor(
@@ -55,5 +55,6 @@ export const api = {
   board: () => call<Board>("/board"),
   catalog: () => call<{ catalog: Ingredient[]; unavailable: string[] }>("/catalog"),
   userOrders: (userId: string) => call<Order[]>(`/users/${userId}/orders`),
+  feedback: (b: FeedbackBody) => call<{ ok: true }>("/feedback", post(b)),
   guestsNamed: (name: string) => call<NamedGuest[]>(`/guests?name=${encodeURIComponent(name)}`),
 };
