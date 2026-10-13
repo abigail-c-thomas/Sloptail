@@ -69,7 +69,7 @@ export const KNOWN_EXTRAS: Ingredient[] = [
   { id: "celery-syrup", name: "Celery seed syrup", type: "flavoring", flavor: ["savoury", "green", "vegetal", "sweet"], alcoholic: false, unit: "pump", max: 2, sugar: 45 },
   { id: "chilli-syrup", name: "Chilli syrup", type: "flavoring", flavor: ["hot", "spice", "sweet"], alcoholic: false, unit: "pump", max: 1, sugar: 45, notes: "Taste the batch; heat varies" },
   { id: "cream", name: "Cream", type: "flavoring", flavor: ["rich", "creamy"], alcoholic: false, unit: "part", max: 1, sugar: 3, notes: "Curdles with citrus" },
-  { id: "vegemite", name: "Vegemite", type: "flavoring", flavor: ["salty", "umami", "malty"], alcoholic: false, unit: "barspoon", max: 0.5, notes: "Loosen with a little warm water first" },
+  { id: "vegemite", name: "Vegemite", type: "flavoring", flavor: ["salty", "umami", "malty"], alcoholic: false, unit: "barspoon", max: 0.5 },
   { id: "salt-rim", name: "Salt rim", type: "garnish", flavor: ["salty"], alcoholic: false, unit: "piece", max: 1, notes: "Half the rim, so it's optional sip by sip" },
 ];
 

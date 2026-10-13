@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { DEFAULT_CATALOG as C, KNOWN_EXTRAS } from "./catalog.ts";
+import { CATALOG, DEFAULT_CATALOG as C, KNOWN_EXTRAS, makeCatalog } from "./catalog.ts";
 import { buildOrder, estimateAlcoholMl, estimateBalance, flavourMisses, flavourMissNote, formatAmount, isStrong, validateRecipe } from "./recipe.ts";
 
 describe("parts", () => {
@@ -57,39 +57,25 @@ describe("estimateBalance", () => {
 });
 
 describe("buildOrder", () => {
-  it("puts sparkling and top-ups after still ingredients, and garnish last, otherwise keeping order", () => {
-    const ordered = buildOrder(
-      [
-        { ingredient: "mint-sprig", amount: 1 },
-        { ingredient: "ginger-beer", amount: "fill" },
-        { ingredient: "rum", amount: 1.5 },
-        { ingredient: "soda", amount: 1 },
-        { ingredient: "lime-juice", amount: 0.5 },
-        { ingredient: "pineapple-juice", amount: "fill" },
-        { ingredient: "angostura", amount: 2 },
-      ],
-      C,
-    );
-    assert.deepEqual(
-      ordered.map((r) => r.ingredient),
-      ["rum", "lime-juice", "angostura", "ginger-beer", "soda", "pineapple-juice", "mint-sprig"],
-    );
-  });
-
-  it("puts vegemite after the other still ingredients, where it sits on the bar", () => {
+  it("follows the bar: salt rim, spirits, wine, mixers (top-ups last), bitters, pumps, Vegemite, garnish", () => {
     const ordered = buildOrder(
       [
         { ingredient: "mint-sprig", amount: 1 },
         { ingredient: "vegemite", amount: 0.25 },
-        { ingredient: "whiskey", amount: 1.5 },
-        { ingredient: "soda", amount: "fill" },
+        { ingredient: "chilli-syrup", amount: 1 },
+        { ingredient: "ginger-beer", amount: "fill" },
+        { ingredient: "angostura", amount: 2 },
+        { ingredient: "black-tea", amount: 1 },
+        { ingredient: "dry-vermouth", amount: 0.5 },
+        { ingredient: "rum", amount: 1.5 },
         { ingredient: "lime-juice", amount: 0.5 },
+        { ingredient: "salt-rim", amount: 1 },
       ],
-      C,
+      makeCatalog([...CATALOG, ...KNOWN_EXTRAS]),
     );
     assert.deepEqual(
       ordered.map((r) => r.ingredient),
-      ["whiskey", "lime-juice", "vegemite", "soda", "mint-sprig"],
+      ["salt-rim", "rum", "dry-vermouth", "black-tea", "ginger-beer", "angostura", "chilli-syrup", "lime-juice", "vegemite", "mint-sprig"],
     );
   });
 });

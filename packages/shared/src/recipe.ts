@@ -5,7 +5,7 @@ import type { Glass, Ingredient, Level, Recipe, RecipeItem, Strength } from "./t
 export const ML_PER_PART = 30;
 
 /** Rough volume of one unit of each kind, in ml. Garnishes contribute nothing. */
-const ML_PER_UNIT: Record<Ingredient["unit"], number> = {
+export const ML_PER_UNIT: Record<Ingredient["unit"], number> = {
   part: ML_PER_PART,
   barspoon: 5,
   pump: 7.5,
@@ -62,20 +62,23 @@ export function formatAmount(item: RecipeItem, ingredient?: Ingredient, { decima
 }
 
 /**
- * The recipe in the order to build it. The model is asked for build order and
- * mostly gets it right; this guarantees the parts that matter behind the bar:
- * top-ups and anything sparkling go in after the still ingredients (so they
- * keep their fizz), and garnishes come last. Vegemite goes after the other
- * still ingredients: it sits between the flavourings and the garnishes on the
- * bar. Otherwise the model's order stands.
+ * The recipe in the order to build it, which is the order things sit along
+ * the bar: salt rim (before the ice goes in), spirits, wine (vermouths
+ * included), mixers and teas, bitters and drops, pumps, Vegemite, then
+ * garnishes. Top-ups go after the other mixers. Within a group the model's
+ * order stands.
  */
 export function buildOrder(recipe: Recipe, catalog: Catalog): Recipe {
   const rank = (item: RecipeItem): number => {
     const ing = catalog.byId.get(item.ingredient);
-    if (ing?.type === "garnish") return 3;
-    if (item.amount === "fill" || ing?.flavor.includes("sparkling")) return 2;
-    if (item.ingredient === "vegemite") return 1;
-    return 0;
+    if (!ing) return 4;
+    if (ing.id === "salt-rim") return 0;
+    if (ing.type === "garnish") return 8;
+    if (ing.type === "base") return ing.flavor.includes("wine") || ing.flavor.includes("sparkling") ? 2 : 1;
+    if (ing.type === "mixer") return item.amount === "fill" ? 3.5 : 3;
+    if (ing.unit === "barspoon") return 7;
+    if (ing.unit === "dash" || ing.unit === "drop") return 5;
+    return 6;
   };
   return recipe.map((item, i) => ({ item, i, r: rank(item) })).sort((a, b) => a.r - b.r || a.i - b.i).map((x) => x.item);
 }

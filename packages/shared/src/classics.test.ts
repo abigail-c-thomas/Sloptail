@@ -42,3 +42,13 @@ describe("classics", () => {
     }
   });
 });
+
+describe("classicsFor", () => {
+  it("converts amounts when the bar measures something in a different unit", () => {
+    const pumpedLime = makeCatalog(CATALOG.map((i) => (i.id === "lime-juice" ? { ...i, unit: "pump" as const, max: 4 } : i)));
+    const limes = classicsFor("full", pumpedLime).flatMap((c) => c.proposal.recipe.filter((r) => r.ingredient === "lime-juice"));
+    assert.ok(limes.length > 0);
+    for (const r of limes) assert.ok(r.amount === 1 || r.amount === 2, String(r.amount));
+    for (const c of classicsFor("full", pumpedLime)) assert.deepEqual(validateRecipe(c.proposal.recipe, "full", pumpedLime), [], c.id);
+  });
+});

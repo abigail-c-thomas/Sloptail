@@ -39,10 +39,10 @@ describe("orderTicket", () => {
     const items = lines.filter((l) => / \.+ /.test(l));
     assert.deepEqual(
       items.map((l) => l.replace(/ \.+ .*$/, "")),
-      ["Black tea (cold)", "Buckwheat honey syrup", "Angostura bitters", "Soda water", "Mint sprig"],
+      ["Black tea (cold)", "Soda water", "Angostura bitters", "Buckwheat honey syrup", "Mint sprig"],
     );
-    assert.match(items[1]!, / 2 pumps$/);
-    assert.match(items[3]!, /top up$/);
+    assert.match(items[3]!, / 2 pumps$/);
+    assert.match(items[1]!, /top up$/);
     for (const l of items) assert.equal(l.length, 40);
   });
 

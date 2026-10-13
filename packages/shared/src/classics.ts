@@ -1,4 +1,5 @@
-import type { Proposal, Strength } from "./types.ts";
+import type { Proposal, RecipeItem, Strength } from "./types.ts";
+import { ML_PER_UNIT } from "./recipe.ts";
 import { DEFAULT_CATALOG, type Catalog } from "./catalog.ts";
 
 export interface Classic {
@@ -263,7 +264,7 @@ export function classicsFor(strength: Strength, catalog: Catalog = DEFAULT_CATAL
   const has = (id: string) => catalog.byId.has(id);
   const isGarnish = (id: string) => DEFAULT_CATALOG.byId.get(id)?.type === "garnish";
   return CLASSICS.filter((c) => c.strengths.includes(strength)).flatMap((c) => {
-    const kept = c.proposal.recipe.filter((r) => has(r.ingredient) || !isGarnish(r.ingredient));
+    const kept = c.proposal.recipe.filter((r) => has(r.ingredient) || !isGarnish(r.ingredient)).map((r) => inBarUnit(r, catalog));
     if (!kept.every((r) => has(r.ingredient))) return [];
     const recipe =
       strength === "half"
@@ -271,4 +272,18 @@ export function classicsFor(strength: Strength, catalog: Catalog = DEFAULT_CATAL
         : kept;
     return [{ ...c, proposal: { ...c.proposal, recipe } }];
   });
+}
+
+/**
+ * Classics are written in the default catalog's units. When this bar measures
+ * something differently (lime juice by pump, not jigger), convert by volume:
+ * ¼ part (7.5ml) of lime is 1 pump.
+ */
+function inBarUnit(r: RecipeItem, catalog: Catalog): RecipeItem {
+  const from = DEFAULT_CATALOG.byId.get(r.ingredient)?.unit;
+  const to = catalog.byId.get(r.ingredient)?.unit;
+  if (!from || !to || from === to || r.amount === "fill" || to === "piece" || from === "piece") return r;
+  const ml = r.amount * ML_PER_UNIT[from];
+  const amount = to === "part" ? Math.max(0.25, Math.round((ml / ML_PER_UNIT.part) * 4) / 4) : Math.max(1, Math.round(ml / ML_PER_UNIT[to]));
+  return { ...r, amount };
 }

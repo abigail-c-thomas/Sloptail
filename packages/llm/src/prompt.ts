@@ -100,7 +100,6 @@ ${available.map(ingredientLine).join("\n")}
 - Use only ingredient ids from the list above. Anything else will be rejected.
 - Amounts are in each ingredient's unit (part, pump, dash, drop, barspoon, piece). 1 part = 30ml, poured with a jigger, so parts go in quarter steps only: 0.25, 0.5, 0.75, 1, 1.25, 1.5, ... 1 pump = one press of a syrup pump, 7.5ml; pumps, dashes, drops and pieces are whole numbers. Use "fill" for topping up with a mixer.
 - Every drink is built directly in the serving glass over ice. No shaking, no stirring in a separate vessel, no straining. Design for that: no egg white, no need to chill separately.
-- List ingredients in the order the bartender should add them: spirits and flavourings first, then juices and teas, sparkling things last.
 - 3 to 6 ingredients. At most 2 bases. Respect each ingredient's max. Keep it makeable in under 60 seconds.
 - Total liquid before any "fill" should be 2-4 parts for a highball, 2-3 parts for a rocks glass. "fill" tops the glass up to about ${FILL_TO_ML.highball / ML_PER_PART} parts (highball) or ${FILL_TO_ML.rocks / ML_PER_PART} parts (rocks).
 - Strength: ${STRENGTH_TEXT[ctx.request.strength]} Target ${budget.min}-${budget.max}ml of pure alcohol.
