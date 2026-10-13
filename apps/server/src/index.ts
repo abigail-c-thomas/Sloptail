@@ -62,7 +62,7 @@ app.get("/catalog", async (c) => c.json(await bar(c.env).getCatalog()));
 const TOO_MANY = "Easy there. The bartender-bot needs a minute; try again shortly.";
 
 app.post("/propose", body(ProposeBody), async (c) => {
-  const { userId, userName, request, seen = [] } = c.req.valid("json");
+  const { userId, request, seen = [] } = c.req.valid("json");
   const b = bar(c.env);
   if (!(await b.allowLlmCall(userId))) return c.json({ error: TOO_MANY }, 429);
   const inputs = await b.getPromptInputs(userId);
@@ -72,7 +72,6 @@ app.post("/propose", body(ProposeBody), async (c) => {
     const result = await propose(
       {
         catalog: makeCatalog(inputs.catalog),
-        userName,
         request,
         unavailable: new Set(inputs.unavailable),
         recentNames: inputs.recentNames,
@@ -93,7 +92,7 @@ app.post("/edit", body(EditBody), async (c) => {
   const inputs = await b.getPromptInputs(userId);
   try {
     const result = await edit(
-      { catalog: makeCatalog(inputs.catalog), userName: "guest", request, unavailable: new Set(inputs.unavailable) },
+      { catalog: makeCatalog(inputs.catalog), request, unavailable: new Set(inputs.unavailable) },
       proposal,
       tweak,
       llm(c.env),

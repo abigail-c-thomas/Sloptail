@@ -18,7 +18,6 @@ import { PROPOSAL_JSON_SCHEMA } from "./parse.ts";
 export interface PromptContext {
   /** What's behind the bar for this event. */
   catalog: Catalog;
-  userName: string;
   request: UserRequest;
   unavailable: ReadonlySet<string>;
   /** Names of drinks already on the board tonight, so the model avoids repeats. */
@@ -99,7 +98,7 @@ ${available.map(ingredientLine).join("\n")}
 - Strength: ${STRENGTH_TEXT[ctx.request.strength]} Target ${budget.min}-${budget.max}ml of pure alcohol.
 - Adventurousness: ${ADVENTURE_TEXT[ctx.request.adventurousness]}
 - Take the guest's request seriously and reflect it in the drink. If they name a specific classic, make that.
-- Name: short, memorable, dry humour welcome. No puns on the guest's name unless they invite it.
+- Name: short, memorable, dry humour welcome.
 - Balance: sugar and acid figures above are grams per 100ml of that ingredient. Work out roughly how sweet and sour the finished drink is (including the fill). Bands for the finished drink: sweetness ${Object.values(LEVEL_TEXT.sweetness).join("; ")}. Sourness ${Object.values(LEVEL_TEXT.acidity).join("; ")}.${
     ctx.request.sweetness ? `\n- The guest wants sweetness ${LEVEL_TEXT.sweetness[ctx.request.sweetness]}.` : ""
   }${ctx.request.acidity ? `\n- The guest wants sourness ${LEVEL_TEXT.acidity[ctx.request.acidity]}.` : ""}${
@@ -135,7 +134,7 @@ export function proposeMessages(ctx: PromptContext): Message[] {
     { role: "system", content: systemPrompt(ctx) },
     {
       role: "user",
-      content: `Guest: ${ctx.userName}\nStrength: ${r.strength}\nAdventurousness: ${r.adventurousness}/3\n${
+      content: `Strength: ${r.strength}\nAdventurousness: ${r.adventurousness}/3\n${
         flavour.length ? `${flavour.join("\n")}\n` : ""
       }What they said they feel like: ${prompt}${history}`,
     },

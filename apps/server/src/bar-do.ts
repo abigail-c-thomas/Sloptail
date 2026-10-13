@@ -339,7 +339,6 @@ export class BarDO extends DurableObject<Env> {
   private async draw(order: Order): Promise<void> {
     const ctx = {
       catalog: this.catalog,
-      userName: order.userName,
       request: order.request,
       unavailable: new Set(this.effectiveUnavailable()),
     };

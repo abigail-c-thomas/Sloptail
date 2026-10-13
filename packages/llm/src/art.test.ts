@@ -33,7 +33,6 @@ describe("checkSvg", () => {
 
 const ctx: PromptContext = {
   catalog: DEFAULT_CATALOG,
-  userName: "Ada",
   request: { strength: "full", adventurousness: 2, prompt: "a storm at sea" },
   unavailable: new Set(),
 };

@@ -76,10 +76,10 @@ const results: CaseResult[] = [];
 const servedNames: string[] = [];
 for (const c of cases) {
   for (let rep = 0; rep < reps; rep++) {
-    const first = await runCase(c.id, c.userName, c.request, rep, [], c.expect);
+    const first = await runCase(c.id, c.request, rep, [], c.expect);
     report(first);
     if (c.then && first.proposal) {
-      const second = await runCase(`${c.id}#2`, c.userName, { ...c.request, prompt: c.then.prompt }, rep, [first.proposal]);
+      const second = await runCase(`${c.id}#2`, { ...c.request, prompt: c.then.prompt }, rep, [first.proposal]);
       if (second.proposal) second.failedExpectations.push(...compareSecond(first.proposal, second.proposal, !!c.then.sameAgain));
       report(second);
     }
@@ -135,7 +135,6 @@ function report(r: CaseResult): void {
 
 async function runCase(
   id: string,
-  userName: string,
   request: UserRequest,
   rep: number,
   history: Proposal[],
@@ -144,7 +143,7 @@ async function runCase(
   const t0 = Date.now();
   try {
     const { proposal, attempts } = await propose(
-      { catalog, userName, request, unavailable: new Set(), recentNames: servedNames.slice(-30).reverse(), history },
+      { catalog, request, unavailable: new Set(), recentNames: servedNames.slice(-30).reverse(), history },
       client,
     );
     const ids = new Set(proposal.recipe.map((r) => r.ingredient));

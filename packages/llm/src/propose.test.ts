@@ -8,7 +8,6 @@ import type { PromptContext } from "./prompt.ts";
 
 const ctx: PromptContext = {
   catalog: DEFAULT_CATALOG,
-  userName: "Abigail",
   request: { strength: "full", adventurousness: 2, prompt: "something with mezcal, bit bitter" },
   unavailable: new Set(),
 };
