@@ -22,13 +22,12 @@ export const CLASSICS: Classic[] = [
     strengths: ["half", "full"],
     proposal: {
       name: "Dark & Stormy",
-      description: "Rum topped with ginger beer and a squeeze of lime, with a sprig of mint.",
+      description: "Rum topped with ginger beer and a squeeze of lime.",
       glass: "highball",
       recipe: [
         { ingredient: "rum", amount: 1.5 },
         { ingredient: "lime-juice", amount: 0.25 },
         { ingredient: "ginger-beer", amount: "fill" },
-        { ingredient: "mint-sprig", amount: 1 },
       ],
     },
   },
