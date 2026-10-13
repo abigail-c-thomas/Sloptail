@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useReducer, useState } from "react";
 import type { Adventurousness, Level, Order, Proposal, Strength, UserRequest } from "@sloptail/shared";
-import { classicsFor, DEFAULT_CATALOG, makeCatalog } from "@sloptail/shared";
+import { classicsFor, DEFAULT_CATALOG, insertSequels, makeCatalog, nextLine, withoutSequels, type Sequels } from "@sloptail/shared";
 import {
   Banner,
   Button,
@@ -183,6 +183,8 @@ const TECH_IDEAS = [
   "Internet 1.0",
   "The Metaverse",
   "Rolling at 6pm on a Friday",
+  "Rolling back at 6:05pm on a Friday",
+  "You're absolutely right!",
   "A meeting that could have been an email",
   "Rubber duck debugging",
   "Ignore all previous instructions",
@@ -216,6 +218,10 @@ const OTHER_IDEAS = [
   "Dentist's waiting room",
   "New book smell",
   "Slowly walking away from an explosion without turning around",
+  "A seagull that has just stolen a chip",
+  "Saying \"you too\" when the waiter says enjoy your meal",
+  "A shopping trolley with one bad wheel",
+  "A belligerent swan",
   "A biscuit tin that turns out to be full of sewing stuff",
 ];
 
@@ -228,8 +234,12 @@ function shuffle<T>(arr: readonly T[]): T[] {
   return copy;
 }
 
+/** The rollback only ever shows up, and always shows up, right after the roll. */
+const IDEA_SEQUELS: Sequels = { "Rolling at 6pm on a Friday": "Rolling back at 6:05pm on a Friday" };
+
 function pickIdeas(): string[] {
-  return shuffle([...shuffle(TECH_IDEAS).slice(0, 1), ...shuffle(OTHER_IDEAS).slice(0, 2)]);
+  const picked = shuffle([...shuffle(withoutSequels(TECH_IDEAS, IDEA_SEQUELS)).slice(0, 1), ...shuffle(OTHER_IDEAS).slice(0, 2)]);
+  return insertSequels(picked, IDEA_SEQUELS);
 }
 
 const LOADING_LINES = [
@@ -241,8 +251,29 @@ const LOADING_LINES = [
   "Counting ice cubes…",
   "Rerunning the evals…",
   "Asking a smaller model…",
+  "Retrying with a bigger model…",
+  "Checking for feedback… (you can leave some in the sidebar!)",
+  "Rolling a hotfix…",
+  "Queuing an extra one for the bartender (they deserve it)…",
+  "Checking whether we need to cut you off…",
+  "Pretending this splash text is also AI-generated and not just from a big prewritten list…",
   "Wondering why we have Vegemite on the ingredients list…",
 ];
+
+const LOADING_SEQUELS: Sequels = { "Asking a smaller model…": "Retrying with a bigger model…" };
+const LOADING_EVERY_MS = 3500;
+/** Last line shown, across waits, so a set-up's punchline lands even if the next wait is a new request. */
+let lastLoadingLine: string | undefined;
+
+/** The spinner's caption: a new line every few seconds while the bartender-bot thinks. */
+function LoadingLine() {
+  const [line, setLine] = useState(() => (lastLoadingLine = nextLine(lastLoadingLine, LOADING_LINES, LOADING_SEQUELS)));
+  useEffect(() => {
+    const t = setInterval(() => setLine((lastLoadingLine = nextLine(lastLoadingLine, LOADING_LINES, LOADING_SEQUELS))), LOADING_EVERY_MS);
+    return () => clearInterval(t);
+  }, []);
+  return <Spinner label={line} />;
+}
 
 // ---------------------------------------------------------------------------
 
@@ -471,7 +502,7 @@ export function UserApp() {
           </Stack>
         )}
 
-        {s.step === "loading" && <Spinner label={LOADING_LINES[Math.floor(Math.random() * LOADING_LINES.length)]} />}
+        {s.step === "loading" && <LoadingLine />}
 
         {s.step === "proposal" && s.proposal && (
           <ProposalStep
