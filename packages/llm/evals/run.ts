@@ -2,7 +2,7 @@
  * Eval runner: sends every case through `propose` against a real model and
  * reports validity, repair rate, latency, and the heuristic expectations.
  *
- *   OPENROUTER_API_KEY=... npm run eval -- [--model x] [--reps 2] [--only id] [--reasoning none|low|medium|high]
+ *   OPENROUTER_API_KEY=... npm run eval -- [--model x] [--reps 2] [--only id,id] [--reasoning none|low|medium|high]
  *                                          [--catalog file.json] [--profile real]
  *
  * --catalog takes a JSON ingredient list, or a saved `GET /api/admin` response
@@ -48,7 +48,7 @@ if (!apiKey) {
 }
 const model = args.model ?? process.env.OPENROUTER_MODEL ?? "openai/gpt-5.6-luna";
 const reps = Number(args.reps ?? 1);
-const cases = args.only ? CASES.filter((c) => c.id === args.only) : CASES;
+const cases = args.only ? CASES.filter((c) => args.only!.split(",").includes(c.id)) : CASES;
 const catalog = args.catalog ? loadCatalog(args.catalog, args.profile ?? "real") : DEFAULT_CATALOG;
 
 const reasoning = (args.reasoning ?? process.env.OPENROUTER_REASONING) as "none" | "low" | "medium" | "high" | undefined;

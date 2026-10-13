@@ -262,6 +262,18 @@ export function isHot(ing: Pick<Ingredient, "flavor">): boolean {
   return ing.flavor.some((f) => HEAT_TAGS.has(f));
 }
 
+/** Flavour tags that make a flavouring a statement rather than a seasoning. */
+const STRONG_TAGS = new Set(["numbing", "hot", "smoky", "savoury", "vegetal", "umami", "perfumed", "astringent", "yoghurt"]);
+
+/**
+ * Flavourings that take over a drink in more than a small dose (peppercorn,
+ * celery, chilli, smoke, rose, vegemite...). Judged from tags so it follows
+ * whatever the admin stocks. Garnishes don't count: a sage leaf is not a risk.
+ */
+export function isStrong(ing: Pick<Ingredient, "flavor" | "type">): boolean {
+  return ing.type === "flavoring" && ing.flavor.some((f) => STRONG_TAGS.has(f));
+}
+
 type Want = { sweetness?: Level | undefined; acidity?: Level | undefined; spice?: Level | undefined };
 
 /**

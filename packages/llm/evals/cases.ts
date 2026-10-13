@@ -96,6 +96,7 @@ export const CASES: EvalCase[] = [
   {
     id: "spicy-creative-mocktail",
     request: { strength: "zero", adventurousness: 2, prompt: "something with a tingle", spice: "high" },
+    expect: { strongOk: true },
   },
 
   // Flavour dials, mostly on mocktails where the bar has fewer ways to get there.

@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { DEFAULT_CATALOG as C } from "./catalog.ts";
-import { buildOrder, estimateAlcoholMl, estimateBalance, flavourMisses, flavourMissNote, formatAmount, validateRecipe } from "./recipe.ts";
+import { DEFAULT_CATALOG as C, KNOWN_EXTRAS } from "./catalog.ts";
+import { buildOrder, estimateAlcoholMl, estimateBalance, flavourMisses, flavourMissNote, formatAmount, isStrong, validateRecipe } from "./recipe.ts";
 
 describe("parts", () => {
   it("formats parts as jigger fractions", () => {
@@ -97,5 +97,14 @@ describe("spice", () => {
 
   it("doesn't count clove-ish bitters as heat", () => {
     assert.equal(flavourMisses(bitters, "highball", { spice: "high" }, C).length, 1);
+  });
+});
+
+describe("isStrong", () => {
+  it("picks out the flavourings that take over a drink, not the everyday ones or garnishes", () => {
+    const all = [...C.list, ...KNOWN_EXTRAS];
+    const strong = (id: string) => isStrong(all.find((i) => i.id === id)!);
+    for (const id of ["szechuan-syrup", "celery-syrup", "chilli-syrup", "vegemite", "liquid-smoke", "rose-water"]) assert.ok(strong(id), id);
+    for (const id of ["lime-juice", "agave-syrup", "angostura", "cream", "sage-leaf", "rum"]) assert.ok(!strong(id), id);
   });
 });

@@ -3,6 +3,7 @@ import {
   ALCOHOL_BUDGET,
   FILL_TO_ML,
   ML_PER_PART,
+  isStrong,
   offeredIngredients,
   SWEETNESS_BANDS,
   type Catalog,
@@ -38,6 +39,14 @@ const ADVENTURE_TEXT: Record<1 | 2 | 3, string> = {
   2: "Get creative. A recognisable structure with an unexpected twist: an unusual pairing, a surprising garnish, a flavour from an unexpected place.",
   3: "Go wild. Something they have never had before. Weird pairings that still taste good. Coffee and tonic. Chilli and pineapple. Saline in a sour. Take a real swing, but it must still be drinkable.",
 };
+
+/** Strong flavourings, by level. Empty if the bar has none. */
+function strongRule(available: readonly Ingredient[]): string {
+  const strong = available.filter(isStrong).map((i) => i.id);
+  if (!strong.length) return "";
+  return `
+- Strong flavourings: ${strong.join(", ")}. A little goes a long way. At 1, none. At 2, at most one, at its smallest measure (1 pump, drop or dash; 1/4 barspoon). At 3, one or two, still in small amounts. If the guest asks for something strong, salty or weird, or for high spice, follow the request instead.`;
+}
 
 function ingredientLine(i: Ingredient): string {
   const alc = i.alcoholic ? ` alcoholic${i.abv ? ` ${i.abv}%` : ""}` : "";
@@ -94,9 +103,9 @@ ${available.map(ingredientLine).join("\n")}
 - List ingredients in the order the bartender should add them: spirits and flavourings first, then juices and teas, sparkling things last.
 - 3 to 6 ingredients. At most 2 bases. Respect each ingredient's max. Keep it makeable in under 60 seconds.
 - Total liquid before any "fill" should be 2-4 parts for a highball, 2-3 parts for a rocks glass. "fill" tops the glass up to about ${FILL_TO_ML.highball / ML_PER_PART} parts (highball) or ${FILL_TO_ML.rocks / ML_PER_PART} parts (rocks).
-- The unusual flavourings (tinctures, liquid smoke, rose water, tannin, lactic acid) are the point at higher adventurousness, but one or two per drink, in small amounts. At adventurousness 1, use none of them.
 - Strength: ${STRENGTH_TEXT[ctx.request.strength]} Target ${budget.min}-${budget.max}ml of pure alcohol.
-- Adventurousness: ${ADVENTURE_TEXT[ctx.request.adventurousness]}
+- Adventurousness, on a scale of 1 to 3. This guest chose ${ctx.request.adventurousness}:
+${([1, 2, 3] as const).map((n) => `  ${n}. ${ADVENTURE_TEXT[n]}${n === ctx.request.adventurousness ? " <- this guest" : ""}`).join("\n")}${strongRule(available)}
 - Take the guest's request seriously and reflect it in the drink. If they name a specific classic, make that.
 - Name: short, memorable, dry humour welcome.
 - Balance: sugar and acid figures above are grams per 100ml of that ingredient. Work out roughly how sweet and sour the finished drink is (including the fill). Bands for the finished drink: sweetness ${Object.values(LEVEL_TEXT.sweetness).join("; ")}. Sourness ${Object.values(LEVEL_TEXT.acidity).join("; ")}.${
