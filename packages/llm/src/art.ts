@@ -31,10 +31,8 @@ export function artRequest(): string {
 Draw the concept behind what the guest asked for: the idea, image, mood or joke in their words. Not a cocktail, not a glass (unless their words are literally about one). If they didn't say anything, draw the idea behind the drink's name, not the drink. One clear subject, large in the frame, readable at 36mm. Wit is welcome.
 
 ## Style
-- Bold graphic illustration in the style of a good rubber stamp or linocut: confident black outlines (stroke-width 4 to 8), solid black shapes, lots of white paper.
-- Mostly black and white. Grey is allowed for at most two areas (a liquid, a sky, a shadow): a flat fill between #777 and #bbb, or a gradient between greys. It prints as dithered dots, so a little goes a long way.
+- Bold graphic illustration in the style of a good rubber stamp or linocut: confident black outlines, solid black shapes, lots of white paper.
 - Fill the frame: the subject spans most of the 256 units and is centred. No border or frame around it.
-- Nothing thinner than stroke-width 3. No tiny details; they vanish at this size.
 - Keep it workplace-appropriate: nothing sexual, violent, hateful, or about real people. If the request points there, draw something wholesome and witty instead.
 
 ## Format
