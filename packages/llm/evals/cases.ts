@@ -15,6 +15,8 @@ export interface EvalCase {
     excludes?: string[];
     /** Regex the name or description should match. */
     mentions?: string;
+    /** The guest asked for savoury/weird, so vegemite, peppercorn and celery aren't held to the usual limits. */
+    strongOk?: boolean;
   };
   /**
    * The same guest orders again with the first drink in their history. The
@@ -80,10 +82,12 @@ export const CASES: EvalCase[] = [
   {
     id: "savoury-classic",
     request: { strength: "full", adventurousness: 1, prompt: "something savoury" },
+    expect: { strongOk: true },
   },
   {
     id: "umami-creative",
     request: { strength: "full", adventurousness: 2, prompt: "salty, umami, a bit weird" },
+    expect: { strongOk: true },
   },
   {
     id: "umami-wild",

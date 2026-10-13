@@ -153,7 +153,7 @@ async function runCase(
     if (expect?.mentions && !new RegExp(expect.mentions, "i").test(`${proposal.name} ${proposal.description}`)) {
       failed.push(`expected text matching /${expect.mentions}/`);
     }
-    failed.push(...strongFlavourings(proposal, request.adventurousness));
+    if (!expect?.strongOk) failed.push(...strongFlavourings(proposal, request.adventurousness));
 
     const b = estimateBalance(proposal.recipe, proposal.glass, catalog);
     const dials: NonNullable<CaseResult["dials"]> = [];
@@ -193,7 +193,7 @@ async function runCase(
 }
 
 /**
- * Vegemite is for adventurousness 3 only. Szechuan peppercorn and celery seed:
+ * In an ordinary order (the guest didn't ask for savoury or weird), vegemite is for adventurousness 3 only. Szechuan peppercorn and celery seed:
  * none at 1, the smallest measure (one pump, two drops) at 2, anything at 3.
  */
 function strongFlavourings(p: Proposal, adventurousness: 1 | 2 | 3): string[] {
