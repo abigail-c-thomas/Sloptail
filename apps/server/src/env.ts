@@ -6,6 +6,8 @@ export interface Env {
   OPENROUTER_API_KEY: string;
   OPENROUTER_MODEL?: string;
   OPENROUTER_FALLBACK_MODELS?: string;
+  /** Model for the ticket drawing; defaults to OPENROUTER_MODEL. */
+  ART_MODEL?: string;
   /** none | low | medium | high; see OpenRouterOptions.reasoning */
   OPENROUTER_REASONING?: string;
   /** Reasoning effort for the ticket drawing; default medium. */

@@ -97,11 +97,13 @@ export type UserRequest = z.infer<typeof UserRequest>;
 // What the model proposes
 // ---------------------------------------------------------------------------
 
+// Key order is the order the model writes them in (the JSON schema follows it):
+// description after the recipe, so it describes the drink that was actually made.
 export const Proposal = z.object({
   name: z.string().min(1).max(60),
-  description: z.string().min(1).max(400),
   recipe: Recipe,
   glass: Glass,
+  description: z.string().min(1).max(400),
 });
 export type Proposal = z.infer<typeof Proposal>;
 

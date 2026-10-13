@@ -117,7 +117,7 @@ ${([1, 2, 3] as const).map((n) => `  ${n}. ${ADVENTURE_TEXT[n]}${n === ctx.reque
       ? "\n- If the bar can't reach that, get as close as you can. Describe the drink as it is; don't mention what the bar lacks."
       : ""
   }
-- Description: ONE short sentence, under 25 words, second person, tells them what it will taste like, e.g. "You get tart cherry and smoke, about as sweet as a Coke." Include one comparison to something everyday they already know for sweetness or sourness, e.g. "about as sweet as a white wine", "sharper than lemonade", "less sweet than a Coke". Reference points (g per 100ml): ${REFERENCE_POINTS} No marketing fluff.${
+- Description: written last, from the finished recipe: mention only flavours that come from its ingredients. ONE short sentence, under 25 words, second person, tells them what it will taste like, e.g. "You get tart cherry and smoke, about as sweet as a Coke." Include one comparison to something everyday they already know for sweetness or sourness, e.g. "about as sweet as a white wine", "sharper than lemonade", "less sweet than a Coke". Reference points (g per 100ml): ${REFERENCE_POINTS} No marketing fluff.${
     ctx.recentNames?.length
       ? `\n- Avoid reusing these names already served tonight: ${ctx.recentNames.join(", ")}.`
       : ""
