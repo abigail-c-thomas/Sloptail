@@ -35,8 +35,7 @@
     "OPENROUTER_FALLBACK_MODELS": "openai/gpt-5.6-luna,google/gemini-3.8-flash",
     "OPENROUTER_REASONING": "low",
     // The ticket drawing runs in the background, so it can think a bit longer.
-    // Kept on Luna: the drawings were tuned against it for the printer.
-    "ART_MODEL": "openai/gpt-5.6-luna",
+    // Same model as the drinks unless ART_MODEL is set.
     "ART_REASONING": "medium"
   }
 }
