@@ -64,7 +64,7 @@ export function formatAmount(item: RecipeItem, ingredient?: Ingredient, { decima
 /**
  * The recipe in the order to build it, which is the order things sit along
  * the bar: salt rim (before the ice goes in), spirits, wine (vermouths
- * included), mixers and teas, bitters and drops, pumps and other flavourings,
+ * included), mixers, teas and cream, bitters and drops, pumps and other flavourings,
  * Vegemite, then garnishes. Top-ups go after the other mixers. Within a group
  * the model's order stands.
  */
@@ -75,7 +75,7 @@ export function buildOrder(recipe: Recipe, catalog: Catalog): Recipe {
     if (ing.id === "salt-rim") return 0;
     if (ing.type === "garnish") return 8;
     if (ing.type === "base") return ing.flavor.includes("wine") || ing.flavor.includes("sparkling") ? 2 : 1;
-    if (ing.type === "mixer") return item.amount === "fill" ? 3.5 : 3;
+    if (ing.type === "mixer" || ing.id === "cream") return item.amount === "fill" ? 3.5 : 3;
     if (ing.id === "vegemite") return 7;
     if (ing.unit === "dash" || ing.unit === "drop") return 5;
     return 6;

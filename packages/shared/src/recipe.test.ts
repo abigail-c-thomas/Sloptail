@@ -57,7 +57,7 @@ describe("estimateBalance", () => {
 });
 
 describe("buildOrder", () => {
-  it("follows the bar: salt rim, spirits, wine, mixers (top-ups last), bitters, pumps, Vegemite, garnish", () => {
+  it("follows the bar: salt rim, spirits, wine, mixers and cream (top-ups last), bitters, pumps, Vegemite, garnish", () => {
     const ordered = buildOrder(
       [
         { ingredient: "mint-sprig", amount: 1 },
@@ -66,6 +66,7 @@ describe("buildOrder", () => {
         { ingredient: "ginger-beer", amount: "fill" },
         { ingredient: "angostura", amount: 2 },
         { ingredient: "black-tea", amount: 1 },
+        { ingredient: "cream", amount: 0.5 },
         { ingredient: "dry-vermouth", amount: 0.5 },
         { ingredient: "rum", amount: 1.5 },
         { ingredient: "lime-juice", amount: 0.5 },
@@ -75,7 +76,7 @@ describe("buildOrder", () => {
     );
     assert.deepEqual(
       ordered.map((r) => r.ingredient),
-      ["salt-rim", "rum", "dry-vermouth", "black-tea", "ginger-beer", "angostura", "chilli-syrup", "lime-juice", "vegemite", "mint-sprig"],
+      ["salt-rim", "rum", "dry-vermouth", "black-tea", "cream", "ginger-beer", "angostura", "chilli-syrup", "lime-juice", "vegemite", "mint-sprig"],
     );
   });
 });
