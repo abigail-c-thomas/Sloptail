@@ -24,7 +24,7 @@ import { svgToBitmap } from "./art.ts";
 
 const { values: args } = parseArgs({
   options: {
-    url: { type: "string", default: process.env.SLOPTAIL_URL ?? "https://sloptail.sloptail-server.workers.dev" },
+    url: { type: "string", default: process.env.SLOPTAIL_URL ?? "https://sloptail.com" },
     token: { type: "string", default: process.env.BAR_TOKEN },
     printer: { type: "string", default: process.env.PRINTER_HOST },
     https: { type: "boolean", default: false },

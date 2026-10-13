@@ -5,6 +5,15 @@
   "compatibility_date": "2025-06-01",
   "observability": { "enabled": true },
 
+  // Served at sloptail.com (Cloudflare-registered zone in the same account).
+  // The workers.dev address stays up as a fallback (Wrangler turns it off
+  // when routes are set unless it's explicit).
+  "workers_dev": true,
+  "routes": [
+    { "pattern": "sloptail.com", "custom_domain": true },
+    { "pattern": "www.sloptail.com", "custom_domain": true }
+  ],
+
   // The built React app. `npm run build` at the repo root produces it.
   "assets": {
     "directory": "../web/dist",

@@ -1,7 +1,7 @@
 /**
  * Load test: N virtual guests hit the deployed app at once.
  *
- *   node scripts/load.ts --url https://sloptail.sloptail-server.workers.dev --users 70 [--llm] [--token BAR_TOKEN]
+ *   node scripts/load.ts --url https://sloptail.com --users 70 [--llm] [--token BAR_TOKEN]
  *
  * Without --llm each guest orders a classic straight away (no model cost),
  * which exercises the Durable Object, ordering, polling and the bar view.
