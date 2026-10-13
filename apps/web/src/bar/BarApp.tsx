@@ -8,6 +8,8 @@ const POLL_MS = 2000;
 const STALE_AFTER_MS = 5 * 60 * 1000;
 /** The print bridge reports every couple of seconds; this long without one means it's gone. */
 const PRINTER_SILENT_MS = 20 * 1000;
+/** How long a picked-up drink stays listed, with Undo. */
+const UNDO_PICKUP_MS = 5 * 60 * 1000;
 
 /**
  * Bar screen. Three columns: what to make next (batched), what's being made,
@@ -83,6 +85,7 @@ export function BarApp() {
   const making = view?.queue.filter((o) => o.status === "making") ?? [];
   const catalog = view ? makeCatalog(view.catalog) : DEFAULT_CATALOG;
   const left = new Map(view?.stock.map((l) => [l.ingredient, Math.max(0, 1 - l.used / (l.stock || 1))]));
+  const pickedUp = view?.collected.filter((o) => now - (o.collectedAt ?? 0) < UNDO_PICKUP_MS) ?? [];
   const newFeedback = view?.feedback.filter((f) => f.status === "new").length ?? 0;
 
   return (
@@ -186,10 +189,10 @@ export function BarApp() {
                 </span>
               </div>
             ))}
-            {view?.collected.length ? (
+            {pickedUp.length ? (
               <>
                 <h3 className="muted small">Picked up</h3>
-                {view.collected.map((o) => (
+                {pickedUp.map((o) => (
                   <div key={o.id} className="row between ready-row muted">
                     <span>
                       {o.userName} <span className="small">{o.proposal.name}</span>
