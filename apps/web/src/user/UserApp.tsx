@@ -254,6 +254,7 @@ const LOADING_LINES = [
   "Retrying with a bigger model…",
   "Checking for feedback… (you can leave some in the sidebar!)",
   "Rolling a hotfix…",
+  "Loading skills/humor…",
   "Queuing an extra one for the bartender (they deserve it)…",
   "Checking whether we need to cut you off…",
   "Pretending this splash text is also AI-generated and not just from a big prewritten list…",
