@@ -6,7 +6,8 @@ import { api } from "../api.ts";
 const POLL_MS = 3000;
 
 /**
- * After submitting: poll the order until it's ready, then make a fuss.
+ * After submitting: poll the order until it's ready, then make a fuss. Keep
+ * polling while it's ready, in case the bar marks it picked up first.
  * Polling rather than push: phones lock, iOS web push needs a PWA install,
  * and the bar screen shows who's ready anyway.
  */
@@ -36,7 +37,7 @@ export function Tracking({
         if (cancelled) return;
         setOrder(o);
         setError(null);
-        if (o.status === "queued" || o.status === "making") timer = setTimeout(tick, POLL_MS);
+        if (o.status === "queued" || o.status === "making" || o.status === "ready") timer = setTimeout(tick, POLL_MS);
       } catch (e) {
         if (cancelled) return;
         setError((e as Error).message);
@@ -76,7 +77,12 @@ export function Tracking({
       setOrder(await api.collect(order.id, userId));
       setError(null);
     } catch (e) {
-      setError((e as Error).message);
+      // Most likely the bar already marked it picked up: show where it really is.
+      const latest = await api.order(order.id).catch(() => null);
+      if (latest && latest.status !== "ready") {
+        setOrder(latest);
+        setError(null);
+      } else setError((e as Error).message);
     } finally {
       setCollecting(false);
     }
