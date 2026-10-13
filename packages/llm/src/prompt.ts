@@ -35,7 +35,7 @@ const STRENGTH_TEXT: Record<Strength, string> = {
 };
 
 const ADVENTURE_TEXT: Record<1 | 2 | 3, string> = {
-  1: "Play it safe. Stick to a well-known classic, or a very close riff on one.",
+  1: "Boring on purpose. The plain, standard version of a well-known drink, poured the way any bar would: a spirit and a mixer, maybe a squeeze of lime. No twists, no unusual garnish.",
   2: "Get creative. A recognisable structure with an unexpected twist: an unusual pairing, a surprising garnish, a flavour from an unexpected place.",
   3: "Go wild. Something they have never had before. Weird pairings that still taste good. Coffee and tonic. Chilli and pineapple. Saline in a sour. Take a real swing, but it must still be drinkable.",
 };

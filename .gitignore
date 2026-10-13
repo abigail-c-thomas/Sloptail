@@ -9,3 +9,4 @@ dist/
 .obsidian/
 packages/llm/evals/results/
 CLAUDE.local.md
+.claude/settings.local.json

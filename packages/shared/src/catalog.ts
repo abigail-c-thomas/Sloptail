@@ -58,6 +58,7 @@ export const CATALOG: Ingredient[] = [
 export const KNOWN_EXTRAS: Ingredient[] = [
   { id: "dry-vermouth", name: "Dry vermouth", type: "base", flavor: ["herbal", "dry", "wine", "floral"], alcoholic: true, abv: 18, unit: "part", sugar: 3, acid: 0.5 },
   { id: "wine", name: "Wine", type: "base", flavor: ["dry", "fruity", "wine"], alcoholic: true, abv: 12, unit: "part", sugar: 0.3, acid: 0.6, notes: "Say red or white in the name" },
+  { id: "red-wine", name: "Red wine", type: "base", flavor: ["dry", "fruity", "wine", "tannic"], alcoholic: true, abv: 12, unit: "part", sugar: 0.3, acid: 0.6 },
   { id: "sparkling-wine", name: "Sparkling wine", type: "base", flavor: ["dry", "crisp", "sparkling"], alcoholic: true, abv: 11.5, unit: "part", sugar: 1, acid: 0.7 },
   { id: "non-alcoholic-spirit", name: "Non-alcoholic spirit", type: "base", flavor: ["botanical", "herbal", "dry"], alcoholic: false, unit: "part" },
   { id: "na-vodka", name: "Non-alcoholic vodka", type: "base", flavor: ["neutral", "clean", "peppery"], alcoholic: false, unit: "part" },

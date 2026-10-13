@@ -10,37 +10,38 @@ export interface Classic {
 
 /**
  * Menu for "not at all adventurous" guests and a fallback when the model is
- * down. Everything here is built in the glass from the default CATALOG;
- * classicsFor drops any that need something the current bar doesn't stock.
+ * down. Deliberately boring: the standard drink, poured the way any bar would,
+ * no twists and no fancy garnish. Everything is built in the glass from
+ * CATALOG or KNOWN_EXTRAS; classicsFor drops any that need something the
+ * current bar doesn't stock.
  */
 export const CLASSICS: Classic[] = [
+  // --- With alcohol ------------------------------------------------------
   {
     id: "dark-and-stormy",
     strengths: ["half", "full"],
     proposal: {
       name: "Dark & Stormy",
-      description: "Rum, lime and a lot of ginger beer. Spicy, cold, reliable.",
+      description: "Rum topped with ginger beer and a squeeze of lime.",
       glass: "highball",
       recipe: [
         { ingredient: "rum", amount: 1.5 },
-        { ingredient: "lime-juice", amount: 0.5 },
+        { ingredient: "lime-juice", amount: 0.25 },
         { ingredient: "ginger-beer", amount: "fill" },
-        { ingredient: "mint-sprig", amount: 1 },
       ],
     },
   },
   {
-    id: "cuba-libre",
+    id: "rum-and-coke",
     strengths: ["half", "full"],
     proposal: {
-      name: "Cuba Libre",
-      description: "Rum and Coke with enough lime to make it a cocktail.",
+      name: "Rum & Coke",
+      description: "Rum and Coke with a squeeze of lime.",
       glass: "highball",
       recipe: [
         { ingredient: "rum", amount: 1.5 },
         { ingredient: "lime-juice", amount: 0.25 },
         { ingredient: "cola", amount: "fill" },
-        { ingredient: "citrus-peel", amount: 1 },
       ],
     },
   },
@@ -48,14 +49,53 @@ export const CLASSICS: Classic[] = [
     id: "whiskey-ginger",
     strengths: ["half", "full"],
     proposal: {
-      name: "Whiskey Ginger",
-      description: "Whiskey, ginger beer, a dash of bitters. The grown-up highball.",
+      name: "Whiskey & Ginger",
+      description: "Whiskey topped with ginger beer.",
       glass: "highball",
       recipe: [
         { ingredient: "whiskey", amount: 1.5 },
-        { ingredient: "angostura", amount: 2 },
         { ingredient: "ginger-beer", amount: "fill" },
-        { ingredient: "citrus-peel", amount: 1 },
+      ],
+    },
+  },
+  {
+    id: "whiskey-and-coke",
+    strengths: ["half", "full"],
+    proposal: {
+      name: "Whiskey & Coke",
+      description: "Whiskey and Coke.",
+      glass: "highball",
+      recipe: [
+        { ingredient: "whiskey", amount: 1.5 },
+        { ingredient: "cola", amount: "fill" },
+      ],
+    },
+  },
+  {
+    id: "vodka-lime-soda",
+    strengths: ["half", "full"],
+    proposal: {
+      name: "Vodka Soda",
+      description: "Vodka and soda with a squeeze of lime.",
+      glass: "highball",
+      recipe: [
+        { ingredient: "vodka", amount: 1.5 },
+        { ingredient: "lime-juice", amount: 0.25 },
+        { ingredient: "soda", amount: "fill" },
+      ],
+    },
+  },
+  {
+    id: "vodka-tonic",
+    strengths: ["half", "full"],
+    proposal: {
+      name: "Vodka Tonic",
+      description: "Vodka and tonic with a squeeze of lime.",
+      glass: "highball",
+      recipe: [
+        { ingredient: "vodka", amount: 1.5 },
+        { ingredient: "lime-juice", amount: 0.25 },
+        { ingredient: "tonic", amount: "fill" },
       ],
     },
   },
@@ -64,42 +104,110 @@ export const CLASSICS: Classic[] = [
     strengths: ["half", "full"],
     proposal: {
       name: "Mezcal & Tonic",
-      description: "Smoke and quinine. Like a gin and tonic that's been to a bonfire.",
+      description: "Mezcal and tonic with a twist of citrus peel. Smoky.",
       glass: "highball",
       recipe: [
         { ingredient: "mezcal", amount: 1.5 },
         { ingredient: "tonic", amount: "fill" },
-        { ingredient: "rosemary-sprig", amount: 1 },
+        { ingredient: "citrus-peel", amount: 1 },
       ],
     },
   },
   {
-    id: "vodka-lime-soda",
+    id: "vermouth-tonic",
     strengths: ["half", "full"],
     proposal: {
-      name: "Vodka Lime Soda",
-      description: "Exactly what it says. Clean and cold.",
+      name: "Vermouth & Tonic",
+      description: "Dry vermouth and tonic with a twist of citrus peel. Light and dry.",
       glass: "highball",
       recipe: [
-        { ingredient: "vodka", amount: 1.5 },
+        { ingredient: "dry-vermouth", amount: 2.5 },
+        { ingredient: "tonic", amount: "fill" },
+        { ingredient: "citrus-peel", amount: 1 },
+      ],
+    },
+  },
+  {
+    id: "kalimotxo",
+    strengths: ["half", "full"],
+    proposal: {
+      name: "Kalimotxo",
+      description: "Red wine and Coke, half and half. The Basque classic.",
+      glass: "highball",
+      recipe: [
+        { ingredient: "red-wine", amount: 4 },
+        { ingredient: "cola", amount: "fill" },
+      ],
+    },
+  },
+
+  // --- Without -----------------------------------------------------------
+  {
+    id: "na-whiskey-ginger",
+    strengths: ["zero", "trace"],
+    proposal: {
+      name: "Zero Whiskey & Ginger",
+      description: "Non-alcoholic whiskey topped with ginger beer.",
+      glass: "highball",
+      recipe: [
+        { ingredient: "na-whiskey", amount: 1.5 },
+        { ingredient: "ginger-beer", amount: "fill" },
+      ],
+    },
+  },
+  {
+    id: "na-vodka-soda",
+    strengths: ["zero", "trace"],
+    proposal: {
+      name: "Zero Vodka Soda",
+      description: "Non-alcoholic vodka and soda with a squeeze of lime.",
+      glass: "highball",
+      recipe: [
+        { ingredient: "na-vodka", amount: 1.5 },
+        { ingredient: "lime-juice", amount: 0.25 },
+        { ingredient: "soda", amount: "fill" },
+      ],
+    },
+  },
+  {
+    id: "na-ranch-water",
+    strengths: ["zero", "trace"],
+    proposal: {
+      name: "Zero Ranch Water",
+      description: "Non-alcoholic tequila, lime and soda.",
+      glass: "highball",
+      recipe: [
+        { ingredient: "na-tequila", amount: 1.5 },
         { ingredient: "lime-juice", amount: 0.5 },
         { ingredient: "soda", amount: "fill" },
-        { ingredient: "mint-sprig", amount: 1 },
       ],
     },
   },
   {
-    id: "gold-rush-highball",
-    strengths: ["half", "full"],
+    id: "lime-soda-bitters",
+    strengths: ["trace"],
     proposal: {
-      name: "Gold Rush Highball",
-      description: "Whiskey, honey and lime, lengthened with soda.",
+      name: "Lime, Soda & Bitters",
+      description: "Soda, lime, a little sweetness and a few dashes of bitters.",
       glass: "highball",
       recipe: [
-        { ingredient: "whiskey", amount: 1.5 },
-        { ingredient: "honey-syrup", amount: 2 },
-        { ingredient: "lime-juice", amount: 0.75 },
+        { ingredient: "angostura", amount: 3 },
+        { ingredient: "agave-syrup", amount: 1 },
+        { ingredient: "lime-juice", amount: 0.5 },
         { ingredient: "soda", amount: "fill" },
+      ],
+    },
+  },
+  {
+    id: "ginger-lime",
+    strengths: ["zero", "trace"],
+    proposal: {
+      name: "Ginger Beer & Lime",
+      description: "Ginger beer with a squeeze of lime.",
+      glass: "highball",
+      recipe: [
+        { ingredient: "lime-juice", amount: 0.25 },
+        { ingredient: "ginger-beer", amount: "fill" },
       ],
     },
   },
@@ -107,59 +215,40 @@ export const CLASSICS: Classic[] = [
     id: "pineapple-ginger-fizz",
     strengths: ["zero", "trace"],
     proposal: {
-      name: "Pineapple Ginger Fizz",
-      description: "Pineapple, lime and ginger beer. Tastes like a holiday you didn't book.",
+      name: "Pineapple & Ginger Beer",
+      description: "Pineapple juice topped with ginger beer.",
       glass: "highball",
       recipe: [
         { ingredient: "pineapple-juice", amount: 2 },
-        { ingredient: "lime-juice", amount: 0.25 },
         { ingredient: "ginger-beer", amount: "fill" },
-        { ingredient: "mint-sprig", amount: 1 },
       ],
     },
   },
   {
-    id: "honey-iced-tea",
+    id: "iced-tea",
     strengths: ["zero", "trace"],
     proposal: {
-      name: "Honey Iced Tea",
-      description: "Strong black tea, dark honey, lime, topped with soda. Dry and refreshing.",
+      name: "Iced Tea",
+      description: "Cold black tea with honey and lime.",
       glass: "highball",
       recipe: [
-        { ingredient: "black-tea", amount: 3 },
+        { ingredient: "black-tea", amount: 4 },
         { ingredient: "honey-syrup", amount: 1 },
         { ingredient: "lime-juice", amount: 0.25 },
         { ingredient: "soda", amount: "fill" },
-        { ingredient: "citrus-peel", amount: 1 },
       ],
     },
   },
   {
-    id: "chamomile-tonic",
+    id: "coke-and-lime",
     strengths: ["zero", "trace"],
     proposal: {
-      name: "Chamomile Tonic",
-      description: "Floral tea and bitter tonic. Calming and bracing at the same time.",
+      name: "Coke & Lime",
+      description: "Coke with a squeeze of lime.",
       glass: "highball",
       recipe: [
-        { ingredient: "herbal-tea", amount: 2 },
-        { ingredient: "tonic", amount: "fill" },
-        { ingredient: "rosemary-sprig", amount: 1 },
-      ],
-    },
-  },
-  {
-    id: "bitter-ginger",
-    strengths: ["trace"],
-    proposal: {
-      name: "Bitter Ginger",
-      description: "Ginger beer, lime and a few dashes of bitters. Grown-up and dry.",
-      glass: "highball",
-      recipe: [
-        { ingredient: "ginger-beer", amount: "fill" },
-        { ingredient: "lime-juice", amount: 0.5 },
-        { ingredient: "angostura", amount: 3 },
-        { ingredient: "citrus-peel", amount: 1 },
+        { ingredient: "lime-juice", amount: 0.25 },
+        { ingredient: "cola", amount: "fill" },
       ],
     },
   },
