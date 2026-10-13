@@ -1,6 +1,6 @@
-import { useCallback, useEffect, useMemo, useReducer, useState } from "react";
+import { useCallback, useEffect, useReducer, useState } from "react";
 import type { Adventurousness, Level, Order, Proposal, Strength, UserRequest } from "@sloptail/shared";
-import { classicsFor, DEFAULT_CATALOG, insertSequels, makeCatalog, nextLine, withoutSequels, type Sequels } from "@sloptail/shared";
+import { classicsFor, DEFAULT_CATALOG, makeCatalog, nextLine, type Sequels } from "@sloptail/shared";
 import {
   Banner,
   Button,
@@ -20,9 +20,11 @@ import { api, ApiError, type NamedGuest } from "../api.ts";
 import {
   loadActiveOrder,
   loadLastRequest,
+  loadLastTechIdea,
   loadUser,
   saveActiveOrder,
   saveLastRequest,
+  saveLastTechIdea,
   saveUser,
 } from "../storage.ts";
 import { FeedbackForm } from "./FeedbackForm.tsx";
@@ -69,6 +71,8 @@ interface State {
   orderId?: string;
   /** Other guests who ordered under the name just typed: "same abi who ordered X?" */
   sameName?: NamedGuest[];
+  /** Goes up with each new drink; prompt ideas are picked once per drink. */
+  drink: number;
 }
 
 type Action =
@@ -151,6 +155,7 @@ function reducer(s: State, a: Action): State {
         ...(a.keepPrefs ? { kind: s.kind, strength: s.strength, adventurousness: s.adventurousness } : {}),
         prompt: "",
         seen: s.seen,
+        drink: s.drink + 1,
       };
   }
 }
@@ -160,8 +165,8 @@ function initialState(): State {
   const last = loadLastRequest();
   const active = loadActiveOrder();
   const prefs = last ? { kind: kindOf(last.strength), strength: last.strength, adventurousness: last.adventurousness } : {};
-  if (active) return { step: "tracking", name: user.name, prompt: "", seen: [], orderId: active, ...prefs };
-  return { step: user.name ? "kind" : "name", name: user.name, prompt: "", seen: [], ...prefs };
+  if (active) return { step: "tracking", name: user.name, prompt: "", seen: [], drink: 0, orderId: active, ...prefs };
+  return { step: user.name ? "kind" : "name", name: user.name, prompt: "", seen: [], drink: 0, ...prefs };
 }
 
 const STEP_ORDER: Step[] = ["name", "kind", "strength", "adventure", "prompt", "proposal"];
@@ -234,12 +239,14 @@ function shuffle<T>(arr: readonly T[]): T[] {
   return copy;
 }
 
-/** The rollback only ever shows up, and always shows up, right after the roll. */
+/** Delayed gratification: the rollback is the tech idea on the drink after the roll, and only then. */
 const IDEA_SEQUELS: Sequels = { "Rolling at 6pm on a Friday": "Rolling back at 6:05pm on a Friday" };
 
+/** Each drink's tech idea follows on from the last drink's (remembered on the phone). */
 function pickIdeas(): string[] {
-  const picked = shuffle([...shuffle(withoutSequels(TECH_IDEAS, IDEA_SEQUELS)).slice(0, 1), ...shuffle(OTHER_IDEAS).slice(0, 2)]);
-  return insertSequels(picked, IDEA_SEQUELS);
+  const tech = nextLine(loadLastTechIdea(), TECH_IDEAS, IDEA_SEQUELS);
+  saveLastTechIdea(tech);
+  return shuffle([tech, ...shuffle(OTHER_IDEAS).slice(0, 2)]);
 }
 
 const LOADING_LINES = [
@@ -281,7 +288,11 @@ function LoadingLine() {
 export function UserApp() {
   const [s, dispatch] = useReducer(reducer, undefined, initialState);
   const [drawer, setDrawer] = useState(false);
-  const ideas = useMemo(pickIdeas, []);
+  // Picked when the prompt step is first shown for each drink, so a guest who never sees them doesn't use up the roll.
+  const [ideas, setIdeas] = useState<{ drink: number; list: string[] } | null>(null);
+  useEffect(() => {
+    if (s.step === "prompt" && ideas?.drink !== s.drink) setIdeas({ drink: s.drink, list: pickIdeas() });
+  }, [s.step, s.drink, ideas]);
   const user = loadUser();
   const [catalog, setCatalog] = useState(DEFAULT_CATALOG);
   useEffect(() => {
@@ -493,7 +504,7 @@ export function UserApp() {
               onChange={(e) => dispatch({ type: "prompt", prompt: e.target.value })}
               maxLength={500}
             />
-            <Suggestions items={ideas} onPick={(p) => dispatch({ type: "prompt", prompt: p })} />
+            <Suggestions items={ideas?.list ?? []} onPick={(p) => dispatch({ type: "prompt", prompt: p })} />
             <Button size="lg" onClick={generate}>
               Make something up
             </Button>

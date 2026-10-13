@@ -12,6 +12,7 @@ export interface LocalUser {
 const KEY_USER = "sloptail:user";
 const KEY_REQUEST = "sloptail:lastRequest";
 const KEY_ACTIVE = "sloptail:activeOrder";
+const KEY_LAST_IDEA = "sloptail:lastTechIdea";
 
 function read<T>(key: string): T | null {
   try {
@@ -48,3 +49,7 @@ export const saveLastRequest = (r: UserRequest) => write(KEY_REQUEST, r);
 
 export const loadActiveOrder = () => read<string>(KEY_ACTIVE);
 export const saveActiveOrder = (id: string | null) => write(KEY_ACTIVE, id);
+
+/** The tech prompt idea shown for the last drink, so the next drink's can follow on from it. */
+export const loadLastTechIdea = () => read<string>(KEY_LAST_IDEA) ?? undefined;
+export const saveLastTechIdea = (idea: string) => write(KEY_LAST_IDEA, idea);
