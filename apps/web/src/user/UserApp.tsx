@@ -182,6 +182,21 @@ const TECH_IDEAS = [
   "Reply-all to firmwide@",
   "Internet 1.0",
   "The Metaverse",
+  "Friday afternoon deploy",
+  "DNS. It's always DNS",
+  "Merge conflict in package-lock.json",
+  "Rewrite it in Rust",
+  "The on-call pager at 3am",
+  "Legacy code nobody wants to touch",
+  "A meeting that could have been an email",
+  "Rubber duck debugging",
+  "Off-by-one error",
+  "LGTM (didn't read it)",
+  "The cloud is just someone else's computer",
+  "Context window full",
+  "Vibe coding",
+  "Quarterly planning offsite",
+  "Ignore all previous instructions",
 ];
 
 const OTHER_IDEAS = [
@@ -207,6 +222,24 @@ const OTHER_IDEAS = [
   "Lemurs in space",
   "Sitting in bed with a good book. It's raining outside",
   "According to all known laws of aviation, there is no way that a bee should be able to fly",
+  "First warm day of spring",
+  "Last day of the holiday",
+  "Bonfire on the beach",
+  "Cold swim in the sea",
+  "Wedding dancefloor at 1am",
+  "Late-night kebab",
+  "Cinema popcorn",
+  "Grandma's kitchen",
+  "A very confident pigeon",
+  "A goose that's had enough",
+  "Caught in the rain without a jacket",
+  "Heatwave in a flat with no air con",
+  "Camping, but it's raining",
+  "Moving house",
+  "Dentist's waiting room",
+  "The smell of a new book",
+  "The slow-motion walk towards the camera at the end of a heist film",
+  "A biscuit tin that turns out to be full of sewing stuff",
 ];
 
 function shuffle<T>(arr: readonly T[]): T[] {
@@ -228,6 +261,12 @@ const LOADING_LINES = [
   "Rebalancing the sour…",
   "Checking what we haven't run out of…",
   "Naming things is hard…",
+  "Pretending to shake it…",
+  "Counting ice cubes…",
+  "Pumping the agave…",
+  "Running the evals…",
+  "Asking a smaller model…",
+  "Checking the Vegemite wasn't a typo…",
 ];
 
 // ---------------------------------------------------------------------------
