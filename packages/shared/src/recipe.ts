@@ -64,9 +64,9 @@ export function formatAmount(item: RecipeItem, ingredient?: Ingredient, { decima
 /**
  * The recipe in the order to build it, which is the order things sit along
  * the bar: salt rim (before the ice goes in), spirits, wine (vermouths
- * included), mixers and teas, bitters and drops, pumps, Vegemite, then
- * garnishes. Top-ups go after the other mixers. Within a group the model's
- * order stands.
+ * included), mixers and teas, bitters and drops, pumps and other flavourings,
+ * Vegemite, then garnishes. Top-ups go after the other mixers. Within a group
+ * the model's order stands.
  */
 export function buildOrder(recipe: Recipe, catalog: Catalog): Recipe {
   const rank = (item: RecipeItem): number => {
@@ -76,7 +76,7 @@ export function buildOrder(recipe: Recipe, catalog: Catalog): Recipe {
     if (ing.type === "garnish") return 8;
     if (ing.type === "base") return ing.flavor.includes("wine") || ing.flavor.includes("sparkling") ? 2 : 1;
     if (ing.type === "mixer") return item.amount === "fill" ? 3.5 : 3;
-    if (ing.unit === "barspoon") return 7;
+    if (ing.id === "vegemite") return 7;
     if (ing.unit === "dash" || ing.unit === "drop") return 5;
     return 6;
   };
