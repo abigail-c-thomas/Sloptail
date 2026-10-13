@@ -22,12 +22,13 @@ export const CLASSICS: Classic[] = [
     strengths: ["half", "full"],
     proposal: {
       name: "Dark & Stormy",
-      description: "Rum topped with ginger beer and a squeeze of lime.",
+      description: "Rum topped with ginger beer and a squeeze of lime, with a sprig of mint.",
       glass: "highball",
       recipe: [
         { ingredient: "rum", amount: 1.5 },
         { ingredient: "lime-juice", amount: 0.25 },
         { ingredient: "ginger-beer", amount: "fill" },
+        { ingredient: "mint-sprig", amount: 1 },
       ],
     },
   },
@@ -76,12 +77,13 @@ export const CLASSICS: Classic[] = [
     strengths: ["half", "full"],
     proposal: {
       name: "Vodka Soda",
-      description: "Vodka and soda with a squeeze of lime.",
+      description: "Vodka and soda with a squeeze of lime and a sprig of mint.",
       glass: "highball",
       recipe: [
         { ingredient: "vodka", amount: 1.5 },
         { ingredient: "lime-juice", amount: 0.25 },
         { ingredient: "soda", amount: "fill" },
+        { ingredient: "mint-sprig", amount: 1 },
       ],
     },
   },
@@ -160,12 +162,13 @@ export const CLASSICS: Classic[] = [
     strengths: ["zero", "trace"],
     proposal: {
       name: "Zero Vodka Soda",
-      description: "Non-alcoholic vodka and soda with a squeeze of lime.",
+      description: "Non-alcoholic vodka and soda with a squeeze of lime and a sprig of mint.",
       glass: "highball",
       recipe: [
         { ingredient: "na-vodka", amount: 1.5 },
         { ingredient: "lime-juice", amount: 0.25 },
         { ingredient: "soda", amount: "fill" },
+        { ingredient: "mint-sprig", amount: 1 },
       ],
     },
   },
@@ -216,11 +219,12 @@ export const CLASSICS: Classic[] = [
     strengths: ["zero", "trace"],
     proposal: {
       name: "Pineapple & Ginger Beer",
-      description: "Pineapple juice topped with ginger beer.",
+      description: "Pineapple juice topped with ginger beer, with a sprig of mint.",
       glass: "highball",
       recipe: [
         { ingredient: "pineapple-juice", amount: 2 },
         { ingredient: "ginger-beer", amount: "fill" },
+        { ingredient: "mint-sprig", amount: 1 },
       ],
     },
   },

@@ -34,7 +34,7 @@ describe("classics", () => {
     assert.deepEqual(mt.proposal.recipe.map((r) => r.ingredient), ["mezcal", "tonic"]);
   });
 
-  it("keeps it plain: no unusual flavourings, at most one garnish", () => {
+  it("keeps it plain: no unusual flavourings, at most one garnish (mint is fine)", () => {
     const unusual = new Set(["liquid-smoke", "rose-water", "szechuan-syrup", "celery-syrup", "chilli-syrup", "vegemite", "cream", "pomegranate-molasses"]);
     for (const c of CLASSICS) {
       assert.ok(!c.proposal.recipe.some((r) => unusual.has(r.ingredient)), c.id);
